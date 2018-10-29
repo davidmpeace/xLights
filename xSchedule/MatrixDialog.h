@@ -2,48 +2,51 @@
 #define MATRIXDIALOG_H
 
 //(*Headers(MatrixDialog)
+#include <wx/button.h>
+#include <wx/choice.h>
+#include <wx/dialog.h>
 #include <wx/sizer.h>
+#include <wx/spinctrl.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
-#include <wx/spinctrl.h>
-#include <wx/choice.h>
-#include <wx/button.h>
-#include <wx/dialog.h>
 //*)
+
+class OutputManager;
 
 class MatrixDialog: public wxDialog
 {
+    OutputManager* _outputManager;
     std::string& _name;
     int& _stringLength;
     int& _strings;
     int& _strandsPerString;
-    long& _startChannel;
+    std::string& _startChannel;
     std::string& _orientation;
     std::string& _startingLocation;
-    void SetChoiceFromString(wxChoice* choice, std::string value);
 
 	public:
 
-		MatrixDialog(wxWindow* parent, std::string& name, std::string& orientation, std::string& startLocation, int& stringLength, int& _strings, int& _strandsPerString, long& _startChannel, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
+		MatrixDialog(wxWindow* parent, OutputManager* outputManager, std::string& name, std::string& orientation, std::string& startLocation, int& stringLength, int& _strings, int& _strandsPerString, std::string& _startChannel, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
 		virtual ~MatrixDialog();
 
 		//(*Declarations(MatrixDialog)
-		wxChoice* Choice_Orientation;
-		wxButton* Button_Ok;
-		wxTextCtrl* TextCtrl_Name;
-		wxStaticText* StaticText2;
-		wxStaticText* StaticText6;
-		wxSpinCtrl* SpinCtrl_StringLength;
-		wxSpinCtrl* SpinCtrl_StrandsPerString;
-		wxStaticText* StaticText1;
-		wxStaticText* StaticText3;
-		wxSpinCtrl* SpinCtrl_Strings;
-		wxStaticText* StaticText5;
-		wxStaticText* StaticText7;
 		wxButton* Button_Cancel;
+		wxButton* Button_Ok;
+		wxChoice* Choice_Orientation;
 		wxChoice* Choice_StartLocation;
+		wxSpinCtrl* SpinCtrl_StrandsPerString;
+		wxSpinCtrl* SpinCtrl_StringLength;
+		wxSpinCtrl* SpinCtrl_Strings;
+		wxStaticText* StaticText1;
+		wxStaticText* StaticText2;
+		wxStaticText* StaticText3;
 		wxStaticText* StaticText4;
-		wxSpinCtrl* SpinCtrl_StartChannel;
+		wxStaticText* StaticText5;
+		wxStaticText* StaticText6;
+		wxStaticText* StaticText7;
+		wxStaticText* StaticText8;
+		wxTextCtrl* TextCtrl_Name;
+		wxTextCtrl* TextCtrl_StartChannel;
 		//*)
 
 	protected:
@@ -58,7 +61,8 @@ class MatrixDialog: public wxDialog
 		static const long ID_STATICTEXT2;
 		static const long ID_SPINCTRL3;
 		static const long ID_STATICTEXT3;
-		static const long ID_SPINCTRL4;
+		static const long ID_TEXTCTRL2;
+		static const long ID_STATICTEXT8;
 		static const long ID_STATICTEXT5;
 		static const long ID_CHOICE1;
 		static const long ID_STATICTEXT6;
@@ -72,7 +76,10 @@ class MatrixDialog: public wxDialog
 		//(*Handlers(MatrixDialog)
 		void OnButton_OkClick(wxCommandEvent& event);
 		void OnButton_CancelClick(wxCommandEvent& event);
+		void OnTextCtrl_StartChannelText(wxCommandEvent& event);
 		//*)
+
+        void ValidateWindow();
 
 		DECLARE_EVENT_TABLE()
 };

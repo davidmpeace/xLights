@@ -1,19 +1,12 @@
-#include "PhonemeDictionary.h"
 #include <wx/txtstrm.h>
 #include <wx/wfstream.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
 #include <wx/msgdlg.h>
 
-PhonemeDictionary::PhonemeDictionary()
-{
+#include "PhonemeDictionary.h"
 
-}
-
-PhonemeDictionary::~PhonemeDictionary()
-{
-
-}
+#include <log4cpp/Category.hh>
 
 void PhonemeDictionary::LoadDictionaries(const wxString &showDir)
 {
@@ -21,33 +14,30 @@ void PhonemeDictionary::LoadDictionaries(const wxString &showDir)
 		return;
 
     LoadDictionary("user_dictionary", showDir);
-    LoadDictionary("standard_dictionary", showDir);
-    LoadDictionary("extended_dictionary", showDir);
+    LoadDictionary("standard_dictionary", showDir, wxFONTENCODING_ISO8859_1);
+    LoadDictionary("extended_dictionary", showDir, wxFONTENCODING_ISO8859_1);
 
     wxFileName phonemeFile = wxFileName::FileName(wxStandardPaths::Get().GetExecutablePath());
     phonemeFile.SetFullName("phoneme_mapping");
     if (!wxFile::Exists(phonemeFile.GetFullPath())) {
         phonemeFile = wxFileName(wxStandardPaths::Get().GetResourcesDir(), "phoneme_mapping");
     }
-    if (!wxFile::Exists(phonemeFile.GetFullPath()))
-    {
+    if (!wxFile::Exists(phonemeFile.GetFullPath())) {
         wxMessageBox("Failed to open Phoneme Mapping file!");
         return;
     }
 
     wxFileInputStream input(phonemeFile.GetFullPath());
-    wxTextInputStream text(input);
+    wxTextInputStream text(input, " \t", wxConvAuto(wxFONTENCODING_UTF8));
 
-	while(input.IsOk() && !input.Eof())
-    {
+	while(input.IsOk() && !input.Eof()) {
         wxString line = text.ReadLine();
         line = line.Trim();
-        if (line.Left(1) == "#" || line.Length() == 0)
+        if (line.Length() == 0 || line.Left(1) == "#" || line.Left(2) == ";;")
             continue; // skip comments
 
 		wxArrayString strList = wxSplit(line,' ');
-        if (strList.size() > 1)
-        {
+        if (strList.size() > 1) {
             if (strList[0] == ".")
                 phonemes.push_back(strList[1]);
             else
@@ -56,36 +46,44 @@ void PhonemeDictionary::LoadDictionaries(const wxString &showDir)
     }
 }
 
-void PhonemeDictionary::LoadDictionary(const wxString &filename, const wxString &showDir)
+void PhonemeDictionary::LoadDictionary(const wxString &filename, const wxString &showDir, wxFontEncoding defEnc)
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
+    // start looking for dictionary in the show folder
     wxFileName phonemeFile = wxFileName::DirName(showDir);
     phonemeFile.SetFullName(filename);
+
+    // if not there then look were the exe is
     if (!wxFile::Exists(phonemeFile.GetFullPath())) {
         phonemeFile = wxFileName::FileName(wxStandardPaths::Get().GetExecutablePath());
         phonemeFile.SetFullName(filename);
     }
+
+    // if not there look in the resources location (OSX/Linux keeps it there)
     if (!wxFile::Exists(phonemeFile.GetFullPath())) {
         phonemeFile = wxFileName(wxStandardPaths::Get().GetResourcesDir(), filename);
     }
-    if (!wxFile::Exists(phonemeFile.GetFullPath()))
-    {
+
+    if (!wxFile::Exists(phonemeFile.GetFullPath())) {
+        logger_base.warn("Failed to open phoneme dictionary. '%s'", (const char *)filename.c_str());
         wxMessageBox("Failed to open Phoneme dictionary!");
         return;
     }
 
-    wxFileInputStream input(phonemeFile.GetFullPath());
-    wxTextInputStream text(input);
+    logger_base.debug("Loading phoneme dictionary. '%s'", (const char *)phonemeFile.GetFullPath().c_str());
 
-	while(input.IsOk() && !input.Eof())
-	{
+    wxFileInputStream input(phonemeFile.GetFullPath());
+    wxTextInputStream text(input, " \t", wxConvAuto(defEnc));
+
+	while(input.IsOk() && !input.Eof()) {
 		wxString line = text.ReadLine();
 		line = line.Trim();
-		if (line.Left(1) == "#" || line.Length() == 0)
+        if (line.Length() == 0 || line.Left(2) == "##" || line.Left(2) == ";;")
 			continue; // skip comments
 
 		wxArrayString strList = wxSplit(line,' ');
-		if (strList.size() > 1)
-		{
+		if (strList.size() > 1) {
 			if (!phoneme_dict.count(strList[0]))
 				phoneme_dict.insert( std::pair<wxString, wxArrayString>(strList[0], strList));
 		}
@@ -107,22 +105,39 @@ void PhonemeDictionary::BreakdownWord(const wxString& text, wxArrayString& phone
     word.Replace(")", "");
     word.Replace("]", "");
     phonemes.Clear();
-	wxArrayString pronunciation;
-    pronunciation = phoneme_dict[word.Upper()];
-    if (pronunciation.size() > 1)
-    {
-        for (int i = 1; i < pronunciation.size(); i++)
-        {
+
+    if (!phoneme_dict.count(word.Upper())) return;
+
+    wxArrayString pronunciation = phoneme_dict.at(word.Upper());
+    if (pronunciation.size() > 1) {
+        for (int i = 1; i < pronunciation.size(); i++) {
+
             wxString p = pronunciation[i];
-            if (p.length() == 0)
-                continue;
-            if (phoneme_map.count(p))
-            {
-               phonemes.push_back(phoneme_map[p]);
+            if (p.length() == 0) continue;
+            
+            if (phoneme_map.count(p)) {
+                bool skip = false;
+                if (phoneme_map[p] == "etc") {
+                    if (phonemes.Count() > 0) {
+                        if (phonemes.Last() == "etc") {
+                            skip = true;
+                        }
+                    }
+                }
+                if (!skip) {
+                    phonemes.push_back(phoneme_map[p]);
+                }
             }
-            else
-            {
-               phonemes.push_back("etc");
+            else {
+                bool skip = false;
+                if (phonemes.Count() > 0) {
+                    if (phonemes.Last() == "etc") {
+                        skip = true;
+                    }
+                }
+                if (!skip) {
+                    phonemes.push_back(phoneme_map[p]);
+                }
             }
         }
     }
@@ -147,4 +162,26 @@ void PhonemeDictionary::InsertSpacesAfterPunctuation(wxString& text)
             }
         }
     }
+}
+
+void PhonemeDictionary::InsertPhoneme(const wxArrayString& phonemes)
+{
+    if (phoneme_dict.count(phonemes[0]))
+    {
+        phoneme_dict.erase(phonemes[0]);
+    }
+    phoneme_dict.insert(std::pair<wxString, wxArrayString>(phonemes[0], phonemes));
+}
+
+void PhonemeDictionary::RemovePhoneme(const wxString & text)
+{
+    phoneme_dict.erase(text);
+}
+
+wxArrayString PhonemeDictionary::GetPhonemeList()
+{
+    wxArrayString keys;
+    std::transform(std::begin(phoneme_dict), std::end(phoneme_dict), std::back_inserter(keys),
+        [](auto const& val) { return wxString(val.first); });
+    return keys;
 }

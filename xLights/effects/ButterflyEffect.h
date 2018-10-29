@@ -17,8 +17,11 @@ class ButterflyEffect : public RenderableEffect
     public:
         ButterflyEffect(int id);
         virtual ~ButterflyEffect();
-        virtual void SetDefaultParameters(Model *cls) override;
+        virtual void SetDefaultParameters() override;
         virtual void Render(Effect *effect, SettingsMap &settings, RenderBuffer &buffer) override;
+        virtual bool AppropriateOnNodes() const override { return false; }
+        virtual bool CanRenderPartialTimeInterval() const override { return true; }
+        virtual bool SupportsRenderCache() const override { return true; }
 
     protected:
         virtual wxPanel *CreatePanel(wxWindow *parent) override;

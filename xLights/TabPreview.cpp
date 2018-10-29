@@ -1,15 +1,16 @@
 #include "xLightsMain.h"
-#include "heartbeat.h"
-#include "DrawGLUtils.h"
-#include "SaveChangesDialog.h"
-#include "models/Model.h"
 #include "xLightsXmlFile.h"
+#include "ModelPreview.h"
 #include "HousePreviewPanel.h"
+#include "LayoutPanel.h"
+#include "osxMacUtils.h"
 
 #define PREVIEWROTATIONFACTOR 3
 
-#include "LayoutPanel.h"
-#include "osxMacUtils.h"
+std::string xLightsFrame::GetSelectedLayoutPanelPreview() const
+{
+    return layoutPanel->GetCurrentPreview();
+}
 
 void xLightsFrame::UpdatePreview()
 {
@@ -28,7 +29,6 @@ void xLightsFrame::RenderLayout()
 
 void xLightsFrame::ShowPreviewTime(long ElapsedMSec)
 {
-
 }
 
 void xLightsFrame::PreviewOutput(int period)

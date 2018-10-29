@@ -163,10 +163,13 @@ namespace DrawGLUtils
     
     class xlVertexTextureAccumulator : public xlVertexAccumulatorBase {
     public:
-        xlVertexTextureAccumulator() : xlVertexAccumulatorBase(), id(0), alpha(255) {
+        xlVertexTextureAccumulator() : xlVertexAccumulatorBase(), id(0), alpha(255), forceColor(false) {
             tvertices = (float*)malloc(sizeof(float)*max*2);
         }
-        xlVertexTextureAccumulator(GLuint i) : xlVertexAccumulatorBase(), id(i), alpha(255) {
+        xlVertexTextureAccumulator(GLuint i) : xlVertexAccumulatorBase(), id(i), alpha(255), forceColor(false) {
+            tvertices = (float*)malloc(sizeof(float)*max*2);
+        }
+        xlVertexTextureAccumulator(GLuint i, uint8_t a) : xlVertexAccumulatorBase(), id(i), alpha(a), forceColor(false) {
             tvertices = (float*)malloc(sizeof(float)*max*2);
         }
         xlVertexTextureAccumulator(xlVertexTextureAccumulator &&mv) : xlVertexAccumulatorBase(mv) {
@@ -174,10 +177,14 @@ namespace DrawGLUtils
             mv.tvertices = nullptr;
             id = mv.id;
             alpha = mv.alpha;
+            forceColor = mv.forceColor;
+            color = mv.color;
         }
         xlVertexTextureAccumulator(const xlVertexTextureAccumulator &mv) : xlVertexAccumulatorBase(mv) {
             id = mv.id;
             alpha = mv.alpha;
+            forceColor = mv.forceColor;
+            color = mv.color;
             tvertices = (float*)malloc(sizeof(float)*max*2);
             memcpy(tvertices, mv.tvertices, count * sizeof(float) * 2);
         }
@@ -207,6 +214,8 @@ namespace DrawGLUtils
         }
         GLuint id;
         uint8_t alpha;
+        bool forceColor;
+        xlColor color;
         float *tvertices;
     protected:
         virtual void DoRealloc(int newMax) {
@@ -216,7 +225,8 @@ namespace DrawGLUtils
     };
     class xlVertexTextAccumulator {
     public:
-        xlVertexTextAccumulator() : count(0) {}
+        xlVertexTextAccumulator() : count(0), color(xlBLACK) {}
+        xlVertexTextAccumulator(const xlColor &c) : count(0), color(c) {}
         ~xlVertexTextAccumulator() {}
         
         void PreAlloc(unsigned int i) {
@@ -231,32 +241,41 @@ namespace DrawGLUtils
         }
         std::vector<float> vertices;
         std::vector<std::string> text;
+        xlColor color;
         unsigned int count;
     };
     
     class xlAccumulator : public xlVertexColorAccumulator {
     public:
-        xlAccumulator() : xlVertexColorAccumulator() { start = 0;}
-        xlAccumulator(unsigned int max) : xlVertexColorAccumulator(max) { start = 0;}
-        virtual ~xlAccumulator() {}
-        virtual void Reset() {
+        xlAccumulator() : xlVertexColorAccumulator(), tvertices(nullptr) { start = 0;}
+        xlAccumulator(unsigned int max) : xlVertexColorAccumulator(max), tvertices(nullptr) { start = 0;}
+        virtual ~xlAccumulator() {
+            if (tvertices) {
+                free(tvertices);
+                tvertices = nullptr;
+            }
+        }
+        virtual void Reset() override {
             xlVertexColorAccumulator::Reset();
             start = 0;
             types.clear();
-            tvertices.clear();
+            if (tvertices) {
+                free(tvertices);
+                tvertices = nullptr;
+            }
         }
+        
+        virtual void DoRealloc(int newMax) override;
 
         bool HasMoreVertices() { return count != start; }
         void Finish(int type, int enableCapability = 0, float extra = 1);
         
         
-        void PreAllocTexture(int i) {
-            PreAlloc(i);
-            tvertices.reserve(max * 2);
-        }
+        void PreAllocTexture(int i);
         void AddTextureVertex(float x, float y, float tx, float ty);
         void FinishTextures(int type, GLuint textureId, uint8_t alpha, int enableCapability = 0);
-        
+        void FinishTextures(int type, GLuint textureId, const xlColor &color, int enableCapability = 0);
+
         void Load(const xlVertexColorAccumulator &ca);
         void Load(const xlVertexAccumulator &ca, const xlColor &c);
         void Load(const xlVertexTextureAccumulator &ca, int type, int enableCapability = 0);
@@ -270,6 +289,7 @@ namespace DrawGLUtils
                 enableCapability = ec;
                 extra = ex;
                 textureId = -1;
+                useTexturePixelColor = false;
             }
             BufferRangeType(int s, int c, int t, int ec, GLuint tid, uint8_t alpha) {
                 start = s;
@@ -279,6 +299,18 @@ namespace DrawGLUtils
                 extra = 0.0f;
                 textureId = tid;
                 textureAlpha = alpha;
+                useTexturePixelColor = false;
+            }
+            BufferRangeType(int s, int c, int t, int ec, GLuint tid, const xlColor &color) {
+                start = s;
+                count = c;
+                type = t;
+                enableCapability = ec;
+                extra = 0.0f;
+                textureId = tid;
+                textureAlpha = 255;
+                useTexturePixelColor = true;
+                texturePixelColor = color;
             }
             int start;
             int count;
@@ -287,9 +319,11 @@ namespace DrawGLUtils
             float extra;
             GLuint textureId;
             uint8_t textureAlpha;
+            bool useTexturePixelColor;
+            xlColor texturePixelColor;
         };
         std::list<BufferRangeType> types;
-        std::vector<float> tvertices;
+        float *tvertices;
     private:
         int start;
     };

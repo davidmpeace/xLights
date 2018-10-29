@@ -11,6 +11,12 @@
 #include "TestPreset.h"
 #include <wx/msgdlg.h>
 #include "../osxMacUtils.h"
+#include <wx/config.h>
+
+int OutputManager::_lastSecond = -10;
+int OutputManager::_currentSecond = -10;
+int OutputManager::_lastSecondCount = 0;
+int OutputManager::_currentSecondCount = 0;
 
 #pragma region Constructors and Destructors
 OutputManager::OutputManager()
@@ -50,6 +56,11 @@ bool OutputManager::Load(const std::string& showdir, bool syncEnabled)
             if (e->GetName() == "network")
             {
                 _outputs.push_back(Output::Create(e));
+                if (_outputs.back() == nullptr)
+                {
+                    // this shouldnt happen unless we are loading a future file with an output type we dont recognise
+                    _outputs.pop_back();
+                }
             }
             else if (e->GetName() == "e131sync")
             {
@@ -61,7 +72,26 @@ bool OutputManager::Load(const std::string& showdir, bool syncEnabled)
             }
             else if (e->GetName() == "testpreset")
             {
-                _testPresets.push_back(new TestPreset(e));
+                TestPreset* tp = new TestPreset(e);
+
+                bool exists = false;
+                for (auto it = _testPresets.begin(); it != _testPresets.end() && !exists; ++it)
+                {
+                    if ((*it)->GetName() == tp->GetName())
+                    {
+                        exists = true;
+                    }
+                }
+
+                if (exists)
+                {
+                    // dont load this preset ... it is a duplicate
+                    delete tp;
+                }
+                else
+                {
+                    _testPresets.push_back(tp);
+                }
             }
         }
     }
@@ -162,7 +192,7 @@ bool OutputManager::Discover()
 // get an output based on an output number - zero based
 Output* OutputManager::GetOutput(int outputNumber) const
 {
-    if (outputNumber >= (int)_outputs.size())
+    if (outputNumber >= (int)_outputs.size() || outputNumber < 0)
     {
         return nullptr;
     }
@@ -178,8 +208,47 @@ void OutputManager::SetShowDir(const std::string& showDir)
     _filename = fn.GetFullPath();
 }
 
+void OutputManager::SuspendAll(bool suspend)
+{
+    for (auto it = _outputs.begin(); it != _outputs.end(); ++it)
+    {
+        (*it)->Suspend(suspend);
+    }
+}
+
 // get an output based on an absolute channel number
 Output* OutputManager::GetOutput(long absoluteChannel, long& startChannel) const
+{
+    for (auto it = _outputs.begin(); it != _outputs.end(); ++it)
+    {
+        if ((*it)->IsOutputCollection() && absoluteChannel >= (*it)->GetStartChannel() && absoluteChannel <= (*it)->GetEndChannel())
+        {
+            auto outputs = (*it)->GetOutputs();
+
+            for (auto it2 = outputs.begin(); it2 != outputs.end(); ++it2)
+            {
+                if (absoluteChannel >= (*it2)->GetStartChannel() && absoluteChannel <= (*it2)->GetEndChannel())
+                {
+                    startChannel = absoluteChannel - (*it2)->GetStartChannel() + 1;
+                    return *it2;
+                }
+            }
+        }
+        else
+        {
+            if (absoluteChannel >= (*it)->GetStartChannel() && absoluteChannel <= (*it)->GetEndChannel())
+            {
+                startChannel = absoluteChannel - (*it)->GetStartChannel() + 1;
+                return *it;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+// get an output based on an absolute channel number
+Output* OutputManager::GetLevel1Output(long absoluteChannel, long& startChannel) const
 {
     for (auto it = _outputs.begin(); it != _outputs.end(); ++it)
     {
@@ -229,15 +298,20 @@ long OutputManager::GetTotalChannels() const
 
 std::string OutputManager::GetChannelName(long channel)
 {
-    Output* o = GetOutput(channel);
+    long startChannel = 0;
+    ++channel;
+    Output* o = GetLevel1Output(channel, startChannel);
 
     if (o == nullptr)
     {
-        return wxString::Format(wxT("Ch %i: invalid"), channel).ToStdString();
+        return wxString::Format(wxT("Ch %ld: invalid"), channel).ToStdString();
     }
     else
     {
-        return wxString::Format(wxT("Ch %i: Net %i #%i"), channel + 1, o->GetOutputNumber(), (long)(channel - o->GetStartChannel())).ToStdString();
+        return wxString::Format(wxT("Ch %ld: Net %i #%ld"),
+                                channel,
+                                o->GetOutputNumber(),
+                                (long)(channel - o->GetStartChannel() + 1)).ToStdString();
     }
 }
 
@@ -273,6 +347,61 @@ long OutputManager::GetAbsoluteChannel(const std::string& ip, int universe, int 
     return (*it)->GetStartChannel() + startChannel;
 }
 
+long OutputManager::DecodeStartChannel(const std::string& startChannelString)
+{
+    // Decodes Absolute, Output:StartChannel, #Universe:StartChannel, and #IP:Universe:StartChannel
+    // If there is an error 0 is returned
+
+    if (startChannelString == "") return 0;
+
+    if (startChannelString.find(':') != std::string::npos)
+    {
+        if (startChannelString[0] == '#')
+        {
+            auto parts = wxSplit(&startChannelString[1], ':');
+            if (parts.size() > 3) return 0;
+            if (parts.size() == 2)
+            {
+                int uni = wxAtoi(parts[0]);
+                long sc = wxAtol(parts[1]);
+                if (uni < 1) return 0;
+                if (sc < 1) return 0;
+                Output* o = GetOutput(uni, "");
+                if (o == nullptr) return 0;
+                return o->GetStartChannel() + sc - 1;
+            }
+            else
+            {
+                std::string ip = parts[0].ToStdString();
+                int uni = wxAtoi(parts[1]);
+                long sc = wxAtol(parts[2]);
+                if (ip == "") return 0;
+                if (uni < 1) return 0;
+                if (sc < 1) return 0;
+                Output* o = GetOutput(uni, ip);
+                if (o == nullptr) return 0;
+                return o->GetStartChannel() + sc - 1;
+            }
+        }
+        else
+        {
+            auto parts = wxSplit(startChannelString, ':');
+            if (parts.size() > 2) return 0;
+            int output = wxAtoi(parts[0]);
+            long sc = wxAtol(parts[1]);
+            if (output < 1) return 0;
+            if (sc < 1) return 0;
+            Output* o = GetOutput(output-1);
+            if (o == nullptr) return 0;
+            return o->GetStartChannel() + sc - 1;
+        }
+    }
+    else
+    {
+        return wxAtol(startChannelString);
+    }
+}
+
 bool OutputManager::IsDirty() const
 {
     if (_dirty) return _dirty;
@@ -294,7 +423,7 @@ std::list<int> OutputManager::GetIPUniverses(const std::string& ip) const
 
     for (auto it = _outputs.begin(); it != _outputs.end(); ++it)
     {
-        if ((*it)->IsIpOutput() && (ip == "" || ip == (*it)->GetIP()))
+        if (ip == "" || ip == (*it)->GetIP())
         {
             if ((*it)->IsOutputCollection())
             {
@@ -604,6 +733,29 @@ std::list<Output*> OutputManager::GetAllOutputs(const std::list<int>& outputNumb
     return res;
 }
 
+std::list<Output*> OutputManager::GetAllOutputs() const
+{
+    std::list<Output*> res;
+
+    for (auto it = _outputs.begin(); it != _outputs.end(); ++it)
+    {
+        if ((*it)->IsOutputCollection())
+        {
+            auto o2 = (*it)->GetOutputs();
+            for (auto it2 = o2.begin(); it2 != o2.end(); ++it2)
+            {
+                res.push_back(*it2);
+            }
+        }
+        else
+        {
+            res.push_back(*it);
+        }
+    }
+
+    return res;
+}
+
 void OutputManager::Replace(Output* replacethis, Output* withthis)
 {
     std::list<Output*> newoutputs;
@@ -688,6 +840,8 @@ bool OutputManager::StartOutput()
     if (_outputting) return false;
     if (!_outputCriticalSection.TryEnter()) return false;
 
+    logger_base.debug("Starting light output.");
+
     int started = 0;
     bool ok = true;
     bool err = false;
@@ -717,6 +871,7 @@ bool OutputManager::StartOutput()
     if (_outputting)
     {
         DisableSleepModes();
+        SetGlobalOutputtingFlag(true);
     }
 
     return _outputting; // even partially started is ok
@@ -724,15 +879,21 @@ bool OutputManager::StartOutput()
 
 void OutputManager::StopOutput()
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
     if (!_outputting) return;
     if (!_outputCriticalSection.TryEnter()) return;
+
+    logger_base.debug("Stopping light output.");
+
+    _outputting = false;
 
     for (auto it = _outputs.begin(); it != _outputs.end(); ++it)
     {
         (*it)->Close();
     }
 
-    _outputting = false;
+    SetGlobalOutputtingFlag(false);
     _outputCriticalSection.Leave();
 
     EnableSleepModes();
@@ -740,13 +901,16 @@ void OutputManager::StopOutput()
 #pragma endregion Start and Stop
 
 #pragma region Data Setting
-void OutputManager::AllOff()
+void OutputManager::AllOff(bool send)
 {
     if (!_outputCriticalSection.TryEnter()) return;
     for (auto it = _outputs.begin(); it != _outputs.end(); ++it)
     {
         (*it)->AllOff();
-        (*it)->EndFrame(_suppressFrames);
+        if (send)
+        {
+            (*it)->EndFrame(_suppressFrames);
+        }
     }
     _outputCriticalSection.Leave();
 }
@@ -755,10 +919,13 @@ void OutputManager::AllOff()
 void OutputManager::SetOneChannel(long channel, unsigned char data)
 {
     long sc = 0;
-    Output* output = GetOutput(channel + 1, sc);
+    Output* output = GetLevel1Output(channel + 1, sc);
     if (output != nullptr)
     {
-        output->SetOneChannel(sc-1, data);
+        if (output->IsEnabled())
+        {
+            output->SetOneChannel(sc - 1, data);
+        }
     }
 }
 
@@ -768,8 +935,10 @@ void OutputManager::SetManyChannels(long channel, unsigned char* data, long size
     if (size == 0) return;
 
     long stch;
-    Output* o = GetOutput(channel + 1, stch);
-    wxASSERT(o != nullptr);
+    Output* o = GetLevel1Output(channel + 1, stch);
+
+    // if this doesnt map to an output then skip it
+    if (o == nullptr) return;
 
     long left = size;
 
@@ -780,7 +949,10 @@ void OutputManager::SetManyChannels(long channel, unsigned char* data, long size
 #else
         long send = std::min(left, (o->GetChannels() * o->GetUniverses()) - stch + 1);
 #endif
-        o->SetManyChannels(stch - 1, &data[size - left], send);
+        if (o->IsEnabled())
+        {
+            o->SetManyChannels(stch - 1, &data[size - left], send);
+        }
         stch = 1;
         left -= send;
         o = GetOutput(o->GetOutputNumber()); // get the next output
@@ -870,6 +1042,7 @@ TestPreset* OutputManager::CreateTestPreset(std::string preset)
     if (apreset != nullptr)
     {
         _testPresets.remove(apreset);
+        delete apreset;
     }
 
     auto p = new TestPreset(preset);
@@ -878,3 +1051,80 @@ TestPreset* OutputManager::CreateTestPreset(std::string preset)
 }
 #pragma endregion Test Presets
 
+bool OutputManager::IsOutputOpenInAnotherProcess()
+{
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    wxConfig *xlconfig = new wxConfig(_("xLights"));
+    if (xlconfig != nullptr)
+    {
+        if (xlconfig->HasEntry(_("OutputActive")))
+        {
+            bool state;
+            xlconfig->Read(_("OutputActive"), &state);
+            delete xlconfig;
+
+            if (state)
+            {
+                logger_base.warn("Output already seems to be happening. This may generate odd results.");
+            }
+
+            return state;
+        }
+    }
+
+    return false;
+}
+
+bool OutputManager::SetGlobalOutputtingFlag(bool state, bool force)
+{
+    if (state != _outputting && !force)
+    {
+        return false;
+    }
+
+    wxConfig *xlconfig = new wxConfig(_("xLights"));
+    if (xlconfig != nullptr)
+    {
+        xlconfig->Write(_("OutputActive"), state);
+        delete xlconfig;
+        return true;
+    }
+
+    return false;
+}
+
+int OutputManager::GetPacketsPerSecond() const
+{
+    if (IsOutputting())
+    {
+        return _lastSecondCount;
+    }
+
+    return 0;
+}
+
+void OutputManager::RegisterSentPacket()
+{
+    int second = wxGetLocalTime() % 60;
+
+    if (second == _currentSecond)
+    {
+        _currentSecondCount++;
+    }
+    else
+    {
+        if (second == _currentSecond + 1 || (second == 0 && _currentSecond == 59))
+        {
+            _lastSecond = _currentSecond;
+            _lastSecondCount = _currentSecondCount;
+        }
+        else
+        {
+            _lastSecond = second - 1;
+            if (_lastSecond < 0) _lastSecond = 59;
+            _lastSecondCount = 0;
+        }
+        _currentSecond = second;
+        _currentSecondCount = 1;
+    }
+}

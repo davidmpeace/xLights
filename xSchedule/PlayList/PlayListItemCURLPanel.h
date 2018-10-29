@@ -14,7 +14,6 @@ class PlayListItemCURL;
 class PlayListItemCURLPanel: public wxPanel
 {
     PlayListItemCURL* _curl;
-    void SetChoiceFromString(wxChoice* choice, std::string value);
 
 	public:
 
@@ -53,8 +52,6 @@ class PlayListItemCURLPanel: public wxPanel
 
 		//(*Handlers(PlayListItemCURLPanel)
 		void OnTextCtrl_DelayText(wxCommandEvent& event);
-		void OnCheckBox_WaitForCompletionClick(wxCommandEvent& event);
-		void OnTextCtrl_CommandText(wxCommandEvent& event);
 		void OnTextCtrl_CURLNameText(wxCommandEvent& event);
 		//*)
 

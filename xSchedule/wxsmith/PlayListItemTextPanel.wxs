@@ -46,6 +46,8 @@
 					<content>
 						<item>Normal</item>
 						<item>Countdown</item>
+						<item>Countdown Seconds</item>
+						<item>File Read</item>
 					</content>
 					<selection>0</selection>
 					<handler function="OnChoice_TypeSelect" entry="EVT_CHOICE" />
@@ -170,6 +172,20 @@
 			<object class="sizeritem">
 				<object class="wxChoice" name="ID_CHOICE4" variable="Choice_BlendMode" member="yes" />
 				<flag>wxALL|wxEXPAND</flag>
+				<border>5</border>
+				<option>1</option>
+			</object>
+			<object class="spacer">
+				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+				<border>5</border>
+				<option>1</option>
+			</object>
+			<object class="sizeritem">
+				<object class="wxCheckBox" name="ID_CHECKBOX1" variable="CheckBox_RenderWhenBlank" member="yes">
+					<label>Render when text is blank</label>
+					<checked>1</checked>
+				</object>
+				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>

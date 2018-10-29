@@ -3,17 +3,17 @@
 
 //(*Headers(ShockwavePanel)
 #include <wx/panel.h>
-class wxCheckBox;
-class wxTextCtrl;
-class wxNotebookEvent;
-class wxNotebook;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
+class wxCheckBox;
 class wxFlexGridSizer;
+class wxNotebook;
+class wxNotebookEvent;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
 
-#include "../ValueCurveButton.h"
+#include "../BulkEditControls.h"
 
 class ShockwavePanel: public wxPanel
 {
@@ -23,70 +23,72 @@ class ShockwavePanel: public wxPanel
 		virtual ~ShockwavePanel();
 
 		//(*Declarations(ShockwavePanel)
-		ValueCurveButton* BitmapButton_Shockwave_Start_Width;
-		wxStaticText* StaticText156;
-		ValueCurveButton* BitmapButton_Shockwave_End_Width;
-		wxSlider* Slider_Shockwave_End_Width;
-		wxCheckBox* CheckBox_Shockwave_Blend_Edges;
-		ValueCurveButton* BitmapButton_Shockwave_CenterX;
-		ValueCurveButton* BitmapButton_Shockwave_CenterY;
-		wxSlider* Slider_Shockwave_End_Radius;
-		wxSlider* Slider_Shockwave_Start_Width;
-		wxBitmapButton* BitmapButton_Shockwave_EndWidth;
-		wxBitmapButton* BitmapButton_Shockwave_StartRadius;
-		wxBitmapButton* BitmapButton_Shockwave_Center_X;
-		wxBitmapButton* BitmapButton_Shockwave_Accel;
-		wxBitmapButton* BitmapButton_Shockwave_Center_Y;
-		wxSlider* Slider_Shockwave_CenterY;
-		wxBitmapButton* BitmapButton_Shockwave_StartWidth;
-		wxSlider* Slider_Shockwave_Start_Radius;
-		wxStaticText* StaticText158;
-		ValueCurveButton* BitmapButton_Shockwave_Start_Radius;
-		wxSlider* Slider_Shockwave_Accel;
-		wxStaticText* StaticText159;
-		wxStaticText* StaticText157;
-		wxSlider* Slider_Shockwave_CenterX;
+		BulkEditCheckBox* CheckBox_Shockwave_Blend_Edges;
+		BulkEditSlider* Slider_Shockwave_Accel;
+		BulkEditSlider* Slider_Shockwave_CenterX;
+		BulkEditSlider* Slider_Shockwave_CenterY;
+		BulkEditSlider* Slider_Shockwave_End_Radius;
+		BulkEditSlider* Slider_Shockwave_End_Width;
+		BulkEditSlider* Slider_Shockwave_Start_Radius;
+		BulkEditSlider* Slider_Shockwave_Start_Width;
+		BulkEditValueCurveButton* BitmapButton_Shockwave_CenterX;
+		BulkEditValueCurveButton* BitmapButton_Shockwave_CenterY;
+		BulkEditValueCurveButton* BitmapButton_Shockwave_End_Radius;
+		BulkEditValueCurveButton* BitmapButton_Shockwave_End_Width;
+		BulkEditValueCurveButton* BitmapButton_Shockwave_Start_Radius;
+		BulkEditValueCurveButton* BitmapButton_Shockwave_Start_Width;
 		wxNotebook* Notebook3;
-		ValueCurveButton* BitmapButton_Shockwave_End_Radius;
-		wxBitmapButton* BitmapButton_Shockwave_EndRadius;
+		wxStaticText* StaticText154;
 		wxStaticText* StaticText155;
+		wxStaticText* StaticText156;
+		wxStaticText* StaticText157;
+		wxStaticText* StaticText158;
+		wxStaticText* StaticText159;
 		wxStaticText* StaticText166;
+		xlLockButton* BitmapButton_Shockwave_Accel;
+		xlLockButton* BitmapButton_Shockwave_Center_X;
+		xlLockButton* BitmapButton_Shockwave_Center_Y;
+		xlLockButton* BitmapButton_Shockwave_EndRadius;
+		xlLockButton* BitmapButton_Shockwave_EndWidth;
+		xlLockButton* BitmapButton_Shockwave_StartRadius;
+		xlLockButton* BitmapButton_Shockwave_StartWidth;
 		//*)
 
 	protected:
 
 		//(*Identifiers(ShockwavePanel)
+		static const long ID_STATICTEXT_Shockwave_CenterX;
 		static const long ID_SLIDER_Shockwave_CenterX;
 		static const long ID_VALUECURVE_Shockwave_CenterX;
 		static const long IDD_TEXTCTRL_Shockwave_CenterX;
 		static const long ID_BITMAPBUTTON_SLIDER_Shockwave_CenterX;
-		static const long ID_STATICTEXT151;
+		static const long ID_STATICTEXT_Shockwave_CenterY;
 		static const long ID_SLIDER_Shockwave_CenterY;
 		static const long ID_VALUECURVE_Shockwave_CenterY;
 		static const long IDD_TEXTCTRL_Shockwave_CenterY;
 		static const long ID_BITMAPBUTTON_SLIDER_Shockwave_CenterY;
-		static const long ID_STATICTEXT152;
+		static const long ID_STATICTEXT_Shockwave_Start_Radius;
 		static const long ID_SLIDER_Shockwave_Start_Radius;
 		static const long ID_VALUECURVE_Shockwave_Start_Radius;
 		static const long IDD_TEXTCTRL_Shockwave_Start_Radius;
 		static const long ID_BITMAPBUTTON_SLIDER_Shockwave_Start_Radius;
-		static const long ID_STATICTEXT154;
+		static const long ID_STATICTEXT_Shockwave_End_Radius;
 		static const long ID_SLIDER_Shockwave_End_Radius;
 		static const long ID_VALUECURVE_Shockwave_End_Radius;
 		static const long IDD_TEXTCTRL_Shockwave_End_Radius;
 		static const long ID_BITMAPBUTTON_SLIDER_Shockwave_End_Radius;
-		static const long ID_STATICTEXT153;
+		static const long ID_STATICTEXT_Shockwave_Start_Width;
 		static const long ID_SLIDER_Shockwave_Start_Width;
 		static const long ID_VALUECURVE_Shockwave_Start_Width;
 		static const long IDD_TEXTCTRL_Shockwave_Start_Width;
 		static const long ID_BITMAPBUTTON_SLIDER_Shockwave_Start_Width;
-		static const long ID_STATICTEXT155;
+		static const long ID_STATICTEXT_Shockwave_End_Width;
 		static const long ID_SLIDER_Shockwave_End_Width;
 		static const long ID_VALUECURVE_Shockwave_End_Width;
 		static const long IDD_TEXTCTRL_Shockwave_End_Width;
 		static const long ID_BITMAPBUTTON_SLIDER_Shockwave_End_Width;
 		static const long ID_PANEL40;
-		static const long ID_STATICTEXT162;
+		static const long ID_STATICTEXT_Shockwave_Accel;
 		static const long ID_SLIDER_Shockwave_Accel;
 		static const long IDD_TEXTCTRL_Shockwave_Accel;
 		static const long ID_BITMAPBUTTON_SLIDER_Shockwave_Accel;
@@ -98,19 +100,9 @@ class ShockwavePanel: public wxPanel
 	public:
 
 		//(*Handlers(ShockwavePanel)
-    void UpdateLinkedSliderFloat(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-    void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-    void UpdateLinkedSlider360(wxCommandEvent& event);
-    void UpdateLinkedTextCtrl(wxScrollEvent& event);
-    void UpdateLinkedSlider(wxCommandEvent& event);
     void OnLockButtonClick(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-    void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
     void OnVCButtonClick(wxCommandEvent& event);
     void OnVCChanged(wxCommandEvent& event);
-    void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
     //*)
 
 		DECLARE_EVENT_TABLE()

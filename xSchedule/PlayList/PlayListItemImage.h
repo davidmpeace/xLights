@@ -21,6 +21,7 @@ protected:
     GIFImage* _gifImage;
     PlayerWindow* _window;
     bool _topMost;
+    bool _suppressVirtualMatrix;
     bool _done;
     long _duration;
     #pragma endregion Member Variables
@@ -37,6 +38,8 @@ public:
     #pragma region Getters and Setters
     bool GetTopMost() const { return _topMost; }
     void SetTopmost(bool topmost) { if (_topMost != topmost) { _topMost = topmost; _changeCount++; } }
+    bool GetSuppressVirtualMatrix() const { return _suppressVirtualMatrix; }
+    void SetSuppressVirtualMatrix(bool suppressVirtualMatrix) { if (_suppressVirtualMatrix != suppressVirtualMatrix) { _suppressVirtualMatrix = suppressVirtualMatrix; _changeCount++; } }
     virtual std::string GetNameNoTime() const override;
     void SetLocation(wxPoint pt, wxSize size) { if (_origin != pt || _size != size) { _origin = pt; _size = size; _changeCount++; } }
     void SetImageFile(const std::string& ImageFile) { if (_ImageFile != ImageFile) { _ImageFile = ImageFile; _changeCount++; } }
@@ -47,7 +50,7 @@ public:
     long GetDuration() const { return _duration; }
     void SetDuration(long duration) { if (_duration != duration) { _duration = duration; _changeCount++; } }
     virtual std::string GetTitle() const override;
-    virtual std::list<std::string> GetMissingFiles() const override;
+    virtual std::list<std::string> GetMissingFiles() override;
     #pragma endregion Getters and Setters
 
     virtual wxXmlNode* Save() override;
@@ -55,7 +58,7 @@ public:
 
     #pragma region Playing
     virtual void Frame(wxByte* buffer, size_t size, size_t ms, size_t framems, bool outputframe) override;
-    virtual void Start() override;
+    virtual void Start(long stepLengthMS) override;
     virtual void Stop() override;
     virtual void Suspend(bool suspend) override;
     #pragma endregion Playing

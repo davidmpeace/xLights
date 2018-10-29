@@ -6,7 +6,7 @@
 			<cols>4</cols>
 			<growablecols>1</growablecols>
 			<object class="sizeritem">
-				<object class="wxStaticText" name="ID_STATICTEXT39" variable="StaticText39" member="yes">
+				<object class="wxStaticText" name="ID_STATICTEXT_Meteors_Type" variable="StaticText39" member="yes">
 					<label>Colors</label>
 				</object>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -14,7 +14,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxChoice" name="ID_CHOICE_Meteors_Type" variable="Choice_Meteors_Type" member="yes">
+				<object class="wxChoice" name="ID_CHOICE_Meteors_Type" subclass="BulkEditChoice" variable="Choice_Meteors_Type" member="yes">
 					<content>
 						<item>Rainbow</item>
 						<item>Range</item>
@@ -22,7 +22,7 @@
 					</content>
 					<selection>0</selection>
 				</object>
-				<flag>wxTOP|wxBOTTOM|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+				<flag>wxTOP|wxBOTTOM|wxEXPAND</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>
@@ -32,10 +32,10 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Meteors_Type" variable="BitmapButton_MeteorsType" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Meteors_Type" subclass="xlLockButton" variable="BitmapButton_MeteorsType" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>
@@ -44,7 +44,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxStaticText" name="ID_STATICTEXT129" variable="StaticText128" member="yes">
+				<object class="wxStaticText" name="ID_STATICTEXT_Meteors_Effect" variable="StaticText128" member="yes">
 					<label>Effect</label>
 				</object>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -52,7 +52,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxChoice" name="ID_CHOICE_Meteors_Effect" variable="Choice_Meteors_Effect" member="yes">
+				<object class="wxChoice" name="ID_CHOICE_Meteors_Effect" subclass="BulkEditChoice" variable="Choice_Meteors_Effect" member="yes">
 					<content>
 						<item>Down</item>
 						<item>Up</item>
@@ -66,7 +66,7 @@
 					<selection>0</selection>
 					<handler function="OnChoice_Meteors_EffectSelect" entry="EVT_CHOICE" />
 				</object>
-				<flag>wxTOP|wxBOTTOM|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+				<flag>wxTOP|wxBOTTOM|wxEXPAND</flag>
 				<border>2</border>
 				<option>1</option>
 			</object>
@@ -76,10 +76,10 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Meteors_Effect" variable="BitmapButton_MeteorsEffect" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Meteors_Effect" subclass="xlLockButton" variable="BitmapButton_MeteorsEffect" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>
@@ -88,7 +88,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxStaticText" name="ID_STATICTEXT41" variable="StaticText41" member="yes">
+				<object class="wxStaticText" name="ID_STATICTEXT_Meteors_Count" variable="StaticText41" member="yes">
 					<label>Count</label>
 				</object>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -96,31 +96,48 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxSlider" name="ID_SLIDER_Meteors_Count" variable="Slider_Meteors_Count" member="yes">
-					<value>10</value>
-					<min>1</min>
-					<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
+				<object class="wxFlexGridSizer" variable="FlexGridSizer1" member="no">
+					<cols>2</cols>
+					<growablecols>0</growablecols>
+					<object class="sizeritem">
+						<object class="wxSlider" name="ID_SLIDER_Meteors_Count" subclass="BulkEditSlider" variable="Slider_Meteors_Count" member="yes">
+							<value>10</value>
+							<min>1</min>
+						</object>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>2</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxBitmapButton" name="ID_VALUECURVE_Meteors_Count" subclass="BulkEditValueCurveButton" variable="BitmapButton_Meteors_Count" member="yes">
+							<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+							<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+						</object>
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>2</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxTextCtrl" name="IDD_TEXTCTRL_Meteors_Count" variable="TextCtrl49" member="no">
+				<object class="wxTextCtrl" name="IDD_TEXTCTRL_Meteors_Count" subclass="BulkEditTextCtrl" variable="TextCtrl49" member="no">
 					<value>10</value>
 					<maxlength>4</maxlength>
 					<size>20,-1d</size>
-					<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 				</object>
 				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Meteors_Count" variable="BitmapButton_MeteorsCount" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Meteors_Count" subclass="xlLockButton" variable="BitmapButton_MeteorsCount" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>
@@ -129,7 +146,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxStaticText" name="ID_STATICTEXT43" variable="StaticText43" member="yes">
+				<object class="wxStaticText" name="ID_STATICTEXT_Meteors_Length" variable="StaticText43" member="yes">
 					<label>Trail Length</label>
 				</object>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -137,31 +154,48 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxSlider" name="ID_SLIDER_Meteors_Length" variable="Slider_Meteors_Length" member="yes">
-					<value>25</value>
-					<min>1</min>
-					<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
+				<object class="wxFlexGridSizer" variable="FlexGridSizer2" member="no">
+					<cols>2</cols>
+					<growablecols>0</growablecols>
+					<object class="sizeritem">
+						<object class="wxSlider" name="ID_SLIDER_Meteors_Length" subclass="BulkEditSlider" variable="Slider_Meteors_Length" member="yes">
+							<value>25</value>
+							<min>1</min>
+						</object>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>2</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxBitmapButton" name="ID_VALUECURVE_Meteors_Length" subclass="BulkEditValueCurveButton" variable="BitmapButton_Meteors_Length" member="yes">
+							<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+							<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+						</object>
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>2</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxTextCtrl" name="IDD_TEXTCTRL_Meteors_Length" variable="TextCtrl50" member="no">
+				<object class="wxTextCtrl" name="IDD_TEXTCTRL_Meteors_Length" subclass="BulkEditTextCtrl" variable="TextCtrl50" member="no">
 					<value>25</value>
 					<maxlength>4</maxlength>
 					<size>20,-1d</size>
-					<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 				</object>
 				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Meteors_Length" variable="BitmapButton_MeteorsLength" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Meteors_Length" subclass="xlLockButton" variable="BitmapButton_MeteorsLength" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>
@@ -170,7 +204,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxStaticText" name="ID_STATICTEXT131" variable="StaticText130" member="yes">
+				<object class="wxStaticText" name="ID_STATICTEXT_Meteors_Swirl_Intensity" variable="StaticText130" member="yes">
 					<label>Swirl Intensity</label>
 				</object>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -178,30 +212,48 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxSlider" name="ID_SLIDER_Meteors_Swirl_Intensity" variable="Slider_Meteors_Swirl_Intensity" member="yes">
-					<max>20</max>
-					<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
+				<object class="wxFlexGridSizer" variable="FlexGridSizer3" member="no">
+					<cols>3</cols>
+					<vgap>2</vgap>
+					<growablecols>0</growablecols>
+					<object class="sizeritem">
+						<object class="wxSlider" name="ID_SLIDER_Meteors_Swirl_Intensity" subclass="BulkEditSlider" variable="Slider_Meteors_Swirl_Intensity" member="yes">
+							<max>20</max>
+						</object>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>2</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxBitmapButton" name="ID_VALUECURVE_Meteors_Swirl_Intensity" subclass="BulkEditValueCurveButton" variable="BitmapButton_Meteors_Swirl_Intensity" member="yes">
+							<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+							<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+						</object>
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>2</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxTextCtrl" name="IDD_TEXTCTRL_Meteors_Swirl_Intensity" variable="TextCtrl51" member="no">
+				<object class="wxTextCtrl" name="IDD_TEXTCTRL_Meteors_Swirl_Intensity" subclass="BulkEditTextCtrl" variable="TextCtrl51" member="no">
 					<value>0</value>
 					<maxlength>3</maxlength>
 					<size>20,-1d</size>
-					<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 				</object>
 				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Meteors_Swirl_Intensity" variable="BitmapButton_MeteorsSwirlIntensity" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Meteors_Swirl_Intensity" subclass="xlLockButton" variable="BitmapButton_MeteorsSwirlIntensity" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>
@@ -210,7 +262,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxStaticText" name="wxID_ANY" variable="StaticText4" member="no">
+				<object class="wxStaticText" name="ID_STATICTEXT_Meteors_Speed" variable="StaticText4" member="yes">
 					<label>Speed</label>
 				</object>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -218,21 +270,38 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxSlider" name="ID_SLIDER_Meteors_Speed" variable="Slider_Meteors_Speed" member="yes">
-					<value>10</value>
-					<max>50</max>
-					<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
+				<object class="wxFlexGridSizer" variable="FlexGridSizer4" member="no">
+					<cols>2</cols>
+					<growablecols>0</growablecols>
+					<object class="sizeritem">
+						<object class="wxSlider" name="ID_SLIDER_Meteors_Speed" subclass="BulkEditSlider" variable="Slider_Meteors_Speed" member="yes">
+							<value>10</value>
+							<max>50</max>
+						</object>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxBitmapButton" name="ID_VALUECURVE_Meteors_Speed" subclass="BulkEditValueCurveButton" variable="BitmapButton_Meteors_Speed" member="yes">
+							<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+							<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+						</object>
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
-				<border>5</border>
+				<border>2</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxTextCtrl" name="IDD_TEXTCTRL_Meteors_Speed" variable="TextCtrl52" member="no">
+				<object class="wxTextCtrl" name="IDD_TEXTCTRL_Meteors_Speed" subclass="BulkEditTextCtrl" variable="TextCtrl52" member="no">
 					<value>10</value>
 					<maxlength>3</maxlength>
 					<size>20,-1d</size>
-					<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 				</object>
 				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>5</border>
@@ -244,7 +313,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxStaticText" name="ID_STATICTEXT1" variable="StaticText1" member="yes">
+				<object class="wxStaticText" name="ID_STATICTEXT_Meteors_XOffset" variable="StaticText1" member="yes">
 					<label>Horizontal Offset</label>
 				</object>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -252,30 +321,47 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxSlider" name="IDD_SLIDER_Meteors_XOffset" variable="Slider_Meteors_XOffset" member="yes">
-					<min>-100</min>
-					<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
+				<object class="wxFlexGridSizer" variable="FlexGridSizer5" member="no">
+					<cols>2</cols>
+					<growablecols>0</growablecols>
+					<object class="sizeritem">
+						<object class="wxSlider" name="IDD_SLIDER_Meteors_XOffset" subclass="BulkEditSlider" variable="Slider_Meteors_XOffset" member="yes">
+							<min>-100</min>
+						</object>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>2</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxBitmapButton" name="ID_VALUECURVE_Meteors_XOffset" subclass="BulkEditValueCurveButton" variable="BitmapButton_Meteors_XOffsetVC" member="yes">
+							<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+							<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+						</object>
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>2</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxTextCtrl" name="ID_TEXTCTRL_Meteors_XOffset" variable="TextCtrl_Meteors_XOffset" member="yes">
+				<object class="wxTextCtrl" name="ID_TEXTCTRL_Meteors_XOffset" subclass="BulkEditTextCtrl" variable="TextCtrl_Meteors_XOffset" member="yes">
 					<value>0</value>
 					<maxlength>4</maxlength>
 					<size>20,-1d</size>
-					<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 				</object>
 				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>2</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Meteors_XOffset" variable="BitmapButton_Meteors_XOffset" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Meteors_XOffset" subclass="xlLockButton" variable="BitmapButton_Meteors_XOffset" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>
@@ -284,7 +370,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxStaticText" name="ID_STATICTEXT2" variable="StaticText2" member="yes">
+				<object class="wxStaticText" name="ID_STATICTEXT_Meteors_YOffset" variable="StaticText2" member="yes">
 					<label>Vertical Offset</label>
 				</object>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -292,30 +378,47 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxSlider" name="IDD_SLIDER_Meteors_YOffset" variable="Slider_Meteors_YOffset" member="yes">
-					<min>-100</min>
-					<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
+				<object class="wxFlexGridSizer" variable="FlexGridSizer6" member="no">
+					<cols>2</cols>
+					<growablecols>0</growablecols>
+					<object class="sizeritem">
+						<object class="wxSlider" name="IDD_SLIDER_Meteors_YOffset" subclass="BulkEditSlider" variable="Slider_Meteors_YOffset" member="yes">
+							<min>-100</min>
+						</object>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>2</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxBitmapButton" name="ID_VALUECURVE_Meteors_YOffset" subclass="BulkEditValueCurveButton" variable="BitmapButton_Meteors_YOffsetVC" member="yes">
+							<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+							<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+						</object>
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>2</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxTextCtrl" name="ID_TEXTCTRL_Meteors_YOffset" variable="TextCtrl_Meteors_Yoffset" member="yes">
+				<object class="wxTextCtrl" name="ID_TEXTCTRL_Meteors_YOffset" subclass="BulkEditTextCtrl" variable="TextCtrl_Meteors_YOffset" member="yes">
 					<value>0</value>
 					<maxlength>4</maxlength>
 					<size>20,-1d</size>
-					<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 				</object>
 				<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 				<border>2</border>
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Meteors_YOffset" variable="BitmapButton_Meteors_YOffset" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Meteors_YOffset" subclass="xlLockButton" variable="BitmapButton_Meteors_YOffset" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>
@@ -329,8 +432,8 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxCheckBox" name="ID_CHECKBOX_Meteors_UseMusic" variable="CheckBox_Meteors_UseMusic" member="yes">
-					<label>Adjust count based on music intensity</label>
+				<object class="wxCheckBox" name="ID_CHECKBOX_Meteors_UseMusic" subclass="BulkEditCheckBox" variable="CheckBox_Meteors_UseMusic" member="yes">
+					<label>Adjust count based on music</label>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>2</border>
@@ -342,10 +445,10 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Meteors_UseMusic" variable="BitmapButton_Meteors_UseMusic" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHECKBOX_Meteors_UseMusic" subclass="xlLockButton" variable="BitmapButton_Meteors_UseMusic" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>
@@ -359,7 +462,7 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxCheckBox" name="ID_CHECKBOX_FadeWithDistance" variable="CheckBox_FadeWithDistance" member="yes">
+				<object class="wxCheckBox" name="ID_CHECKBOX_FadeWithDistance" subclass="BulkEditCheckBox" variable="CheckBox_FadeWithDistance" member="yes">
 					<label>Starfield simulation</label>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
@@ -372,10 +475,10 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_FadeWithDistance" variable="BitmapButton_FadeWithDistance" member="yes">
-					<bitmap code="padlock16x16_blue_xpm" />
-					<size>13,13</size>
-					<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+				<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHECKBOX_FadeWithDistance" subclass="xlLockButton" variable="BitmapButton_FadeWithDistance" member="yes">
+					<bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+					<size>14,14</size>
+					<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 					<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 					<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 				</object>

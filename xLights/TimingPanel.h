@@ -1,82 +1,94 @@
 #ifndef TIMINGPANEL_H
 #define TIMINGPANEL_H
 
+#include "BulkEditControls.h"
+
 //(*Headers(TimingPanel)
-#include <wx/scrolwin.h>
+#include <wx/bmpbuttn.h>
+#include <wx/button.h>
+#include <wx/checkbox.h>
+#include <wx/choice.h>
 #include <wx/notebook.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
+#include <wx/slider.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
-#include <wx/checkbox.h>
-#include <wx/slider.h>
-#include <wx/panel.h>
-#include <wx/choice.h>
-#include <wx/bmpbuttn.h>
 //*)
 
 class Model;
 
 class TimingPanel: public wxPanel
 {
+    std::string _layersSelected;
+    int _startLayer;
+    int _endLayer;
+
 	public:
 
 		TimingPanel(wxWindow* parent,wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
 		virtual ~TimingPanel();
 
+        void SetLayersBelow(int start, int end) { _startLayer = start; _endLayer = end; }
         wxString GetTimingString();
+        void SetDefaultControls(const Model *model, bool optionbased = false);
+        void ValidateWindow();
+        void SetLayersSelected(std::string layersSelected) { _layersSelected = layersSelected; }
 
 		//(*Declarations(TimingPanel)
-		wxChoice* Choice_In_Transition_Type;
-		wxStaticText* InAdjustmentText;
-		wxTextCtrl* TextCtrl_In_Adjust;
-		wxNotebook* Notebook1;
-		wxStaticText* StaticText2;
-		wxTextCtrl* TextCtrl_Out_Adjust;
-		wxPanel* Panel_Sizer;
-		wxTextCtrl* TextCtrl_Fadein;
-		wxSlider* Slider_EffectLayerMix;
-		wxCheckBox* CheckBox_Out_Reverse;
-		wxBitmapButton* BitmapButton_CheckBox_LayerMorph;
+		BulkEditCheckBox* CheckBox_Canvas;
+		BulkEditCheckBox* CheckBox_In_Reverse;
+		BulkEditCheckBox* CheckBox_Out_Reverse;
+		BulkEditChoice* Choice_In_Transition_Type;
+		BulkEditChoice* Choice_LayerMethod;
+		BulkEditChoice* Choice_Out_Transition_Type;
+		BulkEditSlider* Slider_EffectLayerMix;
+		BulkEditSlider* Slider_In_Adjust;
+		BulkEditSlider* Slider_Out_Adjust;
+		BulkEditTextCtrl* TextCtrl_EffectLayerMix;
+		BulkEditTextCtrl* TextCtrl_Fadein;
+		BulkEditTextCtrl* TextCtrl_Fadeout;
+		BulkEditTextCtrl* TextCtrl_In_Adjust;
+		BulkEditTextCtrl* TextCtrl_Out_Adjust;
+		wxButton* Button_Layers;
 		wxCheckBox* CheckBox_LayerMorph;
 		wxCheckBox* CheckBox_ResetTimingPanel;
-		wxStaticText* OutAdjustmentText;
-		wxChoice* Choice_Out_Transition_Type;
-		wxChoice* Choice_LayerMethod;
-		wxBitmapButton* BitmapButton_EffectLayerMix;
-		wxCheckBox* CheckBox_In_Reverse;
-		wxTextCtrl* TextCtrl_Fadeout;
+		wxNotebook* Notebook1;
+		wxPanel* Panel_Sizer;
 		wxScrolledWindow* ScrolledWindowTiming;
-		wxSlider* Slider_Out_Adjust;
+		wxStaticText* InAdjustmentText;
+		wxStaticText* OutAdjustmentText;
+		wxStaticText* StaticText2;
 		wxStaticText* StaticText4;
-		wxTextCtrl* txtCtlEffectMix;
-		wxSlider* Slider_In_Adjust;
+		xlLockButton* BitmapButton_CheckBox_LayerMorph;
+		xlLockButton* BitmapButton_EffectLayerMix;
 		//*)
-    
-    
-        void SetDefaultControls(const Model *model, bool optionbased = false);
 
 	protected:
 
 		//(*Identifiers(TimingPanel)
 		static const long ID_CHECKBOX_ResetTimingPanel;
 		static const long ID_CHECKBOX_LayerMorph;
-		static const long ID_BITMAPBUTTON_CHECKBOX_LayerMorph;
-		static const long ID_CHOICE_LayerMethod;
 		static const long ID_SLIDER_EffectLayerMix;
 		static const long IDD_TEXTCTRL_EffectLayerMix;
+		static const long ID_BITMAPBUTTON_CHECKBOX_LayerMorph;
+		static const long ID_CHOICE_LayerMethod;
 		static const long ID_BITMAPBUTTON_SLIDER_EffectLayerMix;
+		static const long ID_CHECKBOX_Canvas;
+		static const long ID_BUTTON1;
 		static const long ID_CHOICE_In_Transition_Type;
-		static const long ID_STATICTEXT2;
+		static const long ID_STATICTEXT_Fadein;
 		static const long ID_TEXTCTRL_Fadein;
-		static const long ID_STATICTEXT1;
+		static const long ID_STATICTEXT_In_Transition_Adjust;
 		static const long ID_SLIDER_In_Transition_Adjust;
 		static const long IDD_TEXTCTRL_In_Transition_Adjust;
 		static const long ID_CHECKBOX_In_Transition_Reverse;
 		static const long ID_PANEL2;
 		static const long ID_CHOICE_Out_Transition_Type;
-		static const long ID_STATICTEXT4;
+		static const long ID_STATICTEXT_Fadeout;
 		static const long ID_TEXTCTRL_Fadeout;
-		static const long ID_STATICTEXT5;
+		static const long ID_STATICTEXT_Out_Transition_Adjust;
 		static const long ID_SLIDER_Out_Transition_Adjust;
 		static const long IDD_TEXTCTRL_Out_Transition_Adjust;
 		static const long ID_CHECKBOX_Out_Transition_Reverse;
@@ -90,22 +102,14 @@ class TimingPanel: public wxPanel
 
 		//(*Handlers(TimingPanel)
 		void OnResize(wxSizeEvent& event);
-		void UpdateLinkedSliderFloat(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-		void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-		void UpdateLinkedSlider360(wxCommandEvent& event);
-		void UpdateLinkedTextCtrl(wxScrollEvent& event);
-		void UpdateLinkedSlider(wxCommandEvent& event);
 		void OnLockButtonClick(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-		void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
 		void OnTransitionTypeSelect(wxCommandEvent& event);
-		void OnEffectTimeChange(wxCommandEvent& event);
 		void OnVCButtonClick(wxCommandEvent& event);
 		void OnVCChanged(wxCommandEvent& event);
-		void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
 		void OnCheckBox_ResetTimingPanelClick(wxCommandEvent& event);
+		void OnButton_LayersClick(wxCommandEvent& event);
+		void OnChoice_LayerMethodSelect(wxCommandEvent& event);
+		void OnCheckBox_CanvasClick(wxCommandEvent& event);
 		//*)
 
 		DECLARE_EVENT_TABLE()

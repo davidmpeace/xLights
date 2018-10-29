@@ -1,16 +1,17 @@
-#include "WebServer.h"
-
 #include <wx/wx.h>
-#include <log4cpp/Category.hh>
+#include <wx/dir.h> // Linus needs this
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
-#include <wx/dir.h>
+#include <wx/uri.h>
+
+#include "WebServer.h"
 #include "xScheduleMain.h"
 #include "ScheduleManager.h"
-#include <wx/uri.h>
 #include "xScheduleApp.h"
 #include "ScheduleOptions.h"
 #include "md5.h"
+
+#include <log4cpp/Category.hh>
 
 #undef WXUSINGDLL
 #include "wxJSON/jsonreader.h"
@@ -130,9 +131,26 @@ std::map<std::string, std::string> ParseURI(std::string uri)
         for (auto it = p.begin(); it != p.end(); ++it)
         {
             wxArrayString x = wxSplit(*it, '=');
-            if (x.Count() == 2)
+            if (x.Count() >= 2)
             {
-                res[x[0].ToStdString()] = x[1].ToStdString();
+                std::string key = x[0].ToStdString();
+
+                res[key] = "";
+                for (auto it2 = x.begin(); it2 != x.end(); ++it2)
+                {
+                    if (it2 == x.begin())
+                    {
+                        // ignore the key
+                    }
+                    else
+                    {
+                        if (res[key] != "")
+                        {
+                            res[key] += "=";
+                        }
+                        res[key] += it2->ToStdString();
+                    }
+                }
             }
         }
     }
@@ -307,7 +325,6 @@ std::string ProcessStash(HttpConnection &connection, const std::string& command,
             command + "\",\"reference\":\"" +
             reference + "\",\"ip\":\"" +
             connection.Address().IPAddress().ToStdString() + "\"}";
-        data = "";
     }
 
     logger_base.info("xScheduleStash received command = '%s' key = '%s'.", (const char *)command.c_str(), (const char *)key.c_str());
@@ -394,6 +411,8 @@ bool MyRequestHandler(HttpConnection &connection, HttpRequest &request)
 {
     wxLogNull logNo; //kludge: avoid "error 0" message from wxWidgets after new file is written
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
+    xScheduleFrame::GetScheduleManager()->WebRequestReceived();
 
     std::string wwwroot = xScheduleFrame::GetScheduleManager()->GetOptions()->GetWWWRoot();
     if (request.URI().Lower().StartsWith("/xschedulecommand"))
@@ -512,23 +531,29 @@ bool MyRequestHandler(HttpConnection &connection, HttpRequest &request)
     {
         if (wwwroot == "") return false;
 
+        wxString uri = wxURI(request.URI()).BuildUnescapedURI();
+
         if (!__apiOnly && request.URI().StartsWith("/" + wwwroot))
         {
-            wxString d;
 #ifdef __WXMSW__
-            d = wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath();
+            wxString d = wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath();
 #elif __LINUX__
-            d = wxStandardPaths::Get().GetDataDir();
+            wxString d = wxStandardPaths::Get().GetDataDir();
             if (!wxDir::Exists(d)) {
                 d = wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath();
             }
 #else
-            d = wxStandardPaths::Get().GetResourcesDir();
+            wxString d = wxStandardPaths::Get().GetResourcesDir();
 #endif
 
-            wxString file = d + wxURI(request.URI()).GetPath();
+            wxString file = d + uri;
 
-            logger_base.info("File request received = '%s' : '%s'.", (const char *)file.c_str(), (const char *)request.URI().c_str());
+            logger_base.info("File request received = '%s' : '%s'.", (const char *)file.c_str(), (const char *)uri.c_str());
+
+            if (!wxFile::Exists(file))
+            {
+                logger_base.error("    404: file not found.");
+            }
 
             HttpResponse response(connection, request, HttpStatus::OK);
 
@@ -549,6 +574,9 @@ void MyMessageHandler(HttpConnection &connection, WebSocketMessage &message)
 {
     wxLogNull logNo; //kludge: avoid "error 0" message from wxWidgets after new file is written
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
+    xScheduleFrame::GetScheduleManager()->WebRequestReceived();
+
     if (message.Type() == WebSocketMessage::Text)
     {
         wxString text((char *)message.Content().GetData(), message.Content().GetDataLen());

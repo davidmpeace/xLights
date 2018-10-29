@@ -2,9 +2,13 @@
 
 #include "ScheduleOptions.h"
 #include "ButtonDetailsDialog.h"
-#include "ProjectorDetailsDialog.h"
 #include "UserButton.h"
-#include "Projector.h"
+#include "CommandManager.h"
+#include "../xLights/xLightsVersion.h"
+#include <wx/xml/xml.h>
+#include <wx/file.h>
+#include "../xLights/AudioManager.h"
+#include "City.h"
 
 //(*InternalHeaders(OptionsDialog)
 #include <wx/intl.h>
@@ -16,16 +20,17 @@ const long OptionsDialog::ID_CHECKBOX4 = wxNewId();
 const long OptionsDialog::ID_CHECKBOX3 = wxNewId();
 const long OptionsDialog::ID_CHECKBOX5 = wxNewId();
 const long OptionsDialog::ID_CHECKBOX2 = wxNewId();
-const long OptionsDialog::ID_STATICTEXT1 = wxNewId();
-const long OptionsDialog::ID_LISTVIEW2 = wxNewId();
-const long OptionsDialog::ID_BUTTON4 = wxNewId();
-const long OptionsDialog::ID_BUTTON8 = wxNewId();
-const long OptionsDialog::ID_BUTTON3 = wxNewId();
 const long OptionsDialog::ID_STATICTEXT2 = wxNewId();
 const long OptionsDialog::ID_LISTVIEW1 = wxNewId();
 const long OptionsDialog::ID_BUTTON5 = wxNewId();
 const long OptionsDialog::ID_BUTTON6 = wxNewId();
 const long OptionsDialog::ID_BUTTON7 = wxNewId();
+const long OptionsDialog::ID_BUTTON10 = wxNewId();
+const long OptionsDialog::ID_BUTTON9 = wxNewId();
+const long OptionsDialog::ID_STATICTEXT7 = wxNewId();
+const long OptionsDialog::ID_CHOICE1 = wxNewId();
+const long OptionsDialog::ID_STATICTEXT8 = wxNewId();
+const long OptionsDialog::ID_CHOICE2 = wxNewId();
 const long OptionsDialog::ID_STATICTEXT3 = wxNewId();
 const long OptionsDialog::ID_SPINCTRL1 = wxNewId();
 const long OptionsDialog::ID_STATICTEXT4 = wxNewId();
@@ -35,6 +40,10 @@ const long OptionsDialog::ID_STATICTEXT5 = wxNewId();
 const long OptionsDialog::ID_TEXTCTRL2 = wxNewId();
 const long OptionsDialog::ID_STATICTEXT6 = wxNewId();
 const long OptionsDialog::ID_SPINCTRL2 = wxNewId();
+const long OptionsDialog::ID_STATICTEXT1 = wxNewId();
+const long OptionsDialog::ID_CHOICE3 = wxNewId();
+const long OptionsDialog::ID_STATICTEXT9 = wxNewId();
+const long OptionsDialog::ID_CHOICE4 = wxNewId();
 const long OptionsDialog::ID_BUTTON1 = wxNewId();
 const long OptionsDialog::ID_BUTTON2 = wxNewId();
 //*)
@@ -44,53 +53,38 @@ BEGIN_EVENT_TABLE(OptionsDialog,wxDialog)
 	//*)
 END_EVENT_TABLE()
 
-OptionsDialog::OptionsDialog(wxWindow* parent, ScheduleOptions* options, wxWindowID id,const wxPoint& pos,const wxSize& size)
+OptionsDialog::OptionsDialog(wxWindow* parent, CommandManager* commandManager, ScheduleOptions* options, wxWindowID id,const wxPoint& pos,const wxSize& size) : _commandManager(commandManager)
 {
     _options = options;
     _dragging = false;
 
 	//(*Initialize(OptionsDialog)
-	wxFlexGridSizer* FlexGridSizer4;
-	wxFlexGridSizer* FlexGridSizer3;
-	wxFlexGridSizer* FlexGridSizer5;
-	wxFlexGridSizer* FlexGridSizer2;
-	wxFlexGridSizer* FlexGridSizer8;
-	wxFlexGridSizer* FlexGridSizer6;
 	wxFlexGridSizer* FlexGridSizer1;
+	wxFlexGridSizer* FlexGridSizer2;
+	wxFlexGridSizer* FlexGridSizer5;
+	wxFlexGridSizer* FlexGridSizer6;
+	wxFlexGridSizer* FlexGridSizer7;
+	wxFlexGridSizer* FlexGridSizer8;
 
 	Create(parent, id, _("Options"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER, _T("id"));
 	SetClientSize(wxDefaultSize);
 	Move(wxDefaultPosition);
 	FlexGridSizer1 = new wxFlexGridSizer(0, 1, 0, 0);
 	FlexGridSizer1->AddGrowableCol(0);
+	FlexGridSizer7 = new wxFlexGridSizer(0, 2, 0, 0);
 	CheckBox_SimpleMode = new wxCheckBox(this, ID_CHECKBOX4, _("Advanced Mode"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX4"));
 	CheckBox_SimpleMode->SetValue(false);
-	FlexGridSizer1->Add(CheckBox_SimpleMode, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer7->Add(CheckBox_SimpleMode, 1, wxALL|wxEXPAND, 5);
 	CheckBox_SendOffWhenNotRunning = new wxCheckBox(this, ID_CHECKBOX3, _("Send data when not running sequence"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX3"));
 	CheckBox_SendOffWhenNotRunning->SetValue(false);
-	FlexGridSizer1->Add(CheckBox_SendOffWhenNotRunning, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer7->Add(CheckBox_SendOffWhenNotRunning, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	CheckBox_RunBackground = new wxCheckBox(this, ID_CHECKBOX5, _("Run background playlist when not running sequence"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX5"));
 	CheckBox_RunBackground->SetValue(false);
-	FlexGridSizer1->Add(CheckBox_RunBackground, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer7->Add(CheckBox_RunBackground, 1, wxALL|wxEXPAND, 5);
 	CheckBox_Sync = new wxCheckBox(this, ID_CHECKBOX2, _("Use ArtNet/E1.31 Synchronisation Protocols"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX2"));
 	CheckBox_Sync->SetValue(false);
-	FlexGridSizer1->Add(CheckBox_Sync, 1, wxALL|wxEXPAND, 5);
-	FlexGridSizer3 = new wxFlexGridSizer(0, 3, 0, 0);
-	FlexGridSizer3->AddGrowableCol(1);
-	FlexGridSizer3->AddGrowableRow(0);
-	StaticText1 = new wxStaticText(this, ID_STATICTEXT1, _("Projectors:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
-	FlexGridSizer3->Add(StaticText1, 1, wxALL|wxALIGN_LEFT|wxALIGN_TOP, 5);
-	ListView_Projectors = new wxListView(this, ID_LISTVIEW2, wxDefaultPosition, wxDefaultSize, wxLC_REPORT|wxLC_SINGLE_SEL|wxLC_NO_SORT_HEADER|wxVSCROLL|wxALWAYS_SHOW_SB, wxDefaultValidator, _T("ID_LISTVIEW2"));
-	FlexGridSizer3->Add(ListView_Projectors, 1, wxALL|wxEXPAND, 5);
-	FlexGridSizer4 = new wxFlexGridSizer(0, 1, 0, 0);
-	Button_AddProjector = new wxButton(this, ID_BUTTON4, _("Add"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON4"));
-	FlexGridSizer4->Add(Button_AddProjector, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	Button_ProjectorEdit = new wxButton(this, ID_BUTTON8, _("Edit"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON8"));
-	FlexGridSizer4->Add(Button_ProjectorEdit, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	Button_DeleteProjector = new wxButton(this, ID_BUTTON3, _("Delete"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON3"));
-	FlexGridSizer4->Add(Button_DeleteProjector, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer3->Add(FlexGridSizer4, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer1->Add(FlexGridSizer3, 1, wxALL|wxEXPAND, 2);
+	FlexGridSizer7->Add(CheckBox_Sync, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer1->Add(FlexGridSizer7, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer5 = new wxFlexGridSizer(0, 3, 0, 0);
 	FlexGridSizer5->AddGrowableCol(1);
 	FlexGridSizer5->AddGrowableRow(0);
@@ -100,15 +94,32 @@ OptionsDialog::OptionsDialog(wxWindow* parent, ScheduleOptions* options, wxWindo
 	FlexGridSizer5->Add(ListView_Buttons, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer6 = new wxFlexGridSizer(0, 1, 0, 0);
 	Button_ButtonAdd = new wxButton(this, ID_BUTTON5, _("Add"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON5"));
-	FlexGridSizer6->Add(Button_ButtonAdd, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer6->Add(Button_ButtonAdd, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 2);
 	Button_ButtonEdit = new wxButton(this, ID_BUTTON6, _("Edit"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON6"));
-	FlexGridSizer6->Add(Button_ButtonEdit, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer6->Add(Button_ButtonEdit, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 2);
 	Button_ButtonDelete = new wxButton(this, ID_BUTTON7, _("Delete"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON7"));
-	FlexGridSizer6->Add(Button_ButtonDelete, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer6->Add(Button_ButtonDelete, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 2);
+	Button_Export = new wxButton(this, ID_BUTTON10, _("Export"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON10"));
+	FlexGridSizer6->Add(Button_Export, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 2);
+	Button_Import = new wxButton(this, ID_BUTTON9, _("Import"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON9"));
+	FlexGridSizer6->Add(Button_Import, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 2);
 	FlexGridSizer5->Add(FlexGridSizer6, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer1->Add(FlexGridSizer5, 1, wxALL|wxEXPAND, 2);
 	FlexGridSizer8 = new wxFlexGridSizer(0, 2, 0, 0);
 	FlexGridSizer8->AddGrowableCol(1);
+	StaticText7 = new wxStaticText(this, ID_STATICTEXT7, _("Audio Device:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT7"));
+	FlexGridSizer8->Add(StaticText7, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	Choice_AudioDevice = new wxChoice(this, ID_CHOICE1, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE1"));
+	Choice_AudioDevice->SetSelection( Choice_AudioDevice->Append(_("(Default)")) );
+	FlexGridSizer8->Add(Choice_AudioDevice, 1, wxALL|wxEXPAND, 5);
+	StaticText8 = new wxStaticText(this, ID_STATICTEXT8, _("ARTNet Time Code Format:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT8"));
+	FlexGridSizer8->Add(StaticText8, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	Choice_ARTNetTimeCodeFormat = new wxChoice(this, ID_CHOICE2, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE2"));
+	Choice_ARTNetTimeCodeFormat->Append(_("Film - 24 fps"));
+	Choice_ARTNetTimeCodeFormat->SetSelection( Choice_ARTNetTimeCodeFormat->Append(_("EBU - 25 fps")) );
+	Choice_ARTNetTimeCodeFormat->Append(_("DF - 29.97 fps"));
+	Choice_ARTNetTimeCodeFormat->Append(_("SMPTE - 30 fps"));
+	FlexGridSizer8->Add(Choice_ARTNetTimeCodeFormat, 1, wxALL|wxEXPAND, 5);
 	StaticText3 = new wxStaticText(this, ID_STATICTEXT3, _("Web Server Port:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT3"));
 	FlexGridSizer8->Add(StaticText3, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	SpinCtrl_WebServerPort = new wxSpinCtrl(this, ID_SPINCTRL1, _T("80"), wxDefaultPosition, wxDefaultSize, 0, 1, 64000, 80, _T("ID_SPINCTRL1"));
@@ -131,6 +142,17 @@ OptionsDialog::OptionsDialog(wxWindow* parent, ScheduleOptions* options, wxWindo
 	SpinCtrl_PasswordTimeout = new wxSpinCtrl(this, ID_SPINCTRL2, _T("30"), wxDefaultPosition, wxDefaultSize, 0, 1, 1440, 30, _T("ID_SPINCTRL2"));
 	SpinCtrl_PasswordTimeout->SetValue(_T("30"));
 	FlexGridSizer8->Add(SpinCtrl_PasswordTimeout, 1, wxALL|wxEXPAND, 5);
+	StaticText1 = new wxStaticText(this, ID_STATICTEXT1, _("Location:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
+	FlexGridSizer8->Add(StaticText1, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	Choice_Location = new wxChoice(this, ID_CHOICE3, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE3"));
+	FlexGridSizer8->Add(Choice_Location, 1, wxALL|wxEXPAND, 5);
+	StaticText9 = new wxStaticText(this, ID_STATICTEXT9, _("Behaviour on crash:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT9"));
+	FlexGridSizer8->Add(StaticText9, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	Choice_OnCrash = new wxChoice(this, ID_CHOICE4, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE4"));
+	Choice_OnCrash->SetSelection( Choice_OnCrash->Append(_("Prompt user")) );
+	Choice_OnCrash->Append(_("Silently exit after sending crash log"));
+	Choice_OnCrash->Append(_("Silently exit without sending crash log"));
+	FlexGridSizer8->Add(Choice_OnCrash, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer1->Add(FlexGridSizer8, 1, wxALL|wxEXPAND, 2);
 	FlexGridSizer2 = new wxFlexGridSizer(0, 3, 0, 0);
 	Button_Ok = new wxButton(this, ID_BUTTON1, _("Ok"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON1"));
@@ -143,12 +165,6 @@ OptionsDialog::OptionsDialog(wxWindow* parent, ScheduleOptions* options, wxWindo
 	FlexGridSizer1->Fit(this);
 	FlexGridSizer1->SetSizeHints(this);
 
-	Connect(ID_LISTVIEW2,wxEVT_COMMAND_LIST_ITEM_SELECTED,(wxObjectEventFunction)&OptionsDialog::OnListView_ProjectorsItemSelect);
-	Connect(ID_LISTVIEW2,wxEVT_COMMAND_LIST_ITEM_ACTIVATED,(wxObjectEventFunction)&OptionsDialog::OnListView_ProjectorsItemActivated);
-	Connect(ID_LISTVIEW2,wxEVT_COMMAND_LIST_KEY_DOWN,(wxObjectEventFunction)&OptionsDialog::OnListView_ProjectorsKeyDown);
-	Connect(ID_BUTTON4,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_AddProjectorClick);
-	Connect(ID_BUTTON8,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_ProjectorEditClick);
-	Connect(ID_BUTTON3,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_DeleteProjectorClick);
 	Connect(ID_LISTVIEW1,wxEVT_COMMAND_LIST_BEGIN_DRAG,(wxObjectEventFunction)&OptionsDialog::OnListView_ButtonsBeginDrag);
 	Connect(ID_LISTVIEW1,wxEVT_COMMAND_LIST_ITEM_SELECTED,(wxObjectEventFunction)&OptionsDialog::OnListView_ButtonsItemSelect);
 	Connect(ID_LISTVIEW1,wxEVT_COMMAND_LIST_ITEM_ACTIVATED,(wxObjectEventFunction)&OptionsDialog::OnListView_ButtonsItemActivated);
@@ -156,14 +172,24 @@ OptionsDialog::OptionsDialog(wxWindow* parent, ScheduleOptions* options, wxWindo
 	Connect(ID_BUTTON5,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_ButtonAddClick);
 	Connect(ID_BUTTON6,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_ButtonEditClick);
 	Connect(ID_BUTTON7,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_ButtonDeleteClick);
+	Connect(ID_BUTTON10,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_ExportClick);
+	Connect(ID_BUTTON9,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_ImportClick);
 	Connect(ID_TEXTCTRL1,wxEVT_COMMAND_TEXT_UPDATED,(wxObjectEventFunction)&OptionsDialog::OnTextCtrl_wwwRootText);
 	Connect(ID_BUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_OkClick);
 	Connect(ID_BUTTON2,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OptionsDialog::OnButton_CancelClick);
 	//*)
 
-    ListView_Projectors->AppendColumn("Name");
-    ListView_Projectors->AppendColumn("IP");
-    ListView_Projectors->AppendColumn("Password");
+    auto audioDevices = AudioManager::GetAudioDevices();
+    for (auto it = audioDevices.begin(); it != audioDevices.end(); ++it)
+    {
+        Choice_AudioDevice->Append(*it);
+    }
+
+    auto cities = City::GetCities();
+    for (auto it = cities.begin(); it != cities.end(); ++it)
+    {
+        Choice_Location->Append(*it);
+    }
 
     ListView_Buttons->AppendColumn("Label");
     ListView_Buttons->AppendColumn("Command");
@@ -171,7 +197,9 @@ OptionsDialog::OptionsDialog(wxWindow* parent, ScheduleOptions* options, wxWindo
     ListView_Buttons->AppendColumn("Hotkey");
     ListView_Buttons->AppendColumn("Web Color");
 
+    Choice_OnCrash->SetStringSelection(options->GetCrashBehaviour());
     CheckBox_SendOffWhenNotRunning->SetValue(options->IsSendOffWhenNotRunning());
+    Choice_ARTNetTimeCodeFormat->SetSelection(options->GetARTNetTimeCodeFormat());
     CheckBox_RunBackground->SetValue(options->IsSendBackgroundWhenNotRunning());
     CheckBox_Sync->SetValue(options->IsSync());
     CheckBox_APIOnly->SetValue(options->GetAPIOnly());
@@ -183,8 +211,12 @@ OptionsDialog::OptionsDialog(wxWindow* parent, ScheduleOptions* options, wxWindo
     TextCtrl_wwwRoot->SetValue(options->GetWWWRoot());
     StaticText4->SetToolTip("Root Directory: " + options->GetDefaultRoot());
     TextCtrl_Password->SetValue(options->GetPassword());
-
-    LoadProjectors();
+    Choice_Location->SetStringSelection(options->GetCity());
+    Choice_AudioDevice->SetStringSelection(options->GetAudioDevice());
+    if (Choice_AudioDevice->GetSelection() == -1)
+    {
+        Choice_AudioDevice->SetStringSelection("(Default)");
+    }
 
     LoadButtons();
 
@@ -201,28 +233,11 @@ OptionsDialog::OptionsDialog(wxWindow* parent, ScheduleOptions* options, wxWindo
     ListView_Buttons->SetColumnWidth(2, (w - colorw - namew - hotkeyw - 1) / 2);
     ListView_Buttons->SetColumnWidth(3, hotkeyw);
     ListView_Buttons->SetColumnWidth(4, colorw);
-    ListView_Projectors->SetColumnWidth(0, namew);
-    ListView_Projectors->SetColumnWidth(1, (w - namew - 1) / 2);
-    ListView_Projectors->SetColumnWidth(2, (w - namew - 1) / 2);
 
     SetEscapeId(Button_Cancel->GetId());
     SetAffirmativeId(Button_Ok->GetId());
 
     ValidateWindow();
-}
-
-void OptionsDialog::LoadProjectors()
-{
-    ListView_Projectors->DeleteAllItems();
-    auto ps = _options->GetProjectors();
-    int i = 0;
-    for (auto it = ps.begin(); it != ps.end(); ++it)
-    {
-        ListView_Projectors->InsertItem(i, (*it)->GetName());
-        ListView_Projectors->SetItem(i, 1, (*it)->GetIP());
-        ListView_Projectors->SetItem(i, 2, (*it)->GetPassword());
-        i++;
-    }
 }
 
 void OptionsDialog::LoadButtons()
@@ -254,7 +269,6 @@ OptionsDialog::~OptionsDialog()
 	//*)
 }
 
-
 void OptionsDialog::OnButton_OkClick(wxCommandEvent& event)
 {
     _options->SetSync(CheckBox_Sync->GetValue());
@@ -266,13 +280,19 @@ void OptionsDialog::OnButton_OkClick(wxCommandEvent& event)
     _options->SetPassword(TextCtrl_Password->GetValue().ToStdString());
     _options->SetPasswordTimeout(SpinCtrl_PasswordTimeout->GetValue());
     _options->SetAdvancedMode(CheckBox_SimpleMode->GetValue());
+    _options->SetArtNetTimeCodeFormat(Choice_ARTNetTimeCodeFormat->GetSelection());
+    _options->SetCity(Choice_Location->GetStringSelection().ToStdString());
+    _options->SetCrashBehaviour(Choice_OnCrash->GetStringSelection().ToStdString());
 
-    _options->ClearProjectors();
-    for (int i = 0; i < ListView_Projectors->GetItemCount(); i++)
+    if (Choice_AudioDevice->GetStringSelection() == "(Default)")
     {
-        _options->AddProjector(ListView_Projectors->GetItemText(i, 0).ToStdString(),
-                                ListView_Projectors->GetItemText(i, 1).ToStdString(),
-                                ListView_Projectors->GetItemText(i, 2).ToStdString());
+        _options->SetAudioDevice("");
+        AudioManager::SetAudioDevice("");
+    }
+    else
+    {
+        _options->SetAudioDevice(Choice_AudioDevice->GetStringSelection().ToStdString());
+        AudioManager::SetAudioDevice(Choice_AudioDevice->GetStringSelection().ToStdString());
     }
 
     _options->ClearButtons();
@@ -283,11 +303,12 @@ void OptionsDialog::OnButton_OkClick(wxCommandEvent& event)
         {
             hotkey = ListView_Buttons->GetItemText(i, 3)[0];
         }
-        _options->AddButton(ListView_Buttons->GetItemText(i, 0).ToStdString(), 
-                            ListView_Buttons->GetItemText(i, 1).ToStdString(), 
-                            ListView_Buttons->GetItemText(i, 2).ToStdString(), 
+        _options->AddButton(ListView_Buttons->GetItemText(i, 0).ToStdString(),
+                            ListView_Buttons->GetItemText(i, 1).ToStdString(),
+                            ListView_Buttons->GetItemText(i, 2).ToStdString(),
                             hotkey,
-                            ListView_Buttons->GetItemText(i, 4).ToStdString());
+                            ListView_Buttons->GetItemText(i, 4).ToStdString(),
+                            _commandManager);
     }
 
     EndDialog(wxID_OK);
@@ -298,62 +319,6 @@ void OptionsDialog::OnButton_CancelClick(wxCommandEvent& event)
     EndDialog(wxID_CANCEL);
 }
 
-void OptionsDialog::OnButton_AddProjectorClick(wxCommandEvent& event)
-{
-    std::string projector = "";
-    std::string ip = "";
-    std::string password = "";
-
-    ProjectorDetailsDialog dlg(this, projector, ip, password);
-
-    if (dlg.ShowModal() == wxID_OK)
-    {
-        int row = ListView_Projectors->GetItemCount();
-        ListView_Projectors->InsertItem(row, projector);
-        ListView_Projectors->SetItem(row, 1, ip);
-        ListView_Projectors->SetItem(row, 2, password);
-    }
-
-    ValidateWindow();
-}
-
-void OptionsDialog::OnButton_ProjectorEditClick(wxCommandEvent& event)
-{
-    if (ListView_Projectors->GetSelectedItemCount() != 1) return;
-
-    int row = ListView_Projectors->GetFirstSelected();
-
-    EditProjector(row);
-}
-
-void OptionsDialog::EditProjector(int row)
-{
-    std::string projector = ListView_Projectors->GetItemText(row, 0).ToStdString();
-    std::string ip = ListView_Projectors->GetItemText(row, 1).ToStdString();
-    std::string password = ListView_Projectors->GetItemText(row, 2).ToStdString();
-
-    ProjectorDetailsDialog dlg(this, projector, ip, password);
-
-    if (dlg.ShowModal() == wxID_OK)
-    {
-        ListView_Projectors->SetItemText(row, projector);
-        ListView_Projectors->SetItem(row, 1, ip);
-        ListView_Projectors->SetItem(row, 2, password);
-    }
-
-    ValidateWindow();
-}
-
-void OptionsDialog::OnButton_DeleteProjectorClick(wxCommandEvent& event)
-{
-    if (ListView_Projectors->GetSelectedItemCount() != 1) return;
-
-    int row = ListView_Projectors->GetFirstSelected();
-    ListView_Projectors->DeleteItem(row);
-
-    ValidateWindow();
-}
-
 void OptionsDialog::OnButton_ButtonAddClick(wxCommandEvent& event)
 {
     std::string label = "";
@@ -362,7 +327,7 @@ void OptionsDialog::OnButton_ButtonAddClick(wxCommandEvent& event)
     std::string color = "default";
     char hotkey = '~';
 
-    ButtonDetailsDialog dlg(this, label, command, color, parameter, hotkey);
+    ButtonDetailsDialog dlg(this, _commandManager, label, command, color, parameter, hotkey);
 
     if (dlg.ShowModal() == wxID_OK)
     {
@@ -398,7 +363,7 @@ void OptionsDialog::EditButton(int row)
     }
     std::string color = ListView_Buttons->GetItemText(row, 4).ToStdString();
 
-    ButtonDetailsDialog dlg(this, label, command, color, parameter, hotkey);
+    ButtonDetailsDialog dlg(this, _commandManager, label, command, color, parameter, hotkey);
 
     if (dlg.ShowModal() == wxID_OK)
     {
@@ -427,22 +392,13 @@ void OptionsDialog::ValidateWindow()
     {
         Button_ButtonDelete->Enable(true);
         Button_ButtonEdit->Enable(true);
+        Button_Export->Enable(true);
     }
     else
     {
         Button_ButtonDelete->Enable(false);
         Button_ButtonEdit->Enable(false);
-    }
-
-    if (ListView_Projectors->GetSelectedItemCount() == 1)
-    {
-        Button_DeleteProjector->Enable(true);
-        Button_ProjectorEdit->Enable(true);
-    }
-    else
-    {
-        Button_DeleteProjector->Enable(false);
-        Button_ProjectorEdit->Enable(false);
+        Button_Export->Enable(false);
     }
 
     if (TextCtrl_wwwRoot->GetValue() == "")
@@ -507,17 +463,17 @@ void OptionsDialog::OnButtonsDragEnd(wxMouseEvent& event)
 
                 ListView_Buttons->DeleteItem(dragitem);
 
-                if (dropitem > dragitem) dropitem--;
+                if (dropitem < 0) dropitem = 0;
 
-                ListView_Buttons->InsertItem(dropitem + 1, label);
-                ListView_Buttons->SetItem(dropitem + 1, 1, command);
-                ListView_Buttons->SetItem(dropitem + 1, 2, parameters);
-                ListView_Buttons->SetItem(dropitem + 1, 3, hotkey);
-                ListView_Buttons->SetItem(dropitem + 1, 4, color);
+                ListView_Buttons->InsertItem(dropitem, label);
+                ListView_Buttons->SetItem(dropitem, 1, command);
+                ListView_Buttons->SetItem(dropitem, 2, parameters);
+                ListView_Buttons->SetItem(dropitem, 3, hotkey);
+                ListView_Buttons->SetItem(dropitem, 4, color);
 
-                ListView_Buttons->EnsureVisible(dropitem + 1);
+                ListView_Buttons->EnsureVisible(dropitem);
 
-                if (dropitem + 1 == ListView_Buttons->GetItemCount() - 1)
+                if (dropitem == ListView_Buttons->GetItemCount() - 1)
                 {
                     ListView_Buttons->ScrollLines(1);
                 }
@@ -586,28 +542,69 @@ void OptionsDialog::OnListView_ButtonsKeyDown(wxListEvent& event)
     ValidateWindow();
 }
 
-void OptionsDialog::OnListView_ProjectorsItemSelect(wxListEvent& event)
+void OptionsDialog::OnButton_ImportClick(wxCommandEvent& event)
 {
-    ValidateWindow();
-}
-
-void OptionsDialog::OnListView_ProjectorsItemActivated(wxListEvent& event)
-{
-    if (ListView_Projectors->GetSelectedItemCount() >= 0)
-    {
-        EditProjector(ListView_Projectors->GetFirstSelected());
-    }
-    ValidateWindow();
-}
-
-void OptionsDialog::OnListView_ProjectorsKeyDown(wxListEvent& event)
-{
-    if (event.GetKeyCode() == WXK_DELETE)
-    {
-        if (ListView_Projectors->GetSelectedItemCount() >= 0)
+    wxFileDialog dlg(this, "Load button", wxEmptyString, wxEmptyString, "xSchedule Button Files (*.xbutton)|*.xbutton|All Files (*.)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dlg.ShowModal() == wxID_OK) {
+        wxXmlDocument doc;
+        if (doc.Load(dlg.GetPath()))
         {
-            ListView_Projectors->DeleteItem(ListView_Projectors->GetFirstSelected());
+            wxXmlNode* n = doc.GetRoot();
+            if (n->GetName().Lower() == "xschedulebutton")
+            {
+                int row = ListView_Buttons->GetItemCount();
+                ListView_Buttons->InsertItem(row, n->GetAttribute("label"));
+                ListView_Buttons->SetItem(row, 1, n->GetAttribute("command"));
+                ListView_Buttons->SetItem(row, 2, n->GetAttribute("parameter"));
+                if (n->GetAttribute("hotkey") != "~")
+                {
+                    ListView_Buttons->SetItem(row, 3, n->GetAttribute("hotkey"));
+                }
+                ListView_Buttons->SetItem(row, 4, n->GetAttribute("colour"));
+            }
+        }
+        else
+        {
+            wxMessageBox("Error loading button file.");
         }
     }
-    ValidateWindow();
+}
+
+void OptionsDialog::OnButton_ExportClick(wxCommandEvent& event)
+{
+    if (ListView_Buttons->GetSelectedItemCount() != 1) return;
+
+    int row = ListView_Buttons->GetFirstSelected();
+
+    std::string label = ListView_Buttons->GetItemText(row, 0).ToStdString();
+    std::string command = ListView_Buttons->GetItemText(row, 1).ToStdString();
+    std::string parameter = ListView_Buttons->GetItemText(row, 2).ToStdString();
+    char hotkey = '~';
+    if (ListView_Buttons->GetItemText(row, 3).Length() > 0)
+    {
+        hotkey = ListView_Buttons->GetItemText(row, 3)[0];
+    }
+    std::string color = ListView_Buttons->GetItemText(row, 4).ToStdString();
+    wxString v = xlights_version_string;
+
+    wxString filename = wxFileSelector(_("Choose output file"), wxEmptyString, label, wxEmptyString, "xSchedule Button files (*.xbutton)|*.xbutton", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (filename.IsEmpty()) return;
+
+    wxFile f(filename);
+    //    bool isnew = !wxFile::Exists(filename);
+    if (!f.Create(filename, true) || !f.IsOpened())
+    {
+        wxMessageBox(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()));
+        return;
+    }
+
+    f.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xschedulebutton \n");
+    f.Write(wxString::Format("label=\"%s\" ", label));
+    f.Write(wxString::Format("command=\"%s\" ", command));
+    f.Write(wxString::Format("parameter=\"%s\" ", parameter));
+    f.Write(wxString::Format("hotkey=\"%c\" ", hotkey));
+    f.Write(wxString::Format("colour=\"%s\" ", color));
+    f.Write(wxString::Format("version=\"%s\" ", v));
+    f.Write("/>");
+    f.Close();
 }

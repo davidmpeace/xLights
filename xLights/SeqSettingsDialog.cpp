@@ -1,28 +1,30 @@
+//(*InternalHeaders(SeqSettingsDialog)
+#include <wx/artprov.h>
+#include <wx/bitmap.h>
+#include <wx/font.h>
+#include <wx/image.h>
+#include <wx/intl.h>
+#include <wx/string.h>
+//*)
+
+#include <wx/numdlg.h>
 #include <wx/filedlg.h>
+#include <wx/treectrl.h>
+#include <wx/dir.h>
+
+#include <list>
+
 #include "SeqSettingsDialog.h"
 #include "NewTimingDialog.h"
 #include "xLightsXmlFile.h"
 #include "DataLayer.h"
 #include "FileConverter.h"
 #include "LorConvertDialog.h"
-#include <wx/treectrl.h>
-#include "Images_png.h"
 #include "ConvertLogDialog.h"
 #include "VAMPPluginDialog.h"
-
-//(*InternalHeaders(SeqSettingsDialog)
-#include <wx/artprov.h>
-#include <wx/bitmap.h>
-#include <wx/font.h>
-#include <wx/intl.h>
-#include <wx/image.h>
-#include <wx/string.h>
-//*)
-
-#include <wx/numdlg.h>
-#include <list>
-#include <string>
 #include "CustomTimingDialog.h"
+#include "VendorMusicDialog.h"
+#include "xLightsMain.h"
 
 //(*IdInit(SeqSettingsDialog)
 const long SeqSettingsDialog::ID_STATICTEXT_File = wxNewId();
@@ -36,6 +38,9 @@ const long SeqSettingsDialog::ID_CHOICE_Xml_Seq_Type = wxNewId();
 const long SeqSettingsDialog::ID_STATICTEXT_Xml_MediaFile = wxNewId();
 const long SeqSettingsDialog::ID_TEXTCTRL_Xml_Media_File = wxNewId();
 const long SeqSettingsDialog::ID_BITMAPBUTTON_Xml_Media_File = wxNewId();
+const long SeqSettingsDialog::ID_STATICTEXT1 = wxNewId();
+const long SeqSettingsDialog::ID_TEXTCTRL1 = wxNewId();
+const long SeqSettingsDialog::ID_BUTTON1 = wxNewId();
 const long SeqSettingsDialog::ID_STATICTEXT_Xml_Total_Length = wxNewId();
 const long SeqSettingsDialog::ID_TEXTCTRL_Xml_Seq_Duration = wxNewId();
 const long SeqSettingsDialog::ID_CHECKBOX_Overwrite_Tags = wxNewId();
@@ -134,161 +139,173 @@ SeqSettingsDialog::SeqSettingsDialog(wxWindow* parent, xLightsXmlFile* file_to_h
 {
     _plog = nullptr;
 
-	musical_seq = wxBITMAP_PNG_FROM_DATA(musical_seq);
-	musical_seq_pressed = wxBITMAP_PNG_FROM_DATA(musical_seq_pressed);
-	animation_seq = wxBITMAP_PNG_FROM_DATA(animation_seq);
-	animation_seq_pressed = wxBITMAP_PNG_FROM_DATA(animation_seq_pressed);
-	time_25ms = wxBITMAP_PNG_FROM_DATA(time_25ms);
-	time_25ms_pressed = wxBITMAP_PNG_FROM_DATA(time_25ms_pressed);
-	time_50ms = wxBITMAP_PNG_FROM_DATA(time_50ms);
-	time_50ms_pressed = wxBITMAP_PNG_FROM_DATA(time_50ms_pressed);
-	time_custom = wxBITMAP_PNG_FROM_DATA(time_custom);
-	time_custom_pressed = wxBITMAP_PNG_FROM_DATA(time_custom_pressed);
-	lightorama = wxBITMAP_PNG_FROM_DATA(lightorama);
-	vixen = wxBITMAP_PNG_FROM_DATA(vixen);
-	glediator = wxBITMAP_PNG_FROM_DATA(glediator);
-	hls = wxBITMAP_PNG_FROM_DATA(hls);
-	lynx = wxBITMAP_PNG_FROM_DATA(lynx);
-	xlights_logo = wxBITMAP_PNG_FROM_DATA(xlights_logo);
-    quick_start = wxBITMAP_PNG_FROM_DATA(quick_start);
-    quick_start_pressed = wxBITMAP_PNG_FROM_DATA(quick_start_pressed);
+    musical_seq = wxArtProvider::GetBitmap("xlART_musical_seq");
+	musical_seq_pressed = wxArtProvider::GetBitmap("xlART_musical_seq_pressed");
+	animation_seq = wxArtProvider::GetBitmap("xlART_animation_seq");
+	animation_seq_pressed = wxArtProvider::GetBitmap("xlART_animation_seq_pressed");
+	time_25ms = wxArtProvider::GetBitmap("xlART_time_25ms");
+	time_25ms_pressed = wxArtProvider::GetBitmap("xlART_time_25ms_pressed");
+	time_50ms = wxArtProvider::GetBitmap("xlART_time_50ms");
+	time_50ms_pressed = wxArtProvider::GetBitmap("xlART_time_50ms_pressed");
+	time_custom = wxArtProvider::GetBitmap("xlART_time_custom");
+	time_custom_pressed = wxArtProvider::GetBitmap("xlART_time_custom_pressed");
+	lightorama = wxArtProvider::GetBitmap("xlART_lightorama");
+	vixen = wxArtProvider::GetBitmap("xlART_vixen");
+	glediator = wxArtProvider::GetBitmap("xlART_glediator");
+	hls = wxArtProvider::GetBitmap("xlART_hls");
+	lynx = wxArtProvider::GetBitmap("xlART_lynx");
+	xlights_logo = wxArtProvider::GetBitmap("xlART_xlights_logo");
+    quick_start = wxArtProvider::GetBitmap("xlART_quick_start");
+    quick_start_pressed = wxArtProvider::GetBitmap("xlART_quick_start_pressed");
 
 	//(*Initialize(SeqSettingsDialog)
-	wxFlexGridSizer* FlexGridSizer4;
-	wxGridBagSizer* GridBagSizer1;
 	wxFlexGridSizer* FlexGridSizer10;
-	wxFlexGridSizer* FlexGridSizer3;
-	wxStaticText* StaticText_Xml_Seq_Timing;
-	wxFlexGridSizer* FlexGridSizer5;
-	wxFlexGridSizer* FlexGridSizer9;
+	wxFlexGridSizer* FlexGridSizer11;
+	wxFlexGridSizer* FlexGridSizer1;
 	wxFlexGridSizer* FlexGridSizer2;
+	wxFlexGridSizer* FlexGridSizer3;
+	wxFlexGridSizer* FlexGridSizer4;
+	wxFlexGridSizer* FlexGridSizer5;
+	wxFlexGridSizer* FlexGridSizer6;
 	wxFlexGridSizer* FlexGridSizer7;
 	wxFlexGridSizer* FlexGridSizer8;
-	wxFlexGridSizer* FlexGridSizer6;
-	wxFlexGridSizer* FlexGridSizer1;
-	wxFlexGridSizer* FlexGridSizer11;
+	wxFlexGridSizer* FlexGridSizer9;
 	wxFlexGridSizer* FlexGridSizer_Timing_Grid;
 	wxFlexGridSizer* FlexGridSizer_Timing_Page;
+	wxGridBagSizer* GridBagSizer1;
+	wxStaticText* StaticText_Xml_Seq_Timing;
 
 	Create(parent, wxID_ANY, _("Sequence Settings"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE, _T("wxID_ANY"));
 	FlexGridSizer1 = new wxFlexGridSizer(0, 1, 0, 0);
 	Notebook_Seq_Settings = new wxNotebook(this, ID_NOTEBOOK_Seq_Settings, wxDefaultPosition, wxDefaultSize, 0, _T("ID_NOTEBOOK_Seq_Settings"));
-	Panel3 = new wxPanel(Notebook_Seq_Settings, ID_PANEL3, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL3"));
+	PanelInfo = new wxPanel(Notebook_Seq_Settings, ID_PANEL3, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL3"));
 	FlexGridSizer4 = new wxFlexGridSizer(0, 1, 0, 0);
 	GridBagSizer1 = new wxGridBagSizer(0, 0);
-	StaticText_File = new wxStaticText(Panel3, ID_STATICTEXT_File, _("Filename:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_File"));
+	StaticText_File = new wxStaticText(PanelInfo, ID_STATICTEXT_File, _("Filename:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_File"));
 	GridBagSizer1->Add(StaticText_File, wxGBPosition(0, 0), wxDefaultSpan, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Filename = new wxStaticText(Panel3, ID_STATICTEXT_Filename, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Filename"));
+	StaticText_Filename = new wxStaticText(PanelInfo, ID_STATICTEXT_Filename, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Filename"));
 	GridBagSizer1->Add(StaticText_Filename, wxGBPosition(0, 1), wxGBSpan(1, 4), wxALL|wxEXPAND, 5);
-	StaticText_XML_Type_Version = new wxStaticText(Panel3, ID_STATICTEXT_XML_Type_Version, _("XML Version:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_XML_Type_Version"));
+	StaticText_XML_Type_Version = new wxStaticText(PanelInfo, ID_STATICTEXT_XML_Type_Version, _("XML Version:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_XML_Type_Version"));
 	GridBagSizer1->Add(StaticText_XML_Type_Version, wxGBPosition(1, 0), wxDefaultSpan, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_XML_Version = new wxStaticText(Panel3, ID_STATICTEXT_XML_Version, wxEmptyString, wxDefaultPosition, wxSize(70,-1), 0, _T("ID_STATICTEXT_XML_Version"));
+	StaticText_XML_Version = new wxStaticText(PanelInfo, ID_STATICTEXT_XML_Version, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelInfo,wxSize(50,-1)), 0, _T("ID_STATICTEXT_XML_Version"));
 	GridBagSizer1->Add(StaticText_XML_Version, wxGBPosition(1, 1), wxDefaultSpan, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	GridBagSizer1->Add(40,20,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxFIXED_MINSIZE, 5);
-	StaticText_Num_Models_Label = new wxStaticText(Panel3, ID_STATICTEXT_Num_Models_Label, _("# Models:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Num_Models_Label"));
+	wxSize __SpacerSize_1 = wxDLG_UNIT(PanelInfo,wxSize(25,-1));
+	GridBagSizer1->Add(__SpacerSize_1.GetWidth(),__SpacerSize_1.GetHeight(),1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxFIXED_MINSIZE, 5);
+	StaticText_Num_Models_Label = new wxStaticText(PanelInfo, ID_STATICTEXT_Num_Models_Label, _("# Models:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Num_Models_Label"));
 	GridBagSizer1->Add(StaticText_Num_Models_Label, wxGBPosition(1, 3), wxDefaultSpan, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Num_Models = new wxStaticText(Panel3, ID_STATICTEXT_Num_Models, wxEmptyString, wxDefaultPosition, wxSize(70,-1), 0, _T("ID_STATICTEXT_Num_Models"));
+	StaticText_Num_Models = new wxStaticText(PanelInfo, ID_STATICTEXT_Num_Models, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelInfo,wxSize(50,-1)), 0, _T("ID_STATICTEXT_Num_Models"));
 	GridBagSizer1->Add(StaticText_Num_Models, wxGBPosition(1, 4), wxDefaultSpan, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer4->Add(GridBagSizer1, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer5 = new wxFlexGridSizer(0, 3, 0, 0);
-	StaticText_Xml_Seq_Type = new wxStaticText(Panel3, ID_STATICTEXT_Xml_Seq_Type, _("Sequence Type:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Seq_Type"));
+	StaticText_Xml_Seq_Type = new wxStaticText(PanelInfo, ID_STATICTEXT_Xml_Seq_Type, _("Sequence Type:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Seq_Type"));
 	FlexGridSizer5->Add(StaticText_Xml_Seq_Type, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	Choice_Xml_Seq_Type = new wxChoice(Panel3, ID_CHOICE_Xml_Seq_Type, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_Xml_Seq_Type"));
+	Choice_Xml_Seq_Type = new wxChoice(PanelInfo, ID_CHOICE_Xml_Seq_Type, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_Xml_Seq_Type"));
 	Choice_Xml_Seq_Type->Append(_("Media"));
 	Choice_Xml_Seq_Type->Append(_("Animation"));
 	FlexGridSizer5->Add(Choice_Xml_Seq_Type, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer4->Add(FlexGridSizer5, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer10 = new wxFlexGridSizer(0, 3, 0, 0);
 	FlexGridSizer10->AddGrowableCol(1);
-	StaticText_Xml_MediaFile = new wxStaticText(Panel3, ID_STATICTEXT_Xml_MediaFile, _("Media:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_MediaFile"));
-	FlexGridSizer10->Add(StaticText_Xml_MediaFile, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Media_File = new wxTextCtrl(Panel3, ID_TEXTCTRL_Xml_Media_File, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Media_File"));
+	StaticText_Xml_MediaFile = new wxStaticText(PanelInfo, ID_STATICTEXT_Xml_MediaFile, _("Media:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_MediaFile"));
+	FlexGridSizer10->Add(StaticText_Xml_MediaFile, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	TextCtrl_Xml_Media_File = new wxTextCtrl(PanelInfo, ID_TEXTCTRL_Xml_Media_File, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Media_File"));
 	FlexGridSizer10->Add(TextCtrl_Xml_Media_File, 1, wxALL|wxEXPAND, 5);
-	BitmapButton_Xml_Media_File = new wxBitmapButton(Panel3, ID_BITMAPBUTTON_Xml_Media_File, wxArtProvider::GetBitmap(wxART_MAKE_ART_ID_FROM_STR(_T("wxART_CDROM")),wxART_BUTTON), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW, wxDefaultValidator, _T("ID_BITMAPBUTTON_Xml_Media_File"));
+	BitmapButton_Xml_Media_File = new wxBitmapButton(PanelInfo, ID_BITMAPBUTTON_Xml_Media_File, wxArtProvider::GetBitmap(wxART_MAKE_ART_ID_FROM_STR(_T("wxART_CDROM")),wxART_BUTTON), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW, wxDefaultValidator, _T("ID_BITMAPBUTTON_Xml_Media_File"));
 	BitmapButton_Xml_Media_File->Disable();
 	FlexGridSizer10->Add(BitmapButton_Xml_Media_File, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	StaticText1 = new wxStaticText(PanelInfo, ID_STATICTEXT1, _("Hash:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
+	FlexGridSizer10->Add(StaticText1, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	TextCtrl_Hash = new wxTextCtrl(PanelInfo, ID_TEXTCTRL1, _("N/A"), wxDefaultPosition, wxDefaultSize, wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL1"));
+	FlexGridSizer10->Add(TextCtrl_Hash, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer10->Add(0,0,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer10->Add(0,0,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	Button_Download = new wxButton(PanelInfo, ID_BUTTON1, _("Download Sequence and Lyrics"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON1"));
+	FlexGridSizer10->Add(Button_Download, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer10->Add(0,0,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer4->Add(FlexGridSizer10, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer6 = new wxFlexGridSizer(0, 4, 0, 0);
-	StaticText_Xml_Total_Length = new wxStaticText(Panel3, ID_STATICTEXT_Xml_Total_Length, _("Sequence Duration:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Total_Length"));
+	StaticText_Xml_Total_Length = new wxStaticText(PanelInfo, ID_STATICTEXT_Xml_Total_Length, _("Sequence Duration:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Total_Length"));
 	FlexGridSizer6->Add(StaticText_Xml_Total_Length, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Seq_Duration = new wxTextCtrl(Panel3, ID_TEXTCTRL_Xml_Seq_Duration, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Seq_Duration"));
+	TextCtrl_Xml_Seq_Duration = new wxTextCtrl(PanelInfo, ID_TEXTCTRL_Xml_Seq_Duration, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Seq_Duration"));
 	FlexGridSizer6->Add(TextCtrl_Xml_Seq_Duration, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer6->Add(72,20,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	CheckBox_Overwrite_Tags = new wxCheckBox(Panel3, ID_CHECKBOX_Overwrite_Tags, _("Overwrite Media Tags"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX_Overwrite_Tags"));
+	wxSize __SpacerSize_2 = wxDLG_UNIT(PanelInfo,wxSize(25,-1));
+	FlexGridSizer6->Add(__SpacerSize_2.GetWidth(),__SpacerSize_2.GetHeight(),1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	CheckBox_Overwrite_Tags = new wxCheckBox(PanelInfo, ID_CHECKBOX_Overwrite_Tags, _("Overwrite Media Tags"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX_Overwrite_Tags"));
 	CheckBox_Overwrite_Tags->SetValue(false);
 	FlexGridSizer6->Add(CheckBox_Overwrite_Tags, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer4->Add(FlexGridSizer6, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer3 = new wxFlexGridSizer(0, 4, 0, 0);
-	StaticText_Xml_Seq_Timing = new wxStaticText(Panel3, wxID_ANY, _("Sequence Timing:"), wxDefaultPosition, wxDefaultSize, 0, _T("wxID_ANY"));
+	StaticText_Xml_Seq_Timing = new wxStaticText(PanelInfo, wxID_ANY, _("Sequence Timing:"), wxDefaultPosition, wxDefaultSize, 0, _T("wxID_ANY"));
 	FlexGridSizer3->Add(StaticText_Xml_Seq_Timing, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_SeqTiming = new wxTextCtrl(Panel3, ID_TEXTCTRL_SeqTiming, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL_SeqTiming"));
+	TextCtrl_SeqTiming = new wxTextCtrl(PanelInfo, ID_TEXTCTRL_SeqTiming, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL_SeqTiming"));
 	FlexGridSizer3->Add(TextCtrl_SeqTiming, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	BitmapButton_ModifyTiming = new wxBitmapButton(Panel3, ID_BITMAPBUTTON__ModifyTiming, wxArtProvider::GetBitmap(wxART_MAKE_ART_ID_FROM_STR(_T("wxART_INFORMATION")),wxART_BUTTON), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW, wxDefaultValidator, _T("ID_BITMAPBUTTON__ModifyTiming"));
+	BitmapButton_ModifyTiming = new wxBitmapButton(PanelInfo, ID_BITMAPBUTTON__ModifyTiming, wxArtProvider::GetBitmap(wxART_MAKE_ART_ID_FROM_STR(_T("wxART_INFORMATION")),wxART_BUTTON), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW, wxDefaultValidator, _T("ID_BITMAPBUTTON__ModifyTiming"));
 	FlexGridSizer3->Add(BitmapButton_ModifyTiming, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	BlendingCheckBox = new wxCheckBox(Panel3, ID_CHECKBOX1, _("Allow Blending Between Models"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX1"));
+	BlendingCheckBox = new wxCheckBox(PanelInfo, ID_CHECKBOX1, _("Allow Blending Between Models"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX1"));
 	BlendingCheckBox->SetValue(false);
 	FlexGridSizer3->Add(BlendingCheckBox, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer4->Add(FlexGridSizer3, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
-	Panel3->SetSizer(FlexGridSizer4);
-	FlexGridSizer4->Fit(Panel3);
-	FlexGridSizer4->SetSizeHints(Panel3);
-	Panel1 = new wxPanel(Notebook_Seq_Settings, ID_PANEL1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL1"));
+	PanelInfo->SetSizer(FlexGridSizer4);
+	FlexGridSizer4->Fit(PanelInfo);
+	FlexGridSizer4->SetSizeHints(PanelInfo);
+	PanelMetaData = new wxPanel(Notebook_Seq_Settings, ID_PANEL1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL1"));
 	FlexGridSizer_Timing_Page = new wxFlexGridSizer(0, 2, 0, 0);
-	StaticText_Xml_Author = new wxStaticText(Panel1, ID_STATICTEXT_Xml_Author, _("Author:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Author"));
+	StaticText_Xml_Author = new wxStaticText(PanelMetaData, ID_STATICTEXT_Xml_Author, _("Author:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Author"));
 	FlexGridSizer_Timing_Page->Add(StaticText_Xml_Author, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Author = new wxTextCtrl(Panel1, ID_TEXTCTRL_Xml_Author, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Author"));
+	TextCtrl_Xml_Author = new wxTextCtrl(PanelMetaData, ID_TEXTCTRL_Xml_Author, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelMetaData,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Author"));
 	FlexGridSizer_Timing_Page->Add(TextCtrl_Xml_Author, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Xml_Author_Email = new wxStaticText(Panel1, ID_STATICTEXT_Xml_Author_Email, _("Email:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Author_Email"));
+	StaticText_Xml_Author_Email = new wxStaticText(PanelMetaData, ID_STATICTEXT_Xml_Author_Email, _("Email:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Author_Email"));
 	FlexGridSizer_Timing_Page->Add(StaticText_Xml_Author_Email, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Author_Email = new wxTextCtrl(Panel1, ID_TEXTCTRL_Xml_Author_Email, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Author_Email"));
+	TextCtrl_Xml_Author_Email = new wxTextCtrl(PanelMetaData, ID_TEXTCTRL_Xml_Author_Email, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelMetaData,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Author_Email"));
 	FlexGridSizer_Timing_Page->Add(TextCtrl_Xml_Author_Email, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Xml_Website = new wxStaticText(Panel1, ID_STATICTEXT_Xml_Website, _("Website:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Website"));
+	StaticText_Xml_Website = new wxStaticText(PanelMetaData, ID_STATICTEXT_Xml_Website, _("Website:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Website"));
 	FlexGridSizer_Timing_Page->Add(StaticText_Xml_Website, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Website = new wxTextCtrl(Panel1, ID_TEXTCTRL_Xml_Website, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Website"));
+	TextCtrl_Xml_Website = new wxTextCtrl(PanelMetaData, ID_TEXTCTRL_Xml_Website, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelMetaData,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Website"));
 	FlexGridSizer_Timing_Page->Add(TextCtrl_Xml_Website, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Xml_Song = new wxStaticText(Panel1, ID_STATICTEXT_Xml_Song, _("Song:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Song"));
+	StaticText_Xml_Song = new wxStaticText(PanelMetaData, ID_STATICTEXT_Xml_Song, _("Song:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Song"));
 	FlexGridSizer_Timing_Page->Add(StaticText_Xml_Song, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Song = new wxTextCtrl(Panel1, ID_TEXTCTRL_Xml_Song, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Song"));
+	TextCtrl_Xml_Song = new wxTextCtrl(PanelMetaData, ID_TEXTCTRL_Xml_Song, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelMetaData,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Song"));
 	FlexGridSizer_Timing_Page->Add(TextCtrl_Xml_Song, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Xml_Artist = new wxStaticText(Panel1, ID_STATICTEXT_Xml_Artist, _("Artist:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Artist"));
+	StaticText_Xml_Artist = new wxStaticText(PanelMetaData, ID_STATICTEXT_Xml_Artist, _("Artist:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Artist"));
 	FlexGridSizer_Timing_Page->Add(StaticText_Xml_Artist, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Artist = new wxTextCtrl(Panel1, ID_TEXTCTRL_Xml_Artist, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Artist"));
+	TextCtrl_Xml_Artist = new wxTextCtrl(PanelMetaData, ID_TEXTCTRL_Xml_Artist, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelMetaData,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Artist"));
 	FlexGridSizer_Timing_Page->Add(TextCtrl_Xml_Artist, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Xml_Album = new wxStaticText(Panel1, ID_STATICTEXT_Xml_Album, _("Album:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Album"));
+	StaticText_Xml_Album = new wxStaticText(PanelMetaData, ID_STATICTEXT_Xml_Album, _("Album:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Album"));
 	FlexGridSizer_Timing_Page->Add(StaticText_Xml_Album, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Album = new wxTextCtrl(Panel1, ID_TEXTCTRL_Xml_Album, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Album"));
+	TextCtrl_Xml_Album = new wxTextCtrl(PanelMetaData, ID_TEXTCTRL_Xml_Album, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelMetaData,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Album"));
 	FlexGridSizer_Timing_Page->Add(TextCtrl_Xml_Album, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Xml_Music_Url = new wxStaticText(Panel1, ID_STATICTEXT_Xml_Music_Url, _("Music URL:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Music_Url"));
+	StaticText_Xml_Music_Url = new wxStaticText(PanelMetaData, ID_STATICTEXT_Xml_Music_Url, _("Music URL:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Music_Url"));
 	FlexGridSizer_Timing_Page->Add(StaticText_Xml_Music_Url, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Music_Url = new wxTextCtrl(Panel1, ID_TEXTCTRL_Xml_Music_Url, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Music_Url"));
+	TextCtrl_Xml_Music_Url = new wxTextCtrl(PanelMetaData, ID_TEXTCTRL_Xml_Music_Url, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelMetaData,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Music_Url"));
 	FlexGridSizer_Timing_Page->Add(TextCtrl_Xml_Music_Url, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	StaticText_Xml_Comment = new wxStaticText(Panel1, ID_STATICTEXT_Xml_Comment, _("Comment:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Comment"));
+	StaticText_Xml_Comment = new wxStaticText(PanelMetaData, ID_STATICTEXT_Xml_Comment, _("Comment:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Xml_Comment"));
 	FlexGridSizer_Timing_Page->Add(StaticText_Xml_Comment, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-	TextCtrl_Xml_Comment = new wxTextCtrl(Panel1, ID_TEXTCTRL_Xml_Comment, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Comment"));
+	TextCtrl_Xml_Comment = new wxTextCtrl(PanelMetaData, ID_TEXTCTRL_Xml_Comment, wxEmptyString, wxDefaultPosition, wxDLG_UNIT(PanelMetaData,wxSize(150,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Xml_Comment"));
 	FlexGridSizer_Timing_Page->Add(TextCtrl_Xml_Comment, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	Panel1->SetSizer(FlexGridSizer_Timing_Page);
-	FlexGridSizer_Timing_Page->Fit(Panel1);
-	FlexGridSizer_Timing_Page->SetSizeHints(Panel1);
-	Panel2 = new wxPanel(Notebook_Seq_Settings, ID_PANEL2, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL2"));
+	PanelMetaData->SetSizer(FlexGridSizer_Timing_Page);
+	FlexGridSizer_Timing_Page->Fit(PanelMetaData);
+	FlexGridSizer_Timing_Page->SetSizeHints(PanelMetaData);
+	PanelTimings = new wxPanel(Notebook_Seq_Settings, ID_PANEL2, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL2"));
 	FlexGridSizer8 = new wxFlexGridSizer(0, 1, 0, 0);
 	FlexGridSizer8->AddGrowableCol(0);
 	FlexGridSizer8->AddGrowableRow(0);
 	FlexGridSizer_Timing_Grid = new wxFlexGridSizer(0, 1, 0, 0);
 	FlexGridSizer8->Add(FlexGridSizer_Timing_Grid, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer2 = new wxFlexGridSizer(0, 2, 0, 0);
-	Button_Xml_New_Timing = new wxButton(Panel2, ID_BUTTON_Xml_New_Timing, _("New"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT, wxDefaultValidator, _T("ID_BUTTON_Xml_New_Timing"));
+	Button_Xml_New_Timing = new wxButton(PanelTimings, ID_BUTTON_Xml_New_Timing, _("New"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT, wxDefaultValidator, _T("ID_BUTTON_Xml_New_Timing"));
 	FlexGridSizer2->Add(Button_Xml_New_Timing, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	Button_Xml_Import_Timing = new wxButton(Panel2, ID_BUTTON_Xml_Import_Timing, _("Import"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT, wxDefaultValidator, _T("ID_BUTTON_Xml_Import_Timing"));
+	Button_Xml_Import_Timing = new wxButton(PanelTimings, ID_BUTTON_Xml_Import_Timing, _("Import"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT, wxDefaultValidator, _T("ID_BUTTON_Xml_Import_Timing"));
 	FlexGridSizer2->Add(Button_Xml_Import_Timing, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer8->Add(FlexGridSizer2, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer8->Add(412,20,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	Panel2->SetSizer(FlexGridSizer8);
-	FlexGridSizer8->Fit(Panel2);
-	FlexGridSizer8->SetSizeHints(Panel2);
+	wxSize __SpacerSize_3 = wxDLG_UNIT(PanelTimings,wxSize(-1,12));
+	FlexGridSizer8->Add(__SpacerSize_3.GetWidth(),__SpacerSize_3.GetHeight(),1, wxALL|wxEXPAND, 5);
+	PanelTimings->SetSizer(FlexGridSizer8);
+	FlexGridSizer8->Fit(PanelTimings);
+	FlexGridSizer8->SetSizeHints(PanelTimings);
 	Panel_DataLayers = new wxPanel(Notebook_Seq_Settings, ID_PANEL4, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL4"));
 	FlexGridSizer9 = new wxFlexGridSizer(0, 1, 0, 0);
 	FlexGridSizer9->AddGrowableCol(0);
-	TreeCtrl_Data_Layers = new wxTreeCtrl(Panel_DataLayers, ID_TREECTRL_Data_Layers, wxDefaultPosition, wxSize(413,158), wxTR_EDIT_LABELS|wxTR_DEFAULT_STYLE, wxDefaultValidator, _T("ID_TREECTRL_Data_Layers"));
+	TreeCtrl_Data_Layers = new wxTreeCtrl(Panel_DataLayers, ID_TREECTRL_Data_Layers, wxDefaultPosition, wxDLG_UNIT(Panel_DataLayers,wxSize(300,100)), wxTR_EDIT_LABELS|wxTR_DEFAULT_STYLE, wxDefaultValidator, _T("ID_TREECTRL_Data_Layers"));
 	wxTreeItemId TreeCtrl_Data_Layers_Item1 = TreeCtrl_Data_Layers->AddRoot(_T("Layers to Render"));
 	FlexGridSizer9->Add(TreeCtrl_Data_Layers, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer11 = new wxFlexGridSizer(0, 4, 0, 0);
@@ -310,9 +327,9 @@ SeqSettingsDialog::SeqSettingsDialog(wxWindow* parent, xLightsXmlFile* file_to_h
 	Panel_DataLayers->SetSizer(FlexGridSizer9);
 	FlexGridSizer9->Fit(Panel_DataLayers);
 	FlexGridSizer9->SetSizeHints(Panel_DataLayers);
-	Notebook_Seq_Settings->AddPage(Panel3, _("Info / Media"), false);
-	Notebook_Seq_Settings->AddPage(Panel1, _("Meta Data"), false);
-	Notebook_Seq_Settings->AddPage(Panel2, _("Timings"), false);
+	Notebook_Seq_Settings->AddPage(PanelInfo, _("Info / Media"), false);
+	Notebook_Seq_Settings->AddPage(PanelMetaData, _("Meta Data"), false);
+	Notebook_Seq_Settings->AddPage(PanelTimings, _("Timings"), false);
 	Notebook_Seq_Settings->AddPage(Panel_DataLayers, _("Data Layers"), false);
 	FlexGridSizer1->Add(Notebook_Seq_Settings, 1, wxTOP|wxLEFT|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	StaticText_Warning = new wxStaticText(this, ID_STATICTEXT_Warning, _("Show Warning Here"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_Warning"));
@@ -346,6 +363,7 @@ SeqSettingsDialog::SeqSettingsDialog(wxWindow* parent, xLightsXmlFile* file_to_h
 
 	Connect(ID_CHOICE_Xml_Seq_Type,wxEVT_COMMAND_CHOICE_SELECTED,(wxObjectEventFunction)&SeqSettingsDialog::OnChoice_Xml_Seq_TypeSelect);
 	Connect(ID_BITMAPBUTTON_Xml_Media_File,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnBitmapButton_Xml_Media_FileClick);
+	Connect(ID_BUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnButton_DownloadClick);
 	Connect(ID_TEXTCTRL_Xml_Seq_Duration,wxEVT_COMMAND_TEXT_UPDATED,(wxObjectEventFunction)&SeqSettingsDialog::OnTextCtrl_Xml_Seq_DurationText);
 	Connect(ID_BITMAPBUTTON__ModifyTiming,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnBitmapButton_ModifyTimingClick);
 	Connect(ID_CHECKBOX1,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnCheckBox1Click);
@@ -368,6 +386,7 @@ SeqSettingsDialog::SeqSettingsDialog(wxWindow* parent, xLightsXmlFile* file_to_h
 	Connect(ID_BUTTON_Move_Up,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnButton_Move_UpClick);
 	Connect(ID_BUTTON_Move_Down,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnButton_Move_DownClick);
 	Connect(ID_BUTTON_Reimport,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnButton_ReimportClick);
+	Connect(ID_NOTEBOOK_Seq_Settings,wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGED,(wxObjectEventFunction)&SeqSettingsDialog::OnNotebook_Seq_SettingsPageChanged);
 	Connect(ID_BUTTON_CANCEL,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnButton_CancelClick);
 	Connect(ID_BUTTON_Close,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SeqSettingsDialog::OnButton_CloseClick);
 	//*)
@@ -390,11 +409,11 @@ SeqSettingsDialog::SeqSettingsDialog(wxWindow* parent, xLightsXmlFile* file_to_h
 	ProcessSequenceType();
 
 	// Setup Grid
-	Grid_Timing = new tmGrid(Panel2, ID_GRID_TIMING, wxDefaultPosition, wxSize(390, 150), wxBORDER_SIMPLE, _T("ID_GRID_TIMING"));
+	Grid_Timing = new tmGrid(PanelTimings, ID_GRID_TIMING, wxDefaultPosition, wxDLG_UNIT(PanelTimings,wxSize(300,100)), wxBORDER_SIMPLE, _T("ID_GRID_TIMING"));
 	FlexGridSizer_Timing_Grid->Add(Grid_Timing, 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 15);
 
-	FlexGridSizer8->Fit(Panel2);
-	FlexGridSizer8->SetSizeHints(Panel2);
+	FlexGridSizer8->Fit(PanelTimings);
+	FlexGridSizer8->SetSizeHints(PanelTimings);
 	Grid_Timing->DisableDragGridSize();
 	Grid_Timing->DisableDragRowSize();
 	Grid_Timing->DisableDragColSize();
@@ -425,12 +444,13 @@ SeqSettingsDialog::SeqSettingsDialog(wxWindow* parent, xLightsXmlFile* file_to_h
 	if (xml_file->GetMedia() == nullptr)
 	{
 		TextCtrl_Xml_Media_File->SetValue("");
-	}
+    }
 	else
 	{
 		TextCtrl_Xml_Media_File->SetValue(xml_file->GetMedia()->FileName());
-	}
-	TextCtrl_Xml_Seq_Duration->ChangeValue(xml_file->GetSequenceDurationString());
+    }
+    SetHash();
+    TextCtrl_Xml_Seq_Duration->ChangeValue(xml_file->GetSequenceDurationString());
     BlendingCheckBox->SetValue(xml_file->supportsModelBlending());
 
     DataLayerSet& data_layers = xml_file->GetDataLayers();
@@ -456,6 +476,7 @@ SeqSettingsDialog::SeqSettingsDialog(wxWindow* parent, xLightsXmlFile* file_to_h
     x += w;
     _plog = new ConvertLogDialog(this, -1, wxPoint(x,y));
     _plog->Show(false);
+    SetEscapeId(Button_Cancel->GetId());
 }
 
 SeqSettingsDialog::~SeqSettingsDialog()
@@ -489,10 +510,10 @@ void SeqSettingsDialog::WizardPage1()
     GridBagSizerWizard = new wxGridBagSizer(0, 1);
     GridBagSizerWizard->Add(493,16,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     GridSizerWizButtons = new wxGridSizer(0, 1, 10, 0);
-    BitmapButton_Wiz_Music = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_Wiz_Music, musical_seq, wxDefaultPosition, wxSize(268,90), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_Wiz_Music"));
+    BitmapButton_Wiz_Music = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_Wiz_Music, musical_seq, wxDefaultPosition, musical_seq.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_Wiz_Music"));
     BitmapButton_Wiz_Music->SetBitmapSelected(musical_seq_pressed);
     GridSizerWizButtons->Add(BitmapButton_Wiz_Music, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    BitmapButton_Wiz_Anim = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_Wiz_Anim, animation_seq, wxDefaultPosition, wxSize(268,90), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_Wiz_Anim"));
+    BitmapButton_Wiz_Anim = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_Wiz_Anim, animation_seq, wxDefaultPosition, animation_seq.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_Wiz_Anim"));
     BitmapButton_Wiz_Anim->SetBitmapSelected(animation_seq_pressed);
     GridSizerWizButtons->Add(BitmapButton_Wiz_Anim, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     GridBagSizerWizard->Add(GridSizerWizButtons, wxGBPosition(1, 0), wxDefaultSpan, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
@@ -508,13 +529,13 @@ void SeqSettingsDialog::WizardPage2()
     GridBagSizerWizard->Clear(true);
     GridBagSizerWizard->Add(493,16,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     GridSizerWizButtons = new wxGridSizer(0, 1, 10, 0);
-    BitmapButton_25ms = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_25ms, time_25ms, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_25ms"));
+    BitmapButton_25ms = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_25ms, time_25ms, wxDefaultPosition, time_25ms.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_25ms"));
     BitmapButton_25ms->SetBitmapSelected(time_25ms_pressed);
     GridSizerWizButtons->Add(BitmapButton_25ms, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    BitmapButton_50ms = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_50ms, time_50ms, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_50ms"));
+    BitmapButton_50ms = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_50ms, time_50ms, wxDefaultPosition, time_50ms.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_50ms"));
     BitmapButton_50ms->SetBitmapSelected(time_50ms_pressed);
     GridSizerWizButtons->Add(BitmapButton_50ms, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    BitmapButton_Custom = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_Custom, time_custom, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_Custom"));
+    BitmapButton_Custom = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_Custom, time_custom, wxDefaultPosition, time_custom.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_Custom"));
     BitmapButton_Custom->SetBitmapSelected(time_custom_pressed);
     GridSizerWizButtons->Add(BitmapButton_Custom, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     GridBagSizerWizard->Add(GridSizerWizButtons, wxGBPosition(1, 0), wxDefaultSpan, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
@@ -547,14 +568,18 @@ void SeqSettingsDialog::WizardPage3()
 	auto views = xLightsParent->GetViewsManager()->GetViews();
     for(auto it = views.begin(); it != views.end(); ++it)
     {
-        ModelsChoice->Append((*it)->GetName());
+        // dont add the master view
+        if ((*it)->GetName() != "Master View")
+        {
+            ModelsChoice->Append((*it)->GetName());
+        }
     }
 	ModelsChoice->SetSelection(0);
 	GridSizerWizButtons->Add(ModelsChoice, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
-    BitmapButton_quick_start = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_quick_start, quick_start, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_quick_start"));
+    BitmapButton_quick_start = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_quick_start, quick_start, wxDefaultPosition, quick_start.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_quick_start"));
     BitmapButton_quick_start->SetBitmapSelected(quick_start_pressed);
     GridSizerWizButtons->Add(BitmapButton_quick_start, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    ModelsChoiceNext = new wxButton(Panel_Wizard, ID_BUTTON_models_next, _("More Options >>"), wxDefaultPosition, wxSize(185,30), 0, wxDefaultValidator, _T("ID_BUTTON_models_next"));
+    ModelsChoiceNext = new wxButton(Panel_Wizard, ID_BUTTON_models_next, _("More Options >>"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON_models_next"));
     GridSizerWizButtons->Add(ModelsChoiceNext, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     wxFont SkipImportFont(16,wxFONTFAMILY_DEFAULT,wxFONTSTYLE_NORMAL,wxFONTWEIGHT_BOLD);
     ModelsChoiceNext->SetFont(SkipImportFont);
@@ -583,20 +608,20 @@ void SeqSettingsDialog::WizardPage4()
     GridSizerWizButtons = new wxGridSizer(0, 2, 5, 10);
     GridSizerWizButtons->Add(StaticText_Page3Optional, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
     GridSizerWizButtons->Add(50,1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
-    BitmapButton_lor = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_lor, lightorama, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_lor"));
+    BitmapButton_lor = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_lor, lightorama, wxDefaultPosition, lightorama.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_lor"));
     GridSizerWizButtons->Add(BitmapButton_lor, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    BitmapButton_hls = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_hls, hls, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_hls"));
+    BitmapButton_hls = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_hls, hls, wxDefaultPosition, hls.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_hls"));
     GridSizerWizButtons->Add(BitmapButton_hls, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    BitmapButton_xlights = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_xlights, xlights_logo, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_xlights"));
+    BitmapButton_xlights = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_xlights, xlights_logo, wxDefaultPosition, xlights_logo.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_xlights"));
     GridSizerWizButtons->Add(BitmapButton_xlights, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    BitmapButton_vixen = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_vixen, vixen, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_vixen"));
+    BitmapButton_vixen = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_vixen, vixen, wxDefaultPosition, vixen.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_vixen"));
     GridSizerWizButtons->Add(BitmapButton_vixen, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    BitmapButton_gled = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_gled, glediator, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_gled"));
+    BitmapButton_gled = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_gled, glediator, wxDefaultPosition, glediator.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_gled"));
     GridSizerWizButtons->Add(BitmapButton_gled, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    BitmapButton_lynx = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_lynx, lynx, wxDefaultPosition, wxSize(185,50), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_lynx"));
+    BitmapButton_lynx = new FlickerFreeBitmapButton(Panel_Wizard, ID_BITMAPBUTTON_lynx, lynx, wxDefaultPosition, lynx.GetScaledSize(), wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_lynx"));
     GridSizerWizButtons->Add(BitmapButton_lynx, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     GridSizerWizButtons->Add(185,30,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    Button_SkipImport = new wxButton(Panel_Wizard, ID_BUTTON_skip_import, _("Skip >>"), wxDefaultPosition, wxSize(185,30), 0, wxDefaultValidator, _T("ID_BUTTON_skip_import"));
+    Button_SkipImport = new wxButton(Panel_Wizard, ID_BUTTON_skip_import, _("Skip >>"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON_skip_import"));
     GridSizerWizButtons->Add(Button_SkipImport, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     wxFont SkipImportFont(16,wxFONTFAMILY_DEFAULT,wxFONTSTYLE_NORMAL,wxFONTWEIGHT_BOLD);
     Button_SkipImport->SetFont(SkipImportFont);
@@ -626,16 +651,16 @@ void SeqSettingsDialog::WizardPage5()
     GridSizerWizButtons = new wxGridSizer(0, 2, 5, 10);
     GridSizerWizButtons->Add(StaticText_Page3Optional, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
     GridSizerWizButtons->Add(50,1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
-    Button_EditMetadata = new wxButton(Panel_Wizard, ID_BUTTON_edit_metadata, _("Edit Metadata"), wxDefaultPosition, wxSize(185,30), 0, wxDefaultValidator, _T("ID_BUTTON_edit_metadata"));
+    Button_EditMetadata = new wxButton(Panel_Wizard, ID_BUTTON_edit_metadata, _("Edit Metadata"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON_edit_metadata"));
     GridSizerWizButtons->Add(Button_EditMetadata, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     GridSizerWizButtons->Add(30,1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
-    Button_ImportTimings = new wxButton(Panel_Wizard, ID_BUTTON_import_timings, _("Import Timings"), wxDefaultPosition, wxSize(185,30), 0, wxDefaultValidator, _T("ID_BUTTON_import_timings"));
+    Button_ImportTimings = new wxButton(Panel_Wizard, ID_BUTTON_import_timings, _("Import Timings"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON_import_timings"));
     GridSizerWizButtons->Add(Button_ImportTimings, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     GridSizerWizButtons->Add(30,1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
     GridSizerWizButtons->Add(30,1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
     GridSizerWizButtons->Add(30,1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
     GridSizerWizButtons->Add(30,1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
-    Button_WizardDone = new wxButton(Panel_Wizard, ID_BUTTON_wizard_done, _("Done >>"), wxDefaultPosition, wxSize(185,30), 0, wxDefaultValidator, _T("ID_BUTTON_wizard_done"));
+    Button_WizardDone = new wxButton(Panel_Wizard, ID_BUTTON_wizard_done, _("Done >>"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON_wizard_done"));
     GridSizerWizButtons->Add(Button_WizardDone, 1, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     wxFont LargerFont(16,wxFONTFAMILY_DEFAULT,wxFONTSTYLE_NORMAL,wxFONTWEIGHT_BOLD);
     Button_EditMetadata->SetFont(LargerFont);
@@ -679,15 +704,53 @@ void SeqSettingsDialog::ProcessSequenceType()
     Fit();
 }
 
+void SeqSettingsDialog::SetHash()
+{
+    if (Notebook_Seq_Settings->GetPageText(Notebook_Seq_Settings->GetSelection()) == "Info / Media")
+    {
+        if (xml_file->GetMedia() != nullptr)
+        {
+            TextCtrl_Hash->SetValue(xml_file->GetMedia()->Hash());
+            Button_Download->Enable();
+        }
+        else
+        {
+            TextCtrl_Hash->SetValue("N/A");
+            Button_Download->Disable();
+        }
+    }
+}
+
+void SeqSettingsDialog::OnNotebook_Seq_SettingsPageChanged(wxBookCtrlEvent& event)
+{
+    SetHash();
+}
+
 void SeqSettingsDialog::OnChoice_Xml_Seq_TypeSelect(wxCommandEvent& event)
 {
     int selection = Choice_Xml_Seq_Type->GetSelection();
     wxString type = Choice_Xml_Seq_Type->GetString(selection);
-    if( type != xml_file->GetSequenceType() )
+    if (type != xml_file->GetSequenceType())
     {
         xml_file->SetSequenceType(type);
         ProcessSequenceType();
     }
+
+    wxString path = "";
+    if (type != "Animation")
+    {
+        path = TextCtrl_Xml_Media_File->GetValue();
+        if (wxFileExists(path))
+        {
+            wxFileName name_and_path(path);
+            MediaLoad(path);
+        }
+    }
+    SetHash();
+    xLightsFrame *pFrame = dynamic_cast<xLightsFrame *>(GetParent());
+    wxASSERT(pFrame != nullptr);
+    if (pFrame != nullptr)
+        pFrame->UpdateSequenceVideoPanel(path);
 }
 
 void SeqSettingsDialog::OnBitmapButton_Xml_Media_FileClick(wxCommandEvent& event)
@@ -922,7 +985,9 @@ bool SeqSettingsDialog::ImportDataLayer(const wxString& filetypes, ConvertLogDia
         full_name.SetPath(fDir);
         wxFileName data_file(full_name);
         data_file.SetExt("iseq");
-        data_file.SetPath(xLightsParent->GetShowDirectory());
+        if( full_name.GetExt() != "iseq" ) {
+            data_file.SetPath(xLightsParent->GetShowDirectory());
+        }
         DataLayerSet& data_layers = xml_file->GetDataLayers();
         DataLayer* new_data_layer = data_layers.AddDataLayer(full_name.GetName(), full_name.GetFullPath(), data_file.GetFullPath() );
         wxTreeItemId root = TreeCtrl_Data_Layers->GetRootItem();
@@ -932,6 +997,11 @@ bool SeqSettingsDialog::ImportDataLayer(const wxString& filetypes, ConvertLogDia
         wxTreeItemId branch_num_channels = TreeCtrl_Data_Layers->AppendItem(branch1, "Number of Channels: <waiting for file conversion>");
         TreeCtrl_Data_Layers->AppendItem(branch1, "Channel Offset: 0");
         TreeCtrl_Data_Layers->Expand(branch1);
+
+
+        {
+
+        }
 
         wxString media_filename;
         ConvertParameters conv_params(full_name.GetFullPath(),                                  // input filename
@@ -1257,37 +1327,44 @@ void SeqSettingsDialog::OnTreeCtrl_Data_LayersEndLabelEdit(wxTreeEvent& event)
     }
 }
 
+void SeqSettingsDialog::MediaLoad(wxFileName name_and_path)
+{
+    xml_file->SetMediaFile(xLightsParent->GetShowDirectory(), name_and_path.GetFullPath(), CheckBox_Overwrite_Tags->IsChecked());
+    TextCtrl_Xml_Media_File->SetValue(name_and_path.GetFullPath());
+    TextCtrl_Xml_Song->SetValue(xml_file->GetHeaderInfo(xLightsXmlFile::SONG));
+    TextCtrl_Xml_Album->SetValue(xml_file->GetHeaderInfo(xLightsXmlFile::ALBUM));
+    TextCtrl_Xml_Artist->SetValue(xml_file->GetHeaderInfo(xLightsXmlFile::ARTIST));
+    int length_ms = xml_file->GetMedia()->LengthMS();
+    double length = length_ms / 1000.0f;
+    xml_file->SetSequenceDuration(length);
+    TextCtrl_Xml_Seq_Duration->ChangeValue(string_format("%.3f", length));
+    if (xml_file->GetSequenceLoaded())
+    {
+        xLightsParent->LoadAudioData(*xml_file);
+    }
+    xLightsParent->SetSequenceEnd(xml_file->GetSequenceDurationMS());
+    StaticText_Warning->Hide();
+    ProcessSequenceType();
+    xLightsParent->UpdateSequenceLength();
+    SetHash();
+}
+
 void SeqSettingsDialog::MediaChooser()
 {
 	wxFileDialog OpenDialog(this, "Choose Audio file", wxEmptyString, wxEmptyString, "FPP Audio files|*.mp3;*.ogg;*.m4p;*.mp4|xLights Audio files|*.mp3;*.ogg;*.m4p;*.mp4;*.avi;*.wma;*.au;*.wav;*.m4a;*.mid;*.mkv;*.mov;*.mpg;*.asf;*.flv;*.mpeg", wxFD_OPEN | wxFD_FILE_MUST_EXIST, wxDefaultPosition);
-    wxString fDir;
     if (wxDir::Exists(media_directory))
     {
         OpenDialog.SetDirectory(media_directory);
     }
     if (OpenDialog.ShowModal() == wxID_OK)
     {
-        fDir = OpenDialog.GetDirectory();
+        wxString fDir = OpenDialog.GetDirectory();
         wxString filename = OpenDialog.GetFilename();
+
         wxFileName name_and_path(filename);
         name_and_path.SetPath(fDir);
-        xml_file->SetMediaFile(xLightsParent->GetShowDirectory(), name_and_path.GetFullPath(), CheckBox_Overwrite_Tags->IsChecked());
-        TextCtrl_Xml_Media_File->SetValue(name_and_path.GetFullPath());
-        TextCtrl_Xml_Song->SetValue(xml_file->GetHeaderInfo(xLightsXmlFile::SONG));
-        TextCtrl_Xml_Album->SetValue(xml_file->GetHeaderInfo(xLightsXmlFile::ALBUM));
-        TextCtrl_Xml_Artist->SetValue(xml_file->GetHeaderInfo(xLightsXmlFile::ARTIST));
-		int length_ms = xml_file->GetMedia()->LengthMS();
-        double length = length_ms / 1000.0f;
-        xml_file->SetSequenceDuration(length);
-        TextCtrl_Xml_Seq_Duration->ChangeValue(string_format("%.3f", length));
-        if( xml_file->GetSequenceLoaded() )
-        {
-            xLightsParent->LoadAudioData(*xml_file);
-        }
-        xLightsParent->SetSequenceEnd(xml_file->GetSequenceDurationMS());
-        StaticText_Warning->Hide();
-        ProcessSequenceType();
-        xLightsParent->UpdateSequenceLength();
+
+        MediaLoad(name_and_path);
     }
 }
 
@@ -1470,5 +1547,25 @@ void SeqSettingsDialog::OnBitmapButton_ModifyTimingClick(wxCommandEvent& event)
         wxString name = xml_file->GetFullPath();
         xLightsParent->CloseSequence();
         xLightsParent->OpenSequence( name, nullptr );
+    }
+}
+
+void SeqSettingsDialog::OnButton_DownloadClick(wxCommandEvent& event)
+{
+    wxString downloadDir = xLightsParent->CurrentDir + wxFileName::GetPathSeparator() + "Downloads";
+
+    if (!wxDirExists(downloadDir))
+    {
+        wxMkdir(downloadDir);
+    }
+
+    VendorMusicDialog dlg(this);
+    if (dlg.DlgInit(TextCtrl_Hash->GetValue().ToStdString(), downloadDir))
+    {
+        dlg.ShowModal();
+    }
+    else
+    {
+        wxMessageBox("Nothing available for this song.");
     }
 }

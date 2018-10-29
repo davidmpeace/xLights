@@ -14,8 +14,9 @@ class DMXEffect : public RenderableEffect
         virtual bool CanBeRandom() override {return false;}
         virtual void Render(Effect *effect, SettingsMap &settings, RenderBuffer &buffer) override;
         virtual void SetPanelStatus(Model *cls) override;
-        virtual void SetDefaultParameters(Model *cls) override;
-protected:
+        virtual void SetDefaultParameters() override;
+        virtual bool CanRenderPartialTimeInterval() const override { return true; }
+    protected:
         virtual wxPanel *CreatePanel(wxWindow *parent) override;
         virtual bool needToAdjustSettings(const std::string& version) override { return true; };
         virtual void adjustSettings(const std::string &version, Effect *effect, bool removeDefaults = true) override;

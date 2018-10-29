@@ -32,7 +32,7 @@ void SphereModel::InitSphere() {
     double pct=isBotToTop ? 0.5 : 0.0;          // % of circle, 0=top
     double pctIncr=1.0 / (double)numlights;     // this is cw
     if (IsLtoR != isBotToTop) pctIncr*=-1.0;    // adjust to ccw
-    int ChanIncr=SingleChannel ?  1 : 3;
+    int ChanIncr = GetNodeChannelCount(StringType);
     size_t NodeCount=GetNodeCount();
 
     /*
@@ -91,7 +91,7 @@ void SphereModel::AddTypeProperties(wxPropertyGridInterface *grid) {
     p->SetAttribute("Max", 250);
     p->SetEditor("SpinCtrl");
 
-    p = grid->Append(new wxEnumProperty("Starting Location", "SphereStart", TOP_BOT_LEFT_RIGHT, IsLtoR ? (isBotToTop ? 2 : 0) : (isBotToTop ? 3 : 1)));
+    grid->Append(new wxEnumProperty("Starting Location", "SphereStart", TOP_BOT_LEFT_RIGHT, IsLtoR ? (isBotToTop ? 2 : 0) : (isBotToTop ? 3 : 1)));
 }
 int SphereModel::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEvent& event) {
     if ("SphereStringCount" == event.GetPropertyName()) {

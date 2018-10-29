@@ -1,21 +1,6 @@
-#include "PicturesEffect.h"
-#include "PicturesPanel.h"
-
-#include "../sequencer/Effect.h"
-#include "../RenderBuffer.h"
-#include "../UtilClasses.h"
-#include "assist/xlGridCanvasPictures.h"
-#include "assist/PicturesAssistPanel.h"
-#include "../xLightsXmlFile.h"
-#include "../models/Model.h"
-#include "../SequenceCheck.h"
-#include <log4cpp/Category.hh>
-#include "GIFImage.h"
-
 #include <wx/regex.h>
 #include <wx/tokenzr.h>
 #include <wx/gifdecod.h>
-#include <wx/wfstream.h>
 #include <wx/image.h>
 
 #include "../../include/pictures-16.xpm"
@@ -23,7 +8,21 @@
 #include "../../include/pictures-32.xpm"
 #include "../../include/pictures-48.xpm"
 #include "../../include/pictures-64.xpm"
+
+#include "PicturesEffect.h"
+#include "PicturesPanel.h"
+#include "../sequencer/Effect.h"
+#include "../RenderBuffer.h"
+#include "../UtilClasses.h"
+#include "assist/xlGridCanvasPictures.h"
+#include "assist/PicturesAssistPanel.h"
+#include "../xLightsXmlFile.h"
+#include "../models/Model.h"
 #include "../UtilFunctions.h"
+#include "GIFImage.h"
+#include "../xLightsMain.h" 
+
+#include <log4cpp/Category.hh>
 
 #define wrdebug(...)
 
@@ -50,7 +49,19 @@ std::list<std::string> PicturesEffect::CheckEffectSettings(const SettingsMap& se
     {
         res.push_back(wxString::Format("    ERR: Picture effect cant find image file '%s'. Model '%s', Start %s", PictureFilename, model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
     }
+    else
+    {
+        if (!IsFileInShowDir(xLightsFrame::CurrentDir, PictureFilename.ToStdString()))
+        {
+            res.push_back(wxString::Format("    WARN: Picture effect image file '%s' not under show directory. Model '%s', Start %s", PictureFilename, model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+        }
 
+        int imageCount = wxImage::GetImageCount(PictureFilename);
+        if (imageCount <= 0)
+        {
+            res.push_back(wxString::Format("    ERR: Picture effect '%s' contains no images. Image invalid. Model '%s', Start %s", PictureFilename, model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+        }
+    }
     return res;
 }
 
@@ -225,6 +236,7 @@ public:
     GIFImage* gifImage;
     std::vector<PixelVector> PixelsByFrame;
 };
+
 static PicturesRenderCache *GetCache(RenderBuffer &buf) {
     PicturesRenderCache *cache = (PicturesRenderCache*)buf.infoCache[PicturesEffectId];
     if (cache == nullptr) {
@@ -246,11 +258,10 @@ static PicturesRenderCache *GetCache(RenderBuffer &buf) {
 //however, using xLights they can be further manipulated or blended with addition effects to make variations of the original sequence patterns
 //NOTE: channels should be in same order between Vixen and xLights; use Vixen Reorder functions to accomplish that, since xLights only reorders within the model
 
-
 //this allows copy/paste from Vixen grid:
 void PicturesEffect::LoadPixelsFromTextFile(RenderBuffer &buffer, wxFile& debug, const wxString& filename)
 {
-    wxByte rgb[3] = {0,0,0};
+    wxByte rgb[3] = { 0,0,0 };
     PicturesRenderCache *cache = GetCache(buffer);
     cache->imageCount = 0;
     wxImage &image = cache->image;
@@ -266,9 +277,9 @@ void PicturesEffect::LoadPixelsFromTextFile(RenderBuffer &buffer, wxFile& debug,
     cache->PixelsByFrame.clear();
     if (!f.Open(filename.c_str())) { wrdebug("can't open: " + filename); return; }
 
-    //read channel values from Vixen grid or routine:
-    //    std::vector<std::vector<std::pair<int, byte>>> ChannelsByFrame; //list of channel#s by frame and their associated value
-    int numch = 0, chbase = 0, nodesize = 1;
+    int numch = 0;
+    //int chbase = 0; - doesnt seem to be used - KW
+    int nodesize = 1;
     for (wxString linebuf = f.GetFirstLine(); !f.Eof(); linebuf = f.GetNextLine())
     {
         std::string::size_type ofs;
@@ -279,7 +290,7 @@ void PicturesEffect::LoadPixelsFromTextFile(RenderBuffer &buffer, wxFile& debug,
         static wxRegEx chbase_re("^\\s*ChannelBase\\s*=\\s*(-?[0-9]+)\\s*$", wxRE_ICASE);
         if (!PixelsByFrame.size() && chbase_re.Matches(linebuf)) //allow channels to be shifted
         {
-            chbase = wxAtoi(chbase_re.GetMatch(linebuf, 1));
+            //chbase = wxAtoi(chbase_re.GetMatch(linebuf, 1)); - doesnt seem to be used - KW
             continue;
         }
         static wxRegEx nodesize_re("^\\s*ChannelsPerNode\\s*=\\s*([13])\\s*$", wxRE_ICASE);
@@ -298,16 +309,19 @@ void PicturesEffect::LoadPixelsFromTextFile(RenderBuffer &buffer, wxFile& debug,
             std::pair<wxPoint, xlColor> new_pixel;
             switch (nodesize)
             {
-                case 1: //map each Vixen channel to a monochrome pixel
-                    new_pixel.second.Set(chval, chval, chval); //grayscale
-                    break;
-                case 3: //map Vixen triplets to an RGB pixel
-                    switch (chnum % 3)
+            case 1: //map each Vixen channel to a monochrome pixel
+                new_pixel.second.Set(chval, chval, chval); //grayscale
+                break;
+            case 3: //map Vixen triplets to an RGB pixel
+                switch (chnum % 3)
                 {
-                    case 0: rgb[0] = chval; continue;
-                    case 1: rgb[1] = chval; continue;
-                    case 2: rgb[2] = chval; break;
+                case 0: rgb[0] = chval; continue;
+                case 1: rgb[1] = chval; continue;
+                case 2: rgb[2] = chval; break;
+                default: break;
                 }
+                break;
+            default: break;
             }
             new_pixel.second.Set(rgb[0], rgb[1], rgb[2]);
             //            for (each wxPoint where chnum + chbase occurs in current model)
@@ -319,7 +333,39 @@ void PicturesEffect::LoadPixelsFromTextFile(RenderBuffer &buffer, wxFile& debug,
     cache->PictureName = filename;
 }
 
-void PicturesEffect::SetDefaultParameters(Model *cls) {
+void PicturesEffect::SetTransparentBlackPixel(RenderBuffer& buffer, int x, int y, xlColor c, bool transparentBlack, int transparentBlackLevel)
+{
+    if (transparentBlack)
+    {
+        int level = c.Red() + c.Green() + c.Blue();
+        if (level > transparentBlackLevel)
+        {
+            buffer.SetPixel(x, y, c);
+        }
+    }
+    else
+    {
+        buffer.SetPixel(x, y, c);
+    }
+}
+
+void PicturesEffect::SetTransparentBlackPixel(RenderBuffer& buffer, int x, int y, xlColor c, bool wrap, bool transparentBlack, int transparentBlackLevel)
+{
+    if (transparentBlack)
+    {
+        int level = c.Red() + c.Green() + c.Blue();
+        if (level > transparentBlackLevel)
+        {
+            buffer.ProcessPixel(x, y, c, wrap);
+        }
+    }
+    else
+    {
+        buffer.ProcessPixel(x, y, c, wrap);
+    }
+}
+
+void PicturesEffect::SetDefaultParameters() {
     PicturesPanel *pp = (PicturesPanel*)panel;
     if (pp == nullptr) {
         return;
@@ -341,8 +387,11 @@ void PicturesEffect::SetDefaultParameters(Model *cls) {
     SetCheckBoxValue(pp->CheckBox_Pictures_WrapX, false);
     SetCheckBoxValue(pp->CheckBox_Pictures_Shimmer, false);
     SetCheckBoxValue(pp->CheckBox_LoopGIF, false);
+    SetCheckBoxValue(pp->CheckBox_SuppressGIFBackground, true);
 
     pp->FilePickerCtrl1->SetFileName(wxFileName());
+
+    pp->ValidateWindow();
 }
 
 std::list<std::string> PicturesEffect::GetFileReferences(const SettingsMap &SettingsMap)
@@ -350,6 +399,24 @@ std::list<std::string> PicturesEffect::GetFileReferences(const SettingsMap &Sett
     std::list<std::string> res;
     res.push_back(SettingsMap["E_FILEPICKER_Pictures_Filename"]);
     return res;
+}
+
+bool PicturesEffect::IsPictureFile(std::string filename)
+{
+    wxFileName fn(filename);
+    auto ext = fn.GetExt().Lower().ToStdString();
+
+    if (ext == "gif" ||
+        ext == "jpg" ||
+        ext == "jpeg" ||
+        ext == "png" ||
+        ext == "bmp"
+        )
+    {
+        return true;
+    }
+
+    return false;
 }
 
 void PicturesEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
@@ -368,23 +435,26 @@ void PicturesEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuff
            SettingsMap.GetBool("CHECKBOX_Pictures_PixelOffsets", false),
            SettingsMap.GetBool("CHECKBOX_Pictures_WrapX", false),
            SettingsMap.GetBool("CHECKBOX_Pictures_Shimmer", false),
-           SettingsMap.GetBool("CHECKBOX_LoopGIF", false)
+           SettingsMap.GetBool("CHECKBOX_LoopGIF", false),
+           SettingsMap.GetBool("CHECKBOX_SuppressGIFBackground", true),
+           SettingsMap.GetBool("CHECKBOX_Pictures_TransparentBlack", false),
+           SettingsMap.GetInt("TEXTCTRL_Pictures_TransparentBlackLevel", 0)
     );
 }
 
 void PicturesEffect::Render(RenderBuffer &buffer,
-                            const std::string & dirstr, const std::string &NewPictureName2,
-                            float movementSpeed, float frameRateAdj,
-                            int xc_adj, int yc_adj,
-                            int xce_adj, int yce_adj,
-                            int start_scale, int end_scale, const std::string& scale_to_fit,
-                            bool pixelOffsets, bool wrap_x, bool shimmer, bool loopGIF) {
+    const std::string & dirstr, const std::string &NewPictureName2,
+    float movementSpeed, float frameRateAdj,
+    int xc_adj, int yc_adj,
+    int xce_adj, int yce_adj,
+    int start_scale, int end_scale, const std::string& scale_to_fit,
+    bool pixelOffsets, bool wrap_x, bool shimmer, bool loopGIF, bool suppressGIFBackground, 
+    bool transparentBlack, int transparentBlackLevel) {
 
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
     int dir = GetPicturesDirection(dirstr);
     double position = buffer.GetEffectTimeIntervalPosition(movementSpeed);
-    wxString suffix,extension,BasePicture,sPicture,NewPictureName,buff;
 
     int BufferWi = buffer.BufferWi;
     int BufferHt = buffer.BufferHt;
@@ -393,7 +463,7 @@ void PicturesEffect::Render(RenderBuffer &buffer,
     int scale_image = false;
 
     wxFile f;
-    if (NewPictureName2.length()==0) return;
+    if (NewPictureName2.length() == 0) return;
 
     //  Look at ending of the filename passed in. If we have it ending as *-1.jpg or *-1.png then we will assume
     //  we have a bunch of jpg files made by ffmpeg
@@ -410,13 +480,19 @@ void PicturesEffect::Render(RenderBuffer &buffer,
     std::vector<PixelVector> &PixelsByFrame = cache->PixelsByFrame;
     int &frame = cache->frame;
 
-    sPicture = NewPictureName2;
-    suffix = NewPictureName2.substr(NewPictureName2.length()-6,2);
-    extension = NewPictureName2.substr(NewPictureName2.length()-3,3);
-    if (suffix == "-1")  {// do we have a movie file?
-        //    yes
-        BasePicture= NewPictureName2.substr(0,NewPictureName2.length()-6) ;
+    wxString sPicture = NewPictureName2;
 
+    wxFileName fn(NewPictureName2);
+    wxString extension = fn.GetExt();
+    wxString suffix = "";
+    if (fn.GetName().Length() >= 2)
+    {
+        suffix = fn.GetName().Right(2);
+    }
+
+    if (suffix == "-1") {// do we have a movie file?
+        //    yes
+        wxString BasePicture = fn.GetPathWithSep() + fn.GetName().Left(fn.GetName().Length() - 2);
         wxString sTmpPicture = wxString::Format("%s-2.%s", BasePicture, extension);
         if (!wxFileExists(sTmpPicture)) {
             // not a movie file as frame 2 does not exist
@@ -451,7 +527,7 @@ void PicturesEffect::Render(RenderBuffer &buffer,
         }
     }
 
-    NewPictureName=sPicture;
+    wxString NewPictureName = sPicture;
 
     if (dir == RENDER_PICTURE_VIXREMAP) //load pre-rendered pixels from file and apply to model -DJ
     {
@@ -460,7 +536,7 @@ void PicturesEffect::Render(RenderBuffer &buffer,
         if (idx < PixelsByFrame.size()) //TODO: wrap?
             for (auto /*std::vector<std::pair<wxPoint, xlColour>>::iterator*/ it = PixelsByFrame[idx].begin(); it != PixelsByFrame[idx].end(); ++it)
             {
-                buffer.SetPixel(it->first.x, it->first.y, it->second);
+                SetTransparentBlackPixel(buffer, it->first.x, it->first.y, it->second, transparentBlack, transparentBlackLevel);
             }
         return;
     }
@@ -469,15 +545,30 @@ void PicturesEffect::Render(RenderBuffer &buffer,
     {
         buffer.needToInit = false;
         scale_image = true;
+
         wxLogNull logNo;  // suppress popups from png images. See http://trac.wxwidgets.org/ticket/15331
+
+        // There seems to be a bug on linux where this function crashes occasionally
+#ifdef LINUX
+        logger_base.debug("About to count images in bitmap %s.", (const char *)NewPictureName.c_str());
+#endif
         cache->imageCount = wxImage::GetImageCount(NewPictureName);
-        if (!image.LoadFile(NewPictureName,wxBITMAP_TYPE_ANY,0))
+        if (cache->imageCount <= 0)
+        {
+            logger_base.error("Image %s reports %d frames which is invalid. Overriding it to be 1.", (const char *)NewPictureName.c_str(), cache->imageCount);
+
+            // override it to 1
+            cache->imageCount = 1;
+        }
+
+        if (!image.LoadFile(NewPictureName, wxBITMAP_TYPE_ANY, 0))
         {
             logger_base.error("Error loading image file: %s.", (const char *)NewPictureName.c_str());
             image.Create(5, 5, true);
         }
+
         rawimage = image;
-        cache->PictureName=NewPictureName;
+        cache->PictureName = NewPictureName;
 
         if (cache->imageCount > 1)
         {
@@ -489,7 +580,7 @@ void PicturesEffect::Render(RenderBuffer &buffer,
                 delete gifImage;
                 gifImage = nullptr;
             }
-            gifImage = new GIFImage(NewPictureName.ToStdString(), image.GetSize());
+            gifImage = new GIFImage(NewPictureName.ToStdString(), suppressGIFBackground);
 
             if (!gifImage->IsOk())
             {
@@ -506,7 +597,7 @@ void PicturesEffect::Render(RenderBuffer &buffer,
             return;
     }
 
-    if(cache->imageCount > 1) {
+    if (cache->imageCount > 1) {
 
         //animated Gif,
         scale_image = true;
@@ -533,23 +624,23 @@ void PicturesEffect::Render(RenderBuffer &buffer,
         scale_image = true;
     }
 
-    int imgwidth=image.GetWidth();
-    int imght   =image.GetHeight();
-    int yoffset =(BufferHt+imght)/2; //centered if sizes don't match
-    int xoffset =(imgwidth-BufferWi)/2; //centered if sizes don't match
-    int waveX=0, waveY=0, waveW=0, waveN=0; //location of first wave, height adjust, width, wave# -DJ
-    float xscale=0, yscale=0;
+    int imgwidth = image.GetWidth();
+    int imght = image.GetHeight();
+    int yoffset = (BufferHt + imght) / 2; //centered if sizes don't match
+    int xoffset = (imgwidth - BufferWi) / 2; //centered if sizes don't match
 
-    if( scale_to_fit == "Scale To Fit")
+    if (scale_to_fit == "Scale To Fit" && (BufferWi != imgwidth || BufferHt != imght))
     {
+        image = rawimage;
         image.Rescale(BufferWi, BufferHt);
-        imgwidth=image.GetWidth();
+        imgwidth = image.GetWidth();
         imght = image.GetHeight();
-        yoffset =(BufferHt+imght)/2; //centered if sizes don't match
-        xoffset =(imgwidth-BufferWi)/2; //centered if sizes don't match
+        yoffset = (BufferHt + imght) / 2; //centered if sizes don't match
+        xoffset = (imgwidth - BufferWi) / 2; //centered if sizes don't match
     }
     else if (scale_to_fit == "Scale Keep Aspect Ratio")
     {
+        image = rawimage;
         float xr = (float)BufferWi / (float)image.GetWidth();
         float yr = (float)BufferHt / (float)image.GetHeight();
         float sc = std::min(xr, yr);
@@ -561,60 +652,69 @@ void PicturesEffect::Render(RenderBuffer &buffer,
     }
     else
     {
-        if( (start_scale != 100 || end_scale != 100) && scale_image )
+        if ((start_scale != 100 || end_scale != 100) && scale_image)
         {
             int delta_scale = end_scale - start_scale;
             int current_scale = start_scale + delta_scale * position;
-            imgwidth=(image.GetWidth()*current_scale)/100;
-            imght = (image.GetHeight()*current_scale)/100;
+            imgwidth = (image.GetWidth()*current_scale) / 100;
+            imght = (image.GetHeight()*current_scale) / 100;
             imgwidth = std::max(imgwidth, 1);
             imght = std::max(imght, 1);
             image.Rescale(imgwidth, imght);
-            yoffset =(BufferHt+imght)/2; //centered if sizes don't match
-            xoffset =(imgwidth-BufferWi)/2; //centered if sizes don't match
+            yoffset = (BufferHt + imght) / 2; //centered if sizes don't match
+            xoffset = (imgwidth - BufferWi) / 2; //centered if sizes don't match
         }
     }
 
+    int waveX = 0;
+    int waveW = 0;
+    int waveN = 0; //location of first wave, height adjust, width, wave# -DJ
+
+    float xscale = 0;
+    float yscale = 0;
+
     switch (dir) //prep
     {
-        case RENDER_PICTURE_ZOOMIN: //src <- dest scale factor -DJ
-            xscale = (imgwidth > 1)? (float)BufferWi / imgwidth: 1;
-            yscale = (imght > 1)? (float)BufferHt / imght: 1;
-            xscale *= position;
-            yscale *= position;
-            break;
-        case RENDER_PICTURE_PEEKABOO_0: //up+down 1x -DJ
-        case RENDER_PICTURE_PEEKABOO_180: //up+down 1x -DJ
-            yoffset = (-BufferHt) * (1.0 - position*2.0);
-            if (yoffset > 10) yoffset = -yoffset + 10; //reverse direction
-            else if (yoffset > 0) yoffset = 0; //pause in middle
-            break;
-        case RENDER_PICTURE_PEEKABOO_90: //peekaboo 90
-        case RENDER_PICTURE_PEEKABOO_270: //peekaboo 270
-            yoffset = (imght - BufferWi) / 2; //adjust offsets for other axis
-            xoffset =  (-BufferHt) * (1.0-position*2.0); // * speedfactor; //draw_at = (state < BufferHt)? state
-            if (xoffset > 10) xoffset = -xoffset + 10; //reverse direction
-            else if (xoffset > 0) xoffset = 0; //pause in middle
-            break;
-        case RENDER_PICTURE_UPONCE:
-        case RENDER_PICTURE_DOWNONCE:
-            position = buffer.GetEffectTimeIntervalPosition() * movementSpeed;
-            if (position > 1.0) {
-                position = 1.0;
-            }
-            break;
-        case RENDER_PICTURE_WIGGLE: //wiggle left-right -DJ
-            if (position >= 0.5) {
-                xoffset += BufferWi * ((1.0 - position)*2.0 - 0.5);
-            } else {
-                xoffset += BufferWi * (position * 2.0 - 0.5);
-            }
-            break;
-        case RENDER_PICTURE_FLAGWAVE: //flag wave -DJ
-            waveW = BufferWi;
-            waveX = position * 200;
-            waveN = waveX / waveW;
-            break;
+    case RENDER_PICTURE_ZOOMIN: //src <- dest scale factor -DJ
+        xscale = (imgwidth > 1) ? (float)BufferWi / imgwidth : 1;
+        yscale = (imght > 1) ? (float)BufferHt / imght : 1;
+        xscale *= position;
+        yscale *= position;
+        break;
+    case RENDER_PICTURE_PEEKABOO_0: //up+down 1x -DJ
+    case RENDER_PICTURE_PEEKABOO_180: //up+down 1x -DJ
+        yoffset = (-BufferHt) * (1.0 - position * 2.0);
+        if (yoffset > 10) yoffset = -yoffset + 10; //reverse direction
+        else if (yoffset > 0) yoffset = 0; //pause in middle
+        break;
+    case RENDER_PICTURE_PEEKABOO_90: //peekaboo 90
+    case RENDER_PICTURE_PEEKABOO_270: //peekaboo 270
+        yoffset = (imght - BufferWi) / 2; //adjust offsets for other axis
+        xoffset = (-BufferHt) * (1.0 - position * 2.0); // * speedfactor; //draw_at = (state < BufferHt)? state
+        if (xoffset > 10) xoffset = -xoffset + 10; //reverse direction
+        else if (xoffset > 0) xoffset = 0; //pause in middle
+        break;
+    case RENDER_PICTURE_UPONCE:
+    case RENDER_PICTURE_DOWNONCE:
+        position = buffer.GetEffectTimeIntervalPosition() * movementSpeed;
+        if (position > 1.0) {
+            position = 1.0;
+        }
+        break;
+    case RENDER_PICTURE_WIGGLE: //wiggle left-right -DJ
+        if (position >= 0.5) {
+            xoffset += BufferWi * ((1.0 - position)*2.0 - 0.5);
+        }
+        else {
+            xoffset += BufferWi * (position * 2.0 - 0.5);
+        }
+        break;
+    case RENDER_PICTURE_FLAGWAVE: //flag wave -DJ
+        waveW = BufferWi;
+        waveX = position * 200;
+        waveN = waveX / waveW;
+        break;
+    default: break;
     }
 
     int xoffset_adj = xc_adj;
@@ -626,175 +726,178 @@ void PicturesEffect::Render(RenderBuffer &buffer,
         yoffset_adj = std::round(position * double(yce_adj - yc_adj)) + yc_adj;
     }
     if (!pixelOffsets) {
-        xoffset_adj = (xoffset_adj*BufferWi)/100.0; // xc_adj is from -100 to 100
-        yoffset_adj = (yoffset_adj*BufferHt)/100.0; // yc_adj is from -100 to 100
+        xoffset_adj = (xoffset_adj*BufferWi) / 100.0; // xc_adj is from -100 to 100
+        yoffset_adj = (yoffset_adj*BufferHt) / 100.0; // yc_adj is from -100 to 100
     }
     // copy image to buffer
     xlColor c;
     bool hasAlpha = image.HasAlpha();
 
-    int calc_position_wi = (imgwidth+BufferWi)*position;
-    int calc_position_ht = (imght+BufferHt)*position;
+    int calc_position_wi = (imgwidth + BufferWi)*position;
+    int calc_position_ht = (imght + BufferHt)*position;
 
-    for(int x=0; x<imgwidth; x++)
+    for (int x = 0; x < imgwidth; x++)
     {
-        for(int y=0; y<imght; y++)
+        for (int y = 0; y < imght; y++)
         {
-            if (!image.IsTransparent(x,y))
+            if (!image.IsTransparent(x, y))
             {
                 unsigned char alpha = hasAlpha ? image.GetAlpha(x, y) : 255;
-                c.Set(image.GetRed(x,y),image.GetGreen(x,y),image.GetBlue(x,y), alpha);
+                c.Set(image.GetRed(x, y), image.GetGreen(x, y), image.GetBlue(x, y), alpha);
                 if (!buffer.allowAlpha && alpha < 64) {
                     //almost transparent, but this mix doesn't support transparent unless it's black;
                     c = xlBLACK;
                 }
                 switch (dir)
                 {
-                    case RENDER_PICTURE_LEFT: //0:
-                        buffer.ProcessPixel(x+xoffset_adj+BufferWi-calc_position_wi,yoffset-y-yoffset_adj-1,c, wrap_x);
-                        break; // left
-                    case RENDER_PICTURE_RIGHT: //1:
-                        buffer.ProcessPixel(x+xoffset_adj+calc_position_wi-imgwidth,yoffset-y-yoffset_adj-1,c, wrap_x);
-                        break; // right
-                    case RENDER_PICTURE_UP: //2:
-                    case RENDER_PICTURE_UPONCE: //18
-                        buffer.ProcessPixel(x-xoffset+xoffset_adj,calc_position_ht-y-yoffset_adj,c, wrap_x);
-                        break; // up
-                    case RENDER_PICTURE_DOWN: //3:
-                    case RENDER_PICTURE_DOWNONCE: //19
-                        buffer.ProcessPixel(x-xoffset+xoffset_adj,BufferHt+imght-y-yoffset_adj-calc_position_ht,c, wrap_x);
-                        break; // down
-                    case RENDER_PICTURE_UPLEFT: //5:
-                        buffer.ProcessPixel(x+xoffset_adj+BufferWi-calc_position_wi,calc_position_ht-y-yoffset_adj,c, wrap_x);
-                        break; // up-left
-                    case RENDER_PICTURE_DOWNLEFT: //6:
-                        buffer.ProcessPixel(x+xoffset_adj+BufferWi-calc_position_wi,BufferHt+imght-y-yoffset_adj-calc_position_ht,c, wrap_x);
-                        break; // down-left
-                    case RENDER_PICTURE_UPRIGHT: //7:
-                        buffer.ProcessPixel(x+xoffset_adj+calc_position_wi-imgwidth,calc_position_ht-y-yoffset_adj,c, wrap_x);
-                        break; // up-right
-                    case RENDER_PICTURE_DOWNRIGHT: //8:
-                        buffer.ProcessPixel(x+xoffset_adj+calc_position_wi-imgwidth,BufferHt+imght-y-yoffset_adj-calc_position_ht,c, wrap_x);
-                        break; // down-right
+                case RENDER_PICTURE_LEFT: //0:
+                    SetTransparentBlackPixel(buffer, x + xoffset_adj + BufferWi - calc_position_wi, yoffset - y - yoffset_adj - 1, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // left
+                case RENDER_PICTURE_RIGHT: //1:
+                    SetTransparentBlackPixel(buffer, x + xoffset_adj + calc_position_wi - imgwidth, yoffset - y - yoffset_adj - 1, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // right
+                case RENDER_PICTURE_UP: //2:
+                case RENDER_PICTURE_UPONCE: //18
+                    SetTransparentBlackPixel(buffer, x - xoffset + xoffset_adj, calc_position_ht - y - yoffset_adj, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // up
+                case RENDER_PICTURE_DOWN: //3:
+                case RENDER_PICTURE_DOWNONCE: //19
+                    SetTransparentBlackPixel(buffer, x - xoffset + xoffset_adj, BufferHt + imght - y - yoffset_adj - calc_position_ht, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // down
+                case RENDER_PICTURE_UPLEFT: //5:
+                    SetTransparentBlackPixel(buffer, x + xoffset_adj + BufferWi - calc_position_wi, calc_position_ht - y - yoffset_adj, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // up-left
+                case RENDER_PICTURE_DOWNLEFT: //6:
+                    SetTransparentBlackPixel(buffer, x + xoffset_adj + BufferWi - calc_position_wi, BufferHt + imght - y - yoffset_adj - calc_position_ht, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // down-left
+                case RENDER_PICTURE_UPRIGHT: //7:
+                    SetTransparentBlackPixel(buffer, x + xoffset_adj + calc_position_wi - imgwidth, calc_position_ht - y - yoffset_adj, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // up-right
+                case RENDER_PICTURE_DOWNRIGHT: //8:
+                    SetTransparentBlackPixel(buffer, x + xoffset_adj + calc_position_wi - imgwidth, BufferHt + imght - y - yoffset_adj - calc_position_ht, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // down-right
 
-                    case RENDER_PICTURE_PEEKABOO_0: //10: //up+down 1x (peekaboo) -DJ
-                        buffer.ProcessPixel(x - xoffset+xoffset_adj, BufferHt + yoffset - y - yoffset_adj-1, c, wrap_x); // - BufferHt, c);
-                        break;
-                    case RENDER_PICTURE_ZOOMIN: //12: //zoom in (explode) -DJ
-                        //TODO: use rescale or resize?
-                        buffer.ProcessPixel((x+xoffset_adj) * xscale, (BufferHt - 1 - y - yoffset_adj) * yscale, c, wrap_x); //CAUTION: y inverted?; TODO: anti-aliasing, averaging, etc.
-                        break;
-                    case RENDER_PICTURE_PEEKABOO_90: //13: //peekaboo 90 -DJ
-                        buffer.ProcessPixel(BufferWi + xoffset - y + xoffset_adj, x - yoffset - yoffset_adj, c, wrap_x);
-                        break;
-                    case RENDER_PICTURE_PEEKABOO_180: //14: //peekaboo 180 -DJ
-                        buffer.ProcessPixel(x - xoffset+xoffset_adj, y - yoffset - yoffset_adj, c, wrap_x);
-                        break;
-                    case RENDER_PICTURE_PEEKABOO_270: //15: //peekabo 270 -DJ
-                        buffer.ProcessPixel(y - xoffset+xoffset_adj, BufferHt + yoffset + yoffset_adj - x, c, wrap_x);
-                        break;
-                    case RENDER_PICTURE_FLAGWAVE: //17: //flag wave in wind -DJ
-                        if (BufferHt < 20) //small grid => small waves
-                        {
-                            waveN = (x - waveX) / waveW;
-                            waveY = !x? 0: (waveN & 1)? -1: 0;
-                        }
-                        else //larger grid => larger waves
-                        {
-                            waveY = !x? 0: (waveN & 1)? 0: (waveN & 2)? -1: +1;
-                            if (waveX < 0) waveY *= -1;
-                        }
-                        buffer.ProcessPixel(x - xoffset+xoffset_adj, yoffset - y - yoffset_adj + waveY - 1, c, wrap_x);
-                        break;
-                    case RENDER_PICTURE_TILE_LEFT: // 21
+                case RENDER_PICTURE_PEEKABOO_0: //10: //up+down 1x (peekaboo) -DJ
+                    SetTransparentBlackPixel(buffer, x - xoffset + xoffset_adj, BufferHt + yoffset - y - yoffset_adj - 1, c, wrap_x, transparentBlack, transparentBlackLevel); // - BufferHt, c);
+                    break;
+                case RENDER_PICTURE_ZOOMIN: //12: //zoom in (explode) -DJ
+                    //TODO: use rescale or resize?
+                    SetTransparentBlackPixel(buffer ,(x + xoffset_adj) * xscale, (BufferHt - 1 - y - yoffset_adj) * yscale, c, wrap_x, transparentBlack, transparentBlackLevel); //CAUTION: y inverted?; TODO: anti-aliasing, averaging, etc.
+                    break;
+                case RENDER_PICTURE_PEEKABOO_90: //13: //peekaboo 90 -DJ
+                    SetTransparentBlackPixel(buffer, BufferWi + xoffset - y + xoffset_adj, x - yoffset - yoffset_adj, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break;
+                case RENDER_PICTURE_PEEKABOO_180: //14: //peekaboo 180 -DJ
+                    SetTransparentBlackPixel(buffer, x - xoffset + xoffset_adj, y - yoffset - yoffset_adj, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break;
+                case RENDER_PICTURE_PEEKABOO_270: //15: //peekabo 270 -DJ
+                    SetTransparentBlackPixel(buffer, y - xoffset + xoffset_adj, BufferHt + yoffset + yoffset_adj - x, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break;
+                case RENDER_PICTURE_FLAGWAVE: //17: //flag wave in wind -DJ
+                {
+                    int waveY;
+                    if (BufferHt < 20) //small grid => small waves
                     {
-                        int xmult = (buffer.BufferWi + imgwidth) / imgwidth;
-                        int ymult = (buffer.BufferHt + imght) / imght;
-                        int startx = xoffset_adj - (int)((float)(curPeriod - curEffStartPer) * movementSpeed) % imgwidth;
-                        int starty = yoffset_adj - imght;
-                        for (int xx = 0; xx < xmult; ++xx)
+                        waveN = (x - waveX) / waveW;
+                        waveY = !x ? 0 : (waveN & 1) ? -1 : 0;
+                    }
+                    else //larger grid => larger waves
+                    {
+                        waveY = !x ? 0 : (waveN & 1) ? 0 : (waveN & 2) ? -1 : +1;
+                        if (waveX < 0) waveY *= -1;
+                    }
+                    SetTransparentBlackPixel(buffer, x - xoffset + xoffset_adj, yoffset - y - yoffset_adj + waveY - 1, c, wrap_x, transparentBlack, transparentBlackLevel);
+                }
+                break;
+                case RENDER_PICTURE_TILE_LEFT: // 21
+                {
+                    int xmult = (buffer.BufferWi + imgwidth) / imgwidth;
+                    int ymult = (buffer.BufferHt + imght) / imght;
+                    int startx = xoffset_adj - (int)((float)(curPeriod - curEffStartPer) * movementSpeed) % imgwidth;
+                    int starty = yoffset_adj - imght;
+                    for (int xx = 0; xx < xmult; ++xx)
+                    {
+                        for (int yy = 0; yy < ymult; ++yy)
                         {
-                            for (int yy = 0; yy < ymult; ++yy)
-                            {
-                                buffer.ProcessPixel(xx * imgwidth + x + startx, yy * imght + (imght - y - 1) + starty,
-                                    c, false);
-                            }
+                            SetTransparentBlackPixel(buffer, xx * imgwidth + x + startx, yy * imght + (imght - y - 1) + starty,
+                                c, false, transparentBlack, transparentBlackLevel);
                         }
                     }
-                        break;
-                    case RENDER_PICTURE_TILE_RIGHT: // 22
+                }
+                break;
+                case RENDER_PICTURE_TILE_RIGHT: // 22
+                {
+                    int xmult = (buffer.BufferWi + imgwidth) / imgwidth;
+                    int ymult = (buffer.BufferHt + imght) / imght;
+                    int startx = xoffset_adj - imgwidth + (int)((float)(curPeriod - curEffStartPer) * movementSpeed) % imgwidth;
+                    int starty = yoffset_adj - imght;
+                    for (int xx = 0; xx < xmult; ++xx)
                     {
-                        int xmult = (buffer.BufferWi + imgwidth) / imgwidth;
-                        int ymult = (buffer.BufferHt + imght) / imght;
-                        int startx = xoffset_adj - imgwidth + (int)((float)(curPeriod - curEffStartPer) * movementSpeed) % imgwidth;
-                        int starty = yoffset_adj - imght;
-                        for (int xx = 0; xx < xmult; ++xx)
+                        for (int yy = 0; yy < ymult; ++yy)
                         {
-                            for (int yy = 0; yy < ymult; ++yy)
-                            {
-                                buffer.ProcessPixel(xx * imgwidth + x + startx, yy * imght + (imght - y - 1) + starty,
-                                    c, false);
-                            }
+                            SetTransparentBlackPixel(buffer, xx * imgwidth + x + startx, yy * imght + (imght - y - 1) + starty,
+                                c, false, transparentBlack, transparentBlackLevel);
                         }
                     }
-                        break;
-                    case RENDER_PICTURE_TILE_DOWN: // 23
+                }
+                break;
+                case RENDER_PICTURE_TILE_DOWN: // 23
+                {
+                    int xmult = (buffer.BufferWi + imgwidth) / imgwidth;
+                    int ymult = (buffer.BufferHt + imght) / imght;
+                    int startx = xoffset_adj - imgwidth;
+                    int starty = yoffset_adj - (int)((float)(curPeriod - curEffStartPer) * movementSpeed) % imght;
+                    for (int xx = 0; xx < xmult; ++xx)
                     {
-                        int xmult = (buffer.BufferWi + imgwidth) / imgwidth;
-                        int ymult = (buffer.BufferHt + imght) / imght;
-                        int startx = xoffset_adj - imgwidth;
-                        int starty = yoffset_adj - (int)((float)(curPeriod - curEffStartPer) * movementSpeed) % imght;
-                        for (int xx = 0; xx < xmult; ++xx)
+                        for (int yy = 0; yy < ymult; ++yy)
                         {
-                            for (int yy = 0; yy < ymult; ++yy)
-                            {
-                                buffer.ProcessPixel(xx * imgwidth + x + startx, yy * imght + (imght - y - 1) + starty,
-                                    c, false);
-                            }
+                            SetTransparentBlackPixel(buffer, xx * imgwidth + x + startx, yy * imght + (imght - y - 1) + starty,
+                                c, false, transparentBlack, transparentBlackLevel);
                         }
                     }
-                        break;
-                    case RENDER_PICTURE_TILE_UP: // 24
+                }
+                break;
+                case RENDER_PICTURE_TILE_UP: // 24
+                {
+                    int xmult = (buffer.BufferWi + imgwidth) / imgwidth;
+                    int ymult = (buffer.BufferHt + imght) / imght;
+                    int startx = xoffset_adj - imgwidth;
+                    int starty = yoffset_adj - imght + (int)((float)(curPeriod - curEffStartPer) * movementSpeed) % imght;
+                    for (int xx = 0; xx < xmult; ++xx)
                     {
-                        int xmult = (buffer.BufferWi + imgwidth) / imgwidth;
-                        int ymult = (buffer.BufferHt + imght) / imght;
-                        int startx = xoffset_adj - imgwidth;
-                        int starty = yoffset_adj - imght + (int)((float)(curPeriod - curEffStartPer) * movementSpeed) % imght;
-                        for (int xx = 0; xx < xmult; ++xx)
+                        for (int yy = 0; yy < ymult; ++yy)
                         {
-                            for (int yy = 0; yy < ymult; ++yy)
-                            {
-                                buffer.ProcessPixel(xx * imgwidth + x + startx, yy * imght + (imght - y - 1) + starty,
-                                    c, false);
-                            }
+                            SetTransparentBlackPixel(buffer, xx * imgwidth + x + startx, yy * imght + (imght - y - 1) + starty,
+                                c, false, transparentBlack, transparentBlackLevel);
                         }
                     }
-                        break;
-                    case RENDER_PICTURE_WIGGLE: //11: //back+forth a little (wiggle) -DJ
-                        //                    ProcessPixel(x + xoffset+xoffset_adj, yoffset - y - yoffset_adj, c, wrap_x);
-                        //                    break;
-                    default:
-                        buffer.ProcessPixel(x-xoffset+xoffset_adj,yoffset+yoffset_adj-y - 1,c, wrap_x);
-                        break; // no movement - centered
+                }
+                break;
+                case RENDER_PICTURE_WIGGLE: //11: //back+forth a little (wiggle) -DJ
+                    //                    ProcessPixel(x + xoffset+xoffset_adj, yoffset - y - yoffset_adj, c, wrap_x);
+                    //                    break;
+                default:
+                    SetTransparentBlackPixel(buffer, x - xoffset + xoffset_adj, yoffset + yoffset_adj - y - 1, c, wrap_x, transparentBlack, transparentBlackLevel);
+                    break; // no movement - centered
                 }
             }
         }
     }
 
     // add shimmer effect which just randomly turns off pixels
-    if(shimmer)
+    if (shimmer)
     {
         c = xlBLACK;
         xlColor color;
-        for(int x=0; x<BufferWi; x++)
+        for (int x = 0; x < BufferWi; x++)
         {
-            for(int y=0; y<BufferHt; y++)
+            for (int y = 0; y < BufferHt; y++)
             {
-                if(rand01() > 0.5)
+                if (rand01() > 0.5)
                 {
-                    buffer.GetPixel(x,y, color);
-                    if( color != xlBLACK ) {
-                        buffer.ProcessPixel(x,y,c, false);
+                    buffer.GetPixel(x, y, color);
+                    if (color != xlBLACK) {
+                        buffer.ProcessPixel(x, y, c, false);
                     }
                 }
             }

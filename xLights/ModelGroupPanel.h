@@ -4,13 +4,14 @@
 #include <wx/dnd.h>
 
 //(*Headers(ModelGroupPanel)
-#include <wx/listctrl.h>
-#include <wx/sizer.h>
-#include <wx/stattext.h>
-#include <wx/spinctrl.h>
-#include <wx/panel.h>
-#include <wx/choice.h>
 #include <wx/bmpbuttn.h>
+#include <wx/checkbox.h>
+#include <wx/choice.h>
+#include <wx/listctrl.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/spinctrl.h>
+#include <wx/stattext.h>
 //*)
 
 class ModelManager;
@@ -43,20 +44,21 @@ class ModelGroupPanel: public wxPanel
 
 		//(*Declarations(ModelGroupPanel)
 		wxBitmapButton* ButtonAddModel;
-		wxBitmapButton* ButtonRemoveModel;
-		wxListCtrl* ListBoxAddToModelGroup;
 		wxBitmapButton* ButtonMoveDown;
-		wxStaticText* StaticText2;
 		wxBitmapButton* ButtonMoveUp;
+		wxBitmapButton* ButtonRemoveModel;
+		wxCheckBox* CheckBox_ShowSubmodels;
 		wxChoice* ChoiceModelLayoutType;
 		wxChoice* ChoicePreviews;
-		wxStaticText* LabelModelGroupName;
-		wxListCtrl* ListBoxModelsInGroup;
-		wxStaticText* StaticText1;
-		wxStaticText* StaticText3;
 		wxFlexGridSizer* Panel_Sizer;
-		wxStaticText* GridSizeLabel;
+		wxListCtrl* ListBoxAddToModelGroup;
+		wxListCtrl* ListBoxModelsInGroup;
 		wxSpinCtrl* SizeSpinCtrl;
+		wxStaticText* GridSizeLabel;
+		wxStaticText* LabelModelGroupName;
+		wxStaticText* StaticText1;
+		wxStaticText* StaticText2;
+		wxStaticText* StaticText3;
 		wxStaticText* StaticText5;
 		//*)
 
@@ -69,6 +71,7 @@ class ModelGroupPanel: public wxPanel
 		static const long ID_STATICTEXT4;
 		static const long ID_SPINCTRL1;
 		static const long ID_CHOICE_PREVIEWS;
+		static const long ID_CHECKBOX1;
 		static const long ID_STATICTEXT3;
 		static const long ID_STATICTEXT2;
 		static const long ID_LISTCTRL1;
@@ -98,6 +101,7 @@ class ModelGroupPanel: public wxPanel
 		void OnListBoxAddToModelGroupItemSelect(wxListEvent& event);
 		void OnListBoxModelsInGroupBeginDrag(wxListEvent& event);
 		void OnListBoxModelsInGroupItemSelect(wxListEvent& event);
+		void OnCheckBox_ShowSubmodelsClick(wxCommandEvent& event);
 		//*)
 
 		DECLARE_EVENT_TABLE()
@@ -114,6 +118,7 @@ class ModelGroupPanel: public wxPanel
         void MoveSelectedModelsTo(int indexTo);
         void ClearSelections(wxListCtrl* listCtrl, long stateMask);
         int GetFirstSelectedModel(wxListCtrl* list);
+        void ResizeColumns();
 };
 
 #endif

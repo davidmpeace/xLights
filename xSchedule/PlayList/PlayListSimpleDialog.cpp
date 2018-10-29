@@ -5,7 +5,6 @@
 #include "PlayListItem.h"
 #include "../MyTreeItemData.h"
 #include "PlayListPanel.h"
-#include "PlayListStepPanel.h"
 #include "PlayListItemVideo.h"
 #include "PlayListItemFSEQ.h"
 #include "PlayListItemFSEQVideo.h"
@@ -45,8 +44,9 @@ BEGIN_EVENT_TABLE(PlayListSimpleDialog,wxDialog)
 END_EVENT_TABLE()
 
 
-PlayListSimpleDialog::PlayListSimpleDialog(wxWindow* parent, PlayList* playlist, wxWindowID id,const wxPoint& pos,const wxSize& size)
+PlayListSimpleDialog::PlayListSimpleDialog(wxWindow* parent, OutputManager* outputManager, PlayList* playlist, wxWindowID id,const wxPoint& pos,const wxSize& size)
 {
+    _outputManager = outputManager;
     _playlist = playlist;
 
 	//(*Initialize(PlayListSimpleDialog)
@@ -212,10 +212,13 @@ void PlayListSimpleDialog::PopulateTree(PlayList* selplaylist, PlayListStep* sel
     {
         wxTreeItemId step = TreeCtrl_PlayList->AppendItem(TreeCtrl_PlayList->GetRootItem(), (*it)->GetName());
         TreeCtrl_PlayList->SetItemData(step, new MyTreeItemData(*it));
-        select = step;
 
-        size_t ms;
-        PlayListItem* ts = (*it)->GetTimeSource(ms);
+        if ( selstep != nullptr && (*it)->GetId() == selstep->GetId())
+        {
+            select = step;
+        }
+        // size_t ms;
+        // PlayListItem* ts = (*it)->GetTimeSource(ms);
     }
 
     if (select == nullptr) select = TreeCtrl_PlayList->GetRootItem();
@@ -389,14 +392,14 @@ void PlayListSimpleDialog::OnTreeDragEnd(wxMouseEvent& event)
         // if dropped on playlist make it the first step
         if (IsPlayList(dropitem))
         {
-            _playlist->MoveStepAfterStep(dragstep, nullptr);
+            _playlist->MoveStepBeforeStep(dragstep, nullptr);
             PopulateTree(_playlist, dragstep);
         }
         // if dropped on a step make it the step after the dropped step
         else if (IsPlayListStep(dropitem))
         {
             PlayListStep* dropstep = (PlayListStep*)((MyTreeItemData*)TreeCtrl_PlayList->GetItemData(dropitem))->GetData();
-            _playlist->MoveStepAfterStep(dragstep, dropstep);
+            _playlist->MoveStepBeforeStep(dragstep, dropstep);
             PopulateTree(_playlist, dragstep);
         }
     }
@@ -576,7 +579,7 @@ void PlayListSimpleDialog::OnDropFiles(wxDropFilesEvent& event)
             wxFileName fn(*it);
             if (fn.GetExt().Lower() == "fseq")
             {
-                PlayListItemFSEQ* fseq = new PlayListItemFSEQ();
+                PlayListItemFSEQ* fseq = new PlayListItemFSEQ(_outputManager);
                 fseq->SetFSEQFileName(fn.GetFullPath().ToStdString());
                 PlayListStep* step = new PlayListStep();
                 step->AddItem(fseq);
@@ -584,7 +587,7 @@ void PlayListSimpleDialog::OnDropFiles(wxDropFilesEvent& event)
             }
             else if (PlayListItemVideo::IsVideo(fn.GetExt().Lower().ToStdString()))
             {
-                PlayListItemFSEQVideo* video = new PlayListItemFSEQVideo();
+                PlayListItemFSEQVideo* video = new PlayListItemFSEQVideo(_outputManager);
                 video->SetVideoFile(fn.GetFullPath().ToStdString());
                 PlayListStep* step = new PlayListStep();
                 step->AddItem(video);
@@ -633,7 +636,7 @@ void PlayListSimpleDialog::OnButton_AddFSEQClick(wxCommandEvent& event)
 
         for (auto it = files.begin(); it != files.end(); ++it)
         {
-            PlayListItemFSEQ* pli = new PlayListItemFSEQ();
+            PlayListItemFSEQ* pli = new PlayListItemFSEQ(_outputManager);
             pli->SetFSEQFileName(it->ToStdString());
             PlayListStep* pls = new PlayListStep();
             pls->AddItem(pli);
@@ -669,7 +672,7 @@ void PlayListSimpleDialog::OnButton_FSEQVideoClick(wxCommandEvent& event)
 
         for (auto it = files.begin(); it != files.end(); ++it)
         {
-            PlayListItemFSEQVideo* pli = new PlayListItemFSEQVideo();
+            PlayListItemFSEQVideo* pli = new PlayListItemFSEQVideo(_outputManager);
             pli->SetFSEQFileName(it->ToStdString());
             PlayListStep* pls = new PlayListStep();
             pls->AddItem(pli);

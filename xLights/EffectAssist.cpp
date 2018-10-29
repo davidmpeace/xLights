@@ -1,5 +1,4 @@
 #include "EffectAssist.h"
-#include "xLightsMain.h"
 #include "effects/EffectManager.h"
 #include "effects/assist/xlGridCanvasEmpty.h"
 #include "xLightsXmlFile.h"
@@ -47,6 +46,7 @@ void EffectAssist::ForceRefresh()
         mAssistPanel->RefreshEffect();
     }
 }
+
 AssistPanel *EffectAssist::GetDefaultAssistPanel() {
     if (defaultAssistPanel == nullptr) {
         defaultAssistPanel = new AssistPanel(this);
@@ -57,6 +57,7 @@ AssistPanel *EffectAssist::GetDefaultAssistPanel() {
     }
     return defaultAssistPanel;
 }
+
 void EffectAssist::SetPanel(AssistPanel* panel_)
 {
     wxSize s = GetSize();
@@ -72,6 +73,7 @@ void EffectAssist::SetPanel(AssistPanel* panel_)
             defaultAssistPanel->Hide();
         }
     }
+
     if( mAssistPanel != nullptr )
     {
         FlexGridSizer1->Add(mAssistPanel, 1, wxALL|wxEXPAND|wxALIGN_CENTER_VERTICAL, 2);
@@ -94,8 +96,8 @@ void EffectAssist::AdjustClientSizes(wxSize s)
     mSize = s;
     if( mAssistPanel != nullptr )
     {
-        s.SetWidth(s.GetWidth()-15);
-        s.SetHeight(s.GetHeight()-15);
+        s.SetWidth(s.GetWidth() - 15);
+        s.SetHeight(s.GetHeight() - 15);
         mAssistPanel->AdjustSize(s);
     }
 }

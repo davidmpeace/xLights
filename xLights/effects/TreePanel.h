@@ -3,13 +3,15 @@
 
 //(*Headers(TreePanel)
 #include <wx/panel.h>
-class wxCheckBox;
-class wxTextCtrl;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
+class wxCheckBox;
 class wxFlexGridSizer;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
+
+#include "../BulkEditControls.h"
 
 class TreePanel: public wxPanel
 {
@@ -19,20 +21,22 @@ class TreePanel: public wxPanel
 		virtual ~TreePanel();
 
 		//(*Declarations(TreePanel)
-		wxSlider* Slider_Tree_Branches;
-		wxBitmapButton* BitmapButton_TreeBranches;
+		BulkEditCheckBox* CheckBox1;
+		BulkEditSlider* Slider_Tree_Branches;
+		BulkEditSlider* Slider_Tree_Speed;
+		wxStaticText* StaticText182;
 		wxStaticText* StaticText86;
-		wxCheckBox* CheckBox1;
-		wxSlider* Slider_Tree_Speed;
+		xlLockButton* BitmapButton_TreeBranches;
 		//*)
 
 	protected:
 
 		//(*Identifiers(TreePanel)
-		static const long ID_STATICTEXT87;
+		static const long ID_STATICTEXT_Tree_Branches;
 		static const long ID_SLIDER_Tree_Branches;
 		static const long IDD_TEXTCTRL_Tree_Branches;
 		static const long ID_BITMAPBUTTON_SLIDER_Tree_Branches;
+		static const long ID_STATICTEXT_Tree_Speed;
 		static const long ID_SLIDER_Tree_Speed;
 		static const long IDD_TEXTCTRL_Tree_Speed;
 		static const long ID_CHECKBOX_Tree_ShowLights;
@@ -41,19 +45,9 @@ class TreePanel: public wxPanel
 	public:
 
 		//(*Handlers(TreePanel)
-    void UpdateLinkedSliderFloat(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-    void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-    void UpdateLinkedSlider360(wxCommandEvent& event);
-    void UpdateLinkedTextCtrl(wxScrollEvent& event);
-    void UpdateLinkedSlider(wxCommandEvent& event);
     void OnLockButtonClick(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-    void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
     void OnVCButtonClick(wxCommandEvent& event);
     void OnVCChanged(wxCommandEvent& event);
-    void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
     //*)
 
 		DECLARE_EVENT_TABLE()

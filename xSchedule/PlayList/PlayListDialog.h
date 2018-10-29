@@ -13,6 +13,7 @@
 #include <wx/dialog.h>
 //*)
 
+class OutputManager;
 class PlayList;
 class wxXmlNode;
 class PlayListStep;
@@ -22,6 +23,7 @@ class PlayListDialog: public wxDialog
 {
     PlayList* _playlist;
     PlayList* _savedState;
+    OutputManager* _outputManager;
     bool _dragging;
     void ValidateWindow();
     void PopulateTree(PlayList* playlist, PlayListStep* step, PlayListItem* item);
@@ -34,7 +36,7 @@ class PlayListDialog: public wxDialog
 
     public:
 
-		PlayListDialog(wxWindow* parent, PlayList* playlist, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
+		PlayListDialog(wxWindow* parent, OutputManager* outputManager, PlayList* playlist, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
 		virtual ~PlayListDialog();
         void UpdateTree();
         void OnTreeDragEnd(wxMouseEvent& event);
@@ -76,20 +78,28 @@ class PlayListDialog: public wxDialog
 
         static const long ID_MNU_ADDSTEP;
         static const long ID_MNU_ADDESEQ;
+        static const long ID_MNU_ADDFADE;
         static const long ID_MNU_ADDFSEQ;
+        static const long ID_MNU_ADDSCREENMAP;
         static const long ID_MNU_ADDTEXT;
         static const long ID_MNU_ADDFILE;
         static const long ID_MNU_ADDFSEQVIDEO;
         static const long ID_MNU_ADDTEST;
+        static const long ID_MNU_ADDMICROPHONE;
         static const long ID_MNU_ADDRDS;
-        static const long ID_MNU_ADDPJLINK;
+        static const long ID_MNU_ADDPROJECTOR;
         static const long ID_MNU_ADDALLOFF;
+        static const long ID_MNU_ADDSETCOLOUR;
         static const long ID_MNU_ADDCOMMAND;
+        static const long ID_MNU_ADDOSC;
         static const long ID_MNU_ADDPROCESS;
         static const long ID_MNU_ADDCURL;
+        static const long ID_MNU_ADDSERIAL;
+        static const long ID_MNU_ADDFPPEVENT;
         static const long ID_MNU_ADDVIDEO;
         static const long ID_MNU_ADDAUDIO;
         static const long ID_MNU_ADDIMAGE;
+        static const long ID_MNU_ADDJUKEBOX;
         static const long ID_MNU_ADDDELAY;
         static const long ID_MNU_DELETE;
         static const long ID_MNU_REMOVEEMPTYSTEPS;

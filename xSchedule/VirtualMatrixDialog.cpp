@@ -2,6 +2,7 @@
 #include "PlayList/VideoWindowPositionDialog.h"
 #include "xScheduleMain.h"
 #include "ScheduleManager.h"
+#include "../xLights/outputs/OutputManager.h"
 
 //(*InternalHeaders(VirtualMatrixDialog)
 #include <wx/intl.h>
@@ -20,7 +21,8 @@ const long VirtualMatrixDialog::ID_CHOICE1 = wxNewId();
 const long VirtualMatrixDialog::ID_STATICTEXT5 = wxNewId();
 const long VirtualMatrixDialog::ID_CHOICE2 = wxNewId();
 const long VirtualMatrixDialog::ID_STATICTEXT3 = wxNewId();
-const long VirtualMatrixDialog::ID_SPINCTRL4 = wxNewId();
+const long VirtualMatrixDialog::ID_TEXTCTRL2 = wxNewId();
+const long VirtualMatrixDialog::ID_STATICTEXT6 = wxNewId();
 const long VirtualMatrixDialog::ID_BUTTON3 = wxNewId();
 const long VirtualMatrixDialog::ID_CHECKBOX1 = wxNewId();
 const long VirtualMatrixDialog::ID_BUTTON1 = wxNewId();
@@ -32,29 +34,14 @@ BEGIN_EVENT_TABLE(VirtualMatrixDialog,wxDialog)
 	//*)
 END_EVENT_TABLE()
 
-void VirtualMatrixDialog::SetChoiceFromString(wxChoice* choice, std::string value)
+VirtualMatrixDialog::VirtualMatrixDialog(wxWindow* parent, OutputManager* outputManager, std::string& name, std::string& rotation, std::string& quality, wxSize& vmsize, wxPoint& vmlocation, int& width, int& height, bool& topMost, std::string& startChannel, bool& useMatrixSize, int& matrixMultiplier, wxWindowID id, const wxPoint& pos, const wxSize& size) : _name(name), _width(width), _height(height), _topMost(topMost), _useMatrixSize(useMatrixSize), _matrixMultiplier(matrixMultiplier), _startChannel(startChannel), _size(vmsize), _location(vmlocation), _rotation(rotation), _quality(quality)
 {
-    int sel = choice->GetSelection();
-
-    choice->SetSelection(-1);
-    for (size_t i = 0; i < choice->GetCount(); i++)
-    {
-        if (choice->GetString(i) == value)
-        {
-            choice->SetSelection(i);
-            return;
-        }
-    }
-
-    choice->SetSelection(sel);
-}
-
-VirtualMatrixDialog::VirtualMatrixDialog(wxWindow* parent, std::string& name, std::string& rotation, std::string& quality, wxSize& vmsize, wxPoint& vmlocation, int& width, int& height, bool& topMost, long& startChannel, wxWindowID id, const wxPoint& pos, const wxSize& size) : _name(name), _rotation(rotation), _startChannel(startChannel), _width(width), _height(height), _topMost(topMost), _size(vmsize), _location(vmlocation), _quality(quality)
-{
+    _outputManager = outputManager;
     _tempSize = _size;
     _tempLocation = _location;
 
 	//(*Initialize(VirtualMatrixDialog)
+	wxFlexGridSizer* FlexGridSizer2;
 	wxBoxSizer* BoxSizer1;
 	wxFlexGridSizer* FlexGridSizer1;
 
@@ -95,9 +82,13 @@ VirtualMatrixDialog::VirtualMatrixDialog(wxWindow* parent, std::string& name, st
 	FlexGridSizer1->Add(Choice_Quality, 1, wxALL|wxEXPAND, 5);
 	StaticText3 = new wxStaticText(this, ID_STATICTEXT3, _("Start Channel:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT3"));
 	FlexGridSizer1->Add(StaticText3, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
-	SpinCtrl_StartChannel = new wxSpinCtrl(this, ID_SPINCTRL4, _T("1"), wxDefaultPosition, wxDefaultSize, 0, 1, 100, 1, _T("ID_SPINCTRL4"));
-	SpinCtrl_StartChannel->SetValue(_T("1"));
-	FlexGridSizer1->Add(SpinCtrl_StartChannel, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer2 = new wxFlexGridSizer(0, 2, 0, 0);
+	FlexGridSizer2->AddGrowableCol(0);
+	TextCtrl_StartChannel = new wxTextCtrl(this, ID_TEXTCTRL2, _("1"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_TEXTCTRL2"));
+	FlexGridSizer2->Add(TextCtrl_StartChannel, 1, wxALL|wxEXPAND, 5);
+	StaticText6 = new wxStaticText(this, ID_STATICTEXT6, _("1"), wxDefaultPosition, wxSize(60,-1), 0, _T("ID_STATICTEXT6"));
+	FlexGridSizer2->Add(StaticText6, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(FlexGridSizer2, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer1->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Button_Position = new wxButton(this, ID_BUTTON3, _("Position Window"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON3"));
 	FlexGridSizer1->Add(Button_Position, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
@@ -117,18 +108,16 @@ VirtualMatrixDialog::VirtualMatrixDialog(wxWindow* parent, std::string& name, st
 	FlexGridSizer1->Fit(this);
 	FlexGridSizer1->SetSizeHints(this);
 
+	Connect(ID_TEXTCTRL2,wxEVT_COMMAND_TEXT_UPDATED,(wxObjectEventFunction)&VirtualMatrixDialog::OnTextCtrl_StartChannelText);
 	Connect(ID_BUTTON3,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&VirtualMatrixDialog::OnButton_PositionClick);
 	Connect(ID_BUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&VirtualMatrixDialog::OnButton_OkClick);
 	Connect(ID_BUTTON2,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&VirtualMatrixDialog::OnButton_CancelClick);
 	//*)
 
-    long channels = xScheduleFrame::GetScheduleManager()->GetTotalChannels();
-    SpinCtrl_StartChannel->SetRange(1, channels);
-
     TextCtrl_Name->SetValue(_name);
-    SetChoiceFromString(Choice_Rotation, _rotation);
-    SetChoiceFromString(Choice_Quality, _quality);
-    SpinCtrl_StartChannel->SetValue(_startChannel);
+    Choice_Rotation->SetStringSelection(_rotation);
+    Choice_Quality->SetStringSelection(_quality);
+    TextCtrl_StartChannel->SetValue(_startChannel);
     SpinCtrl_Width->SetValue(_width);
     SpinCtrl_Height->SetValue(_height);
     CheckBox_Topmost->SetValue(_topMost);
@@ -145,7 +134,7 @@ void VirtualMatrixDialog::OnButton_OkClick(wxCommandEvent& event)
     _name = TextCtrl_Name->GetValue().ToStdString();
     _rotation = Choice_Rotation->GetStringSelection().ToStdString();
     _quality = Choice_Quality->GetStringSelection().ToStdString();
-    _startChannel = SpinCtrl_StartChannel->GetValue();
+    _startChannel = TextCtrl_StartChannel->GetValue().ToStdString();
     _width = SpinCtrl_Width->GetValue();
     _height = SpinCtrl_Height->GetValue();
     _topMost = CheckBox_Topmost->GetValue();
@@ -162,18 +151,39 @@ void VirtualMatrixDialog::OnButton_CancelClick(wxCommandEvent& event)
 
 void VirtualMatrixDialog::OnButton_PositionClick(wxCommandEvent& event)
 {
-    VideoWindowPositionDialog dlg(this, wxID_ANY, _tempLocation, _tempSize);
+    VideoWindowPositionDialog dlg(this, wxID_ANY, _tempLocation, _tempSize, wxSize(SpinCtrl_Width->GetValue(), SpinCtrl_Height->GetValue()), _useMatrixSize, _matrixMultiplier);
 
-    dlg.ShowModal();
-
-    if (dlg.IsFullScreen())
+    if (dlg.ShowModal() == wxID_OK)
     {
-        _tempLocation = dlg.GetClientAreaOrigin();
-        _tempSize = dlg.GetClientSize();
+        _tempLocation = dlg.GetDesiredPosition();
+        _tempSize = dlg.GetDesiredSize();
+        _useMatrixSize = dlg.CheckBox_SetSizeBasedOnMatrix->GetValue();
+        _matrixMultiplier = dlg.SpinCtrl_SizeMultiplier->GetValue();
+    }
+}
+
+void VirtualMatrixDialog::OnTextCtrl_StartChannelText(wxCommandEvent& event)
+{
+    long sc = _outputManager->DecodeStartChannel(TextCtrl_StartChannel->GetValue().ToStdString());
+    if (sc == 0 || sc > xScheduleFrame::GetScheduleManager()->GetTotalChannels())
+    {
+        StaticText6->SetLabel("Invalid");
     }
     else
     {
-        _tempLocation = dlg.GetPosition();
-        _tempSize = dlg.GetSize();
+        StaticText6->SetLabel(wxString::Format("%ld", (long)sc));
+    }
+    ValidateWindow();
+}
+
+void VirtualMatrixDialog::ValidateWindow()
+{
+    if (StaticText6->GetLabel() == "Invalid")
+    {
+        Button_Ok->Enable(false);
+    }
+    else
+    {
+        Button_Ok->Enable(true);
     }
 }

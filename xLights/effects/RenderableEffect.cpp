@@ -10,6 +10,7 @@
 #include <wx/spinctrl.h>
 
 #include <sstream>
+#include "../UtilFunctions.h"
 #include "../ValueCurveButton.h"
 
 RenderableEffect::RenderableEffect(int i, std::string n,
@@ -28,22 +29,18 @@ RenderableEffect::~RenderableEffect()
     //dtor
 }
 
-#ifdef __WXOSX__
-double xlOSXGetMainScreenContentScaleFactor();
-#endif
-
 const wxBitmap &RenderableEffect::GetEffectIcon(int size, bool exact) const {
-#ifdef __WXOSX__
-    if (exact || xlOSXGetMainScreenContentScaleFactor() < 1.9) {
+    if (exact || GetSystemContentScaleFactor() < 1.5) {
         if (size <= 16) {
             return icon16e;
         } else if (size <= 24) {
             return icon24e;
         } else if (size <= 32) {
             return icon32e;
+        } else if (size <= 48) {
+            return icon48e;
         }
     }
-#endif
     if (size <= 16) {
         return icon16;
     } else if (size <= 24) {
@@ -83,15 +80,12 @@ int RenderableEffect::DrawEffectBackground(const Effect *e, int x1, int y1, int 
 
 
 void AdjustAndSetBitmap(int size, wxImage &image, wxImage &dbl, wxBitmap&bitmap) {
-#ifdef __WXOSX__
     if (dbl.GetHeight() == (2 * size)) {
         bitmap = wxBitmap(dbl, -1, 2.0);
     } else if (dbl.GetHeight() > (2*size)) {
         wxImage scaled = image.Scale(size*2, size*2, wxIMAGE_QUALITY_HIGH);
         bitmap = wxBitmap(scaled, -1, 2.0);
-    } else
-#endif
-    if (image.GetHeight() == size) {
+    } else if (image.GetHeight() == size) {
         bitmap = wxBitmap(image);
     } else {
         wxImage scaled = image.Scale(size, size, wxIMAGE_QUALITY_HIGH);
@@ -123,12 +117,11 @@ void RenderableEffect::initBitmaps(const char **data16,
     AdjustAndSetBitmap(32, image32, image64, icon32);
     AdjustAndSetBitmap(48, image48, icon48);
     AdjustAndSetBitmap(64, image64, icon64);
-#ifdef __WXOSX__
     AdjustAndSetBitmap(16, image16, icon16e);
     AdjustAndSetBitmap(24, image24, icon24e);
     AdjustAndSetBitmap(32, image32, icon32e);
-#endif
-
+    AdjustAndSetBitmap(48, image48, icon48e);
+    AdjustAndSetBitmap(48, image64, icon64e);
 }
 
 // return true if version string is older than compare string
@@ -247,7 +240,7 @@ std::string RenderableEffect::GetEffectString() {
 }
 
 bool RenderableEffect::needToAdjustSettings(const std::string &version) {
-    return IsVersionOlder("2017.26", version);
+    return IsVersionOlder("2018.12", version);
 }
 
 void RenderableEffect::adjustSettings(const std::string &version, Effect *effect, bool removeDefaults) {
@@ -263,7 +256,7 @@ void RenderableEffect::adjustSettings(const std::string &version, Effect *effect
         // Fix #622 - circle and square explode on transition out ... this code stops me breaking existing sequences
         SettingsMap& sm = effect->GetSettings();
         if (sm.Get("T_CHOICE_Out_Transition_Type", "") == "Square Explode" ||
-            sm.Get("T_CHOICE_Out_Transition_Type" , "") == "Circle Explode")
+            sm.Get("T_CHOICE_Out_Transition_Type", "") == "Circle Explode")
         {
             if (sm.GetBool("T_CHECKBOX_Out_Transition_Reverse", false))
             {
@@ -299,10 +292,23 @@ void RenderableEffect::adjustSettings(const std::string &version, Effect *effect
             vc.SetLimits(0, 30);
             vc.SetDivisor(10);
             vc.Deserialise(rzZoom.ToStdString(), false);
+            vc.FixScale(10); // This seems to be required because of some anomally in the way I stored this compared to all other value curves with divisors
             if (vc.IsActive())
             {
                 sm["B_VALUECURVE_Zoom"] = vc.Serialise();
             }
+        }
+    }
+
+    if (IsVersionOlder("2018.12", version))
+    {
+        SettingsMap& sm = effect->GetSettings();
+        wxString layerMethod = sm.Get("T_CHOICE_LayerMethod", "");
+
+        if (layerMethod == "Canvas")
+        {
+            sm["T_CHOICE_LayerMethod"] = "Effect 1";
+            sm["T_CHECKBOX_Canvas"] = "1";
         }
     }
 }
@@ -786,9 +792,22 @@ void RenderableEffect::SetRadioValue(wxRadioButton *r) {
     r->ProcessWindowEvent(evt);
 }
 
-double RenderableEffect::GetValueCurveDouble(const std::string &name, double def, SettingsMap &SettingsMap, float offset, double min, double max, int divisor)
+double RenderableEffect::GetValueCurveDouble(const std::string &name, double def, SettingsMap &SettingsMap, float offset, double min, double max, long startMS, long endMS, int divisor)
 {
-    double res = SettingsMap.GetDouble("TEXTCTRL_" + name, def);
+    double res = def;
+
+    const std::string sn = "SLIDER_" + name;
+    const std::string tn = "TEXTCTRL_" + name;
+    //bool slider = false;
+    if (SettingsMap.Contains(sn))
+    {
+        res = SettingsMap.GetDouble(sn, def);
+        //slider = true;
+    }
+    else if (SettingsMap.Contains(tn))
+    {
+        res = SettingsMap.GetDouble(tn, def);
+    }
 
     wxString vn = "VALUECURVE_" + name;
     wxString vc = SettingsMap.Get(vn, "");
@@ -800,7 +819,16 @@ double RenderableEffect::GetValueCurveDouble(const std::string &name, double def
         {
             valc.SetLimits(min, max);
             valc.SetDivisor(divisor);
-            res = valc.GetOutputValueAt(offset);
+
+            // If we ask for a double we always want it pre-divided
+            //if (slider)
+            //{
+            //    res = valc.GetOutputValueAt(offset);
+            //}
+            //else
+            //{
+                res = valc.GetOutputValueAtDivided(offset, startMS, endMS);
+            //}
 
             if (needsUpgrade)
             {
@@ -812,14 +840,16 @@ double RenderableEffect::GetValueCurveDouble(const std::string &name, double def
     return res;
 }
 
-int RenderableEffect::GetValueCurveInt(const std::string &name, int def, SettingsMap &SettingsMap, float offset, int min, int max, int divisor)
+int RenderableEffect::GetValueCurveInt(const std::string &name, int def, SettingsMap &SettingsMap, float offset, int min, int max, long startMS, long endMS, int divisor)
 {
     int res = def;
     const std::string sn = "SLIDER_" + name;
     const std::string tn = "TEXTCTRL_" + name;
+    //bool slider = false;
     if (SettingsMap.Contains(sn))
     {
         res = SettingsMap.GetInt(sn, def);
+        //slider = true;
     }
     else if (SettingsMap.Contains(tn))
     {
@@ -839,10 +869,21 @@ int RenderableEffect::GetValueCurveInt(const std::string &name, int def, Setting
         valc.Deserialise(vc.ToStdString());
         if (valc.IsActive())
         {
-            res = valc.GetOutputValueAt(offset);
+            // If we ask for an int then we seem to want it undivided
+            //if (!slider)
+            //{
+                res = valc.GetOutputValueAt(offset, startMS, endMS);
+            //}
+            //else
+            //{
+            //    res = valc.GetOutputValueAtDivided(offset);
+            //}
 
             if (needsUpgrade)
             {
+                // this updates the settings map ... but not the actual settings on the effect ... 
+                // this is a problem as the error will keep occuring next time the sequence is loaded.
+                // To fix it the user needs to click on the offending effect and save and it will go away
                 SettingsMap[vn] = valc.Serialise();
             }
         }
@@ -850,6 +891,3 @@ int RenderableEffect::GetValueCurveInt(const std::string &name, int def, Setting
 
     return res;
 }
-
-
-

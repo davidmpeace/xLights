@@ -16,8 +16,13 @@ CandyCaneModel::~CandyCaneModel()
 {
 }
 
-
+static wxPGChoices LEFT_RIGHT;
 void CandyCaneModel::AddTypeProperties(wxPropertyGridInterface *grid) {
+    if (LEFT_RIGHT.GetCount() == 0) {
+        LEFT_RIGHT.Add("Green Square");
+        LEFT_RIGHT.Add("Blue Square");
+    }
+
     wxPGProperty *p = grid->Append(new wxUIntProperty("# Canes", "CandyCaneCount", parm1));
     p->SetAttribute("Min", 1);
     p->SetAttribute("Max", 20);
@@ -56,6 +61,8 @@ void CandyCaneModel::AddTypeProperties(wxPropertyGridInterface *grid) {
 
 	p = grid->Append(new wxBoolProperty("Sticks", "CandyCaneSticks", _sticks));
 	p->SetEditor("CheckBox");
+    
+    grid->Append(new wxEnumProperty("Starting Location", "CandyCaneStart", LEFT_RIGHT, IsLtoR ? 0 : 1));
     
 }
 
@@ -97,6 +104,11 @@ int CandyCaneModel::OnPropertyGridChange(wxPropertyGridInterface *grid, wxProper
 		SetFromXml(ModelXml, zeroBased);
         grid->GetPropertyByName("CandyCaneReverse")->Enable(!event.GetPropertyValue().GetBool());
 		return 3;
+    } else if ("CandyCaneStart" == event.GetPropertyName()) {
+        ModelXml->DeleteAttribute("Dir");
+        ModelXml->AddAttribute("Dir", event.GetValue().GetLong() == 0 ? "L" : "R");
+        SetFromXml(ModelXml, zeroBased);
+        return 3;
     } else if (event.GetPropertyName() == "ModelStringType") {
         int i = Model::OnPropertyGridChange(grid, event);
         wxPGProperty *p = grid->GetPropertyByName("CandyCaneLights");
@@ -121,6 +133,7 @@ void CandyCaneModel::GetBufferSize(const std::string &type, const std::string &t
         Model::GetBufferSize(type, transform, BufferWi, BufferHi);
     }
 }
+
 void CandyCaneModel::InitRenderBufferNodes(const std::string &type,  const std::string &transform,
                                         std::vector<NodeBaseClassPtr> &newNodes, int &BufferWi, int &BufferHi) const {
     if (type == "Single Line") {
@@ -175,6 +188,14 @@ void CandyCaneModel::InitModel() {
     }
     SetBufferSize(SegmentsPerCane, NumCanes);
     
+    if (!IsLtoR) {
+        for (int y = 0; y < (NumCanes / 2); y++) {
+            int i = stringStartChan[y];
+            stringStartChan[y] = stringStartChan[NumCanes - 1 - y];
+            stringStartChan[NumCanes - 1 - y] = i;
+        }
+    }
+    
     for (int y=0; y < NumCanes; y++) {
         for(int x=0; x<SegmentsPerCane; x++) {
             int idx = y * SegmentsPerCane + x;
@@ -224,14 +245,14 @@ static void rotate_point(float cx,float cy, float angle, float &x, float &y)
 }
 
 void CandyCaneModel::SetCaneCoord() {
-	int NumCanes = parm1;
-	size_t SegmentsPerCane = parm2;
-	int LightsPerNode = parm3;
+    int NumCanes = parm1;
+    size_t SegmentsPerCane = parm2;
+    int LightsPerNode = parm3;
     
-	int lightspercane = SegmentsPerCane * LightsPerNode;
+    int lightspercane = SegmentsPerCane * LightsPerNode;
     float angle = toRadians(screenLocation.GetAngle());
     
-	double height;
+    double height;
     double width;
     
     
@@ -245,8 +266,7 @@ void CandyCaneModel::SetCaneCoord() {
     width = (double)NumCanes*widthPerCane + (NumCanes - 1) * caneGap;
     height = lightspercane - widthPerCane/2.0;
     
-	if (_sticks)
-	{
+    if (_sticks) {
         height = lightspercane * caneheight;
         for (int i = 0; i < NumCanes; i++){
             int y = 0;
@@ -263,7 +283,7 @@ void CandyCaneModel::SetCaneCoord() {
                 }
             }
         }
-	} else {
+    } else {
         int arclights = lightspercane - upright;
         for (int i = 0; i < NumCanes; i++) {
             // draw the uprights
@@ -333,13 +353,17 @@ void CandyCaneModel::SetCaneCoord() {
     }
     float min = 99999;
     float max = -9999;
-    for (auto it = Nodes.begin(); it != Nodes.end(); it++) {
-        for (auto it2 = (*it)->Coords.begin(); it2 != (*it)->Coords.end(); it2++) {
+    for (auto it = Nodes.begin(); it != Nodes.end(); ++it) {
+        for (auto it2 = (*it)->Coords.begin(); it2 != (*it)->Coords.end(); ++it2) {
             min = std::min(min, it2->screenY);
             max = std::max(max, it2->screenY);
         }
     }
-    screenLocation.SetRenderSize(width, height);
+    if (_sticks) {
+        screenLocation.SetRenderSize(width, height);
+    } else {
+        screenLocation.SetRenderSize(width, max - min + 1);
+    }
     screenLocation.SetYMinMax(min, max);
     
 }

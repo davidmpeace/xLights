@@ -1,9 +1,3 @@
-#include "GenerateCustomModelDialog.h"
-#include "effects/VideoPanel.h"
-
-#include <map>
-#include <list>
-
 //(*InternalHeaders(GenerateCustomModelDialog)
 #include <wx/font.h>
 #include <wx/intl.h>
@@ -16,9 +10,15 @@
 #include <wx/log.h>
 #include <wx/generic/statbmpg.h>
 
-#include "xLightsMain.h"
+#include <map>
+#include <list>
+
+#include "GenerateCustomModelDialog.h"
+#include "effects/VideoPanel.h"
 #include "xLightsVersion.h"
 #include "xLightsXmlFile.h"
+#include "outputs/OutputManager.h"
+
 #include <log4cpp/Category.hh>
 
 #define GCM_DISPLAYIMAGEWIDTH 800
@@ -61,6 +61,7 @@ public:
     {
         _doerasebackground = true;
     };
+
     void OnEraseBackGround(wxEraseEvent& event)
     {
         if (_doerasebackground)
@@ -129,6 +130,9 @@ const long GenerateCustomModelDialog::ID_TEXTCTRL_BI_MinSeparation = wxNewId();
 const long GenerateCustomModelDialog::ID_STATICTEXT2 = wxNewId();
 const long GenerateCustomModelDialog::ID_SLIDER_BI_Contrast = wxNewId();
 const long GenerateCustomModelDialog::ID_TEXTCTRL_BI_Contrast = wxNewId();
+const long GenerateCustomModelDialog::ID_STATICTEXT7 = wxNewId();
+const long GenerateCustomModelDialog::ID_SLIDER_BI_MinScale = wxNewId();
+const long GenerateCustomModelDialog::ID_TEXTCTRL_BI_MinScale = wxNewId();
 const long GenerateCustomModelDialog::ID_CHECKBOX_BI_IsSteady = wxNewId();
 const long GenerateCustomModelDialog::ID_CHECKBOX_BI_ManualUpdate = wxNewId();
 const long GenerateCustomModelDialog::ID_GAUGE1 = wxNewId();
@@ -171,41 +175,41 @@ GenerateCustomModelDialog::GenerateCustomModelDialog(wxWindow* parent, OutputMan
     _busy = false;
 
 	//(*Initialize(GenerateCustomModelDialog)
-	wxFlexGridSizer* FlexGridSizer4;
-	wxFlexGridSizer* FlexGridSizer16;
-	wxFlexGridSizer* FlexGridSizer24;
-	wxFlexGridSizer* FlexGridSizer23;
-	wxStaticText* StaticText2;
-	wxStaticText* StaticText14;
 	wxFlexGridSizer* FlexGridSizer10;
-	wxFlexGridSizer* FlexGridSizer3;
-	wxStaticText* StaticText6;
-	wxFlexGridSizer* FlexGridSizer27;
-	wxFlexGridSizer* FlexGridSizer25;
-	wxFlexGridSizer* FlexGridSizer22;
-	wxStaticText* StaticText8;
-	wxFlexGridSizer* FlexGridSizer9;
-	wxFlexGridSizer* FlexGridSizer2;
-	wxStaticText* StaticText1;
-	wxStaticText* StaticText3;
-	wxFlexGridSizer* FlexGridSizer7;
-	wxStaticText* StaticText5;
-	wxFlexGridSizer* FlexGridSizer15;
-	wxStaticText* StaticText7;
-	wxFlexGridSizer* FlexGridSizer18;
-	wxFlexGridSizer* FlexGridSizer8;
-	wxFlexGridSizer* FlexGridSizer21;
-	wxFlexGridSizer* FlexGridSizer20;
-	wxFlexGridSizer* FlexGridSizer13;
-	wxFlexGridSizer* FlexGridSizer12;
-	wxFlexGridSizer* FlexGridSizer6;
-	wxFlexGridSizer* FlexGridSizer1;
 	wxFlexGridSizer* FlexGridSizer11;
+	wxFlexGridSizer* FlexGridSizer12;
+	wxFlexGridSizer* FlexGridSizer13;
+	wxFlexGridSizer* FlexGridSizer15;
+	wxFlexGridSizer* FlexGridSizer16;
 	wxFlexGridSizer* FlexGridSizer17;
-	wxStaticText* StaticText4;
-	wxFlexGridSizer* FlexGridSizer31;
-	wxFlexGridSizer* FlexGridSizer28;
+	wxFlexGridSizer* FlexGridSizer18;
+	wxFlexGridSizer* FlexGridSizer1;
+	wxFlexGridSizer* FlexGridSizer20;
+	wxFlexGridSizer* FlexGridSizer21;
+	wxFlexGridSizer* FlexGridSizer22;
+	wxFlexGridSizer* FlexGridSizer23;
+	wxFlexGridSizer* FlexGridSizer24;
+	wxFlexGridSizer* FlexGridSizer25;
 	wxFlexGridSizer* FlexGridSizer26;
+	wxFlexGridSizer* FlexGridSizer27;
+	wxFlexGridSizer* FlexGridSizer28;
+	wxFlexGridSizer* FlexGridSizer2;
+	wxFlexGridSizer* FlexGridSizer31;
+	wxFlexGridSizer* FlexGridSizer3;
+	wxFlexGridSizer* FlexGridSizer4;
+	wxFlexGridSizer* FlexGridSizer6;
+	wxFlexGridSizer* FlexGridSizer7;
+	wxFlexGridSizer* FlexGridSizer8;
+	wxFlexGridSizer* FlexGridSizer9;
+	wxStaticText* StaticText14;
+	wxStaticText* StaticText1;
+	wxStaticText* StaticText2;
+	wxStaticText* StaticText3;
+	wxStaticText* StaticText4;
+	wxStaticText* StaticText5;
+	wxStaticText* StaticText6;
+	wxStaticText* StaticText7;
+	wxStaticText* StaticText8;
 
 	Create(parent, id, _("Generate Custom Models"), wxDefaultPosition, wxDefaultSize, wxCAPTION|wxRESIZE_BORDER|wxCLOSE_BOX|wxMAXIMIZE_BOX, _T("id"));
 	SetClientSize(wxDefaultSize);
@@ -237,7 +241,7 @@ GenerateCustomModelDialog::GenerateCustomModelDialog(wxWindow* parent, OutputMan
 	NodesRadioButton = new wxRadioButton(Panel_Prepare, ID_RADIOBUTTON1, _("Nodes"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_RADIOBUTTON1"));
 	NodesRadioButton->SetValue(true);
 	FlexGridSizer6->Add(NodesRadioButton, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer6->Add(0,0,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer6->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	SingleChannelRadioButton = new wxRadioButton(Panel_Prepare, ID_RADIOBUTTON2, _("Single Channel"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_RADIOBUTTON2"));
 	FlexGridSizer6->Add(SingleChannelRadioButton, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	StaticText5 = new wxStaticText(Panel_Prepare, wxID_ANY, _("Node/Channel Count"), wxDefaultPosition, wxDefaultSize, 0, _T("wxID_ANY"));
@@ -380,9 +384,9 @@ GenerateCustomModelDialog::GenerateCustomModelDialog(wxWindow* parent, OutputMan
 	FlexGridSizer16->Add(TextCtrl_BI_Sensitivity, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	StaticText13 = new wxStaticText(Panel_BulbIdentify, ID_STATICTEXT6, _("Minimum Separation"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT6"));
 	FlexGridSizer16->Add(StaticText13, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
-	Slider_BI_MinSeparation = new wxSlider(Panel_BulbIdentify, ID_SLIDER_BI_MinSeparation, 10, 1, 100, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_BI_MinSeparation"));
+	Slider_BI_MinSeparation = new wxSlider(Panel_BulbIdentify, ID_SLIDER_BI_MinSeparation, 100, 1, 100, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_BI_MinSeparation"));
 	FlexGridSizer16->Add(Slider_BI_MinSeparation, 1, wxALL|wxEXPAND, 2);
-	TextCtrl_BI_MinSeparation = new wxTextCtrl(Panel_BulbIdentify, ID_TEXTCTRL_BI_MinSeparation, _("10"), wxDefaultPosition, wxSize(40,24), wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL_BI_MinSeparation"));
+	TextCtrl_BI_MinSeparation = new wxTextCtrl(Panel_BulbIdentify, ID_TEXTCTRL_BI_MinSeparation, _("100"), wxDefaultPosition, wxSize(40,24), wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL_BI_MinSeparation"));
 	FlexGridSizer16->Add(TextCtrl_BI_MinSeparation, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	StaticText10 = new wxStaticText(Panel_BulbIdentify, ID_STATICTEXT2, _("Contrast"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT2"));
 	FlexGridSizer16->Add(StaticText10, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
@@ -390,6 +394,12 @@ GenerateCustomModelDialog::GenerateCustomModelDialog(wxWindow* parent, OutputMan
 	FlexGridSizer16->Add(Slider_BI_Contrast, 1, wxALL|wxEXPAND, 2);
 	TextCtrl_BI_Contrast = new wxTextCtrl(Panel_BulbIdentify, ID_TEXTCTRL_BI_Contrast, _("0"), wxDefaultPosition, wxSize(40,24), wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL_BI_Contrast"));
 	FlexGridSizer16->Add(TextCtrl_BI_Contrast, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 2);
+	StaticText16 = new wxStaticText(Panel_BulbIdentify, ID_STATICTEXT7, _("Model Scale"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT7"));
+	FlexGridSizer16->Add(StaticText16, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
+	Slider_BI_MinScale = new wxSlider(Panel_BulbIdentify, ID_SLIDER_BI_MinScale, 1, 1, 100, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_BI_MinScale"));
+	FlexGridSizer16->Add(Slider_BI_MinScale, 1, wxALL|wxEXPAND, 2);
+	TextCtrl_BI_MinScale = new wxTextCtrl(Panel_BulbIdentify, ID_TEXTCTRL_BI_MinScale, _("1"), wxDefaultPosition, wxSize(40,24), wxTE_READONLY, wxDefaultValidator, _T("ID_TEXTCTRL_BI_MinScale"));
+	FlexGridSizer16->Add(TextCtrl_BI_MinScale, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 2);
 	FlexGridSizer15->Add(FlexGridSizer16, 1, wxALL|wxEXPAND, 2);
 	CheckBox_BI_IsSteady = new wxCheckBox(Panel_BulbIdentify, ID_CHECKBOX_BI_IsSteady, _("Video is steady"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX_BI_IsSteady"));
 	CheckBox_BI_IsSteady->SetValue(true);
@@ -521,6 +531,8 @@ GenerateCustomModelDialog::GenerateCustomModelDialog(wxWindow* parent, OutputMan
 	Connect(ID_SLIDER_BI_MinSeparation,wxEVT_COMMAND_SLIDER_UPDATED,(wxObjectEventFunction)&GenerateCustomModelDialog::OnSlider_BI_MinSeparationCmdSliderUpdated);
 	Connect(ID_SLIDER_BI_Contrast,wxEVT_SCROLL_CHANGED,(wxObjectEventFunction)&GenerateCustomModelDialog::OnSlider_BI_ContrastCmdScrollChanged);
 	Connect(ID_SLIDER_BI_Contrast,wxEVT_COMMAND_SLIDER_UPDATED,(wxObjectEventFunction)&GenerateCustomModelDialog::OnSlider_BI_ContrastCmdSliderUpdated);
+	Connect(ID_SLIDER_BI_MinScale,wxEVT_SCROLL_CHANGED,(wxObjectEventFunction)&GenerateCustomModelDialog::OnSlider_BI_MinScaleCmdScrollChanged);
+	Connect(ID_SLIDER_BI_MinScale,wxEVT_COMMAND_SLIDER_UPDATED,(wxObjectEventFunction)&GenerateCustomModelDialog::OnSlider_BI_MinScaleCmdSliderUpdated);
 	Connect(ID_CHECKBOX_BI_IsSteady,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&GenerateCustomModelDialog::OnCheckBox_BI_IsSteadyClick);
 	Connect(ID_CHECKBOX_BI_ManualUpdate,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&GenerateCustomModelDialog::OnCheckBox_BI_ManualUpdateClick);
 	Connect(ID_BUTTON_BI_Update,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&GenerateCustomModelDialog::OnButton_BI_UpdateClick);
@@ -683,9 +695,12 @@ void GenerateCustomModelDialog::ShowImage(const wxImage& image)
 
 void GenerateCustomModelDialog::SetBulbs(bool nodes, int count, int startch, int node, int ms, int intensity)
 {
+    static log4cpp::Category &logger_pcm = log4cpp::Category::getInstance(std::string("log_prepcustommodel"));
+
     // node is out of range ... odd
     if (node > count)
     {
+        logger_pcm.debug("SetBulbs failed. Node %d is greater than number of nodes %d", node, count);
         return;
     }
 
@@ -784,16 +799,23 @@ void GenerateCustomModelDialog::OnButton_PCM_RunClick(wxCommandEvent& event)
     if (nodes)
     {
         logger_pcm.info("   Nodes.");
+        logger_pcm.info("   Channels that will be affected %ld-%ld of %ld channels", startch, startch + (count * 3) - 1, _outputManager->GetTotalChannels());
     }
     else
     {
         logger_pcm.info("   Channels.");
+        logger_pcm.info("   Channels that will be affected %ld-%ld of %ld channels", startch, startch + count - 1, _outputManager->GetTotalChannels());
     }
 
     _starttime = wxDateTime::UNow();
 
     // Remember our outputting state
     bool outputting = _outputManager->IsOutputting();
+
+    if (_outputManager->IsOutputOpenInAnotherProcess())
+    {
+        wxMessageBox("Another process seems to be outputing to lights right now. This may not generate the result expected.");
+    }
 
     _outputManager->StartOutput();
 
@@ -812,8 +834,9 @@ void GenerateCustomModelDialog::OnButton_PCM_RunClick(wxCommandEvent& event)
     UpdateProgress(pd, totaltime);
 
     // then in turn each node on for 0.5 seconds ... all off for 0.2 seconds
-    for (int i = 0; i < count; i++)
+    for (int i = 0; i < count && !wxGetKeyState(WXK_ESCAPE); i++)
     {
+        //logger_pcm.debug("%d of %d", i, count);
         SetBulbs(nodes, count, startch, i, NODEON, intensity);
         UpdateProgress(pd, totaltime);
         SetBulbs(nodes, count, startch, i, NODEOFF, 0);
@@ -907,10 +930,10 @@ void GenerateCustomModelDialog::MTTabEntry()
     _state = VideoProcessingStates::CHOOSE_MODELTYPE;
     _displaybmp = wxImage(GCM_DISPLAYIMAGEWIDTH, GCM_DISPLAYIMAGEHEIGHT, true);
     StaticBitmap_Preview->SetBitmap(_displaybmp);
-    if (_vr != NULL)
+    if (_vr != nullptr)
     {
         delete _vr;
-        _vr = NULL;
+        _vr = nullptr;
     }
     _draggingedge = -1;
 }
@@ -1067,15 +1090,15 @@ void GenerateCustomModelDialog::OnButton_CV_BackClick(wxCommandEvent& event)
 void GenerateCustomModelDialog::DoStartFrameIdentify()
 {
     static log4cpp::Category &logger_gcm = log4cpp::Category::getInstance(std::string("log_generatecustommodel"));
-    if (_vr != NULL)
+    if (_vr != nullptr)
     {
         delete _vr;
-        _vr = NULL;
+        _vr = nullptr;
     }
 
     _vr = new VideoReader(std::string(TextCtrl_GCM_Filename->GetValue().c_str()), 800, 600, true);
 
-    if (_vr == NULL)
+    if (_vr == nullptr)
     {
         logger_gcm.info("Error starting video reader.");
         wxMessageBox("Unable to process video.");
@@ -1173,7 +1196,7 @@ int GenerateCustomModelDialog::FindStartFrame(VideoReader* vr)
     // scan first STARTSCANSECS seconds of video build a list of average frame brightnesses
     _overallaveragebrightness = 0.0;
     int samples = 0;
-    for (int ms = start; ms < STARTSCANSECS * 1000; ms+=FRAMEMS)
+    for (int ms = start; ms < STARTSCANSECS * 1000 && !wxGetKeyState(WXK_ESCAPE); ms+=FRAMEMS)
     {
         wxImage img1 = CreateImageFromFrame(vr->GetNextFrame(ms)).Copy();
         ShowImage(img1);
@@ -1577,6 +1600,7 @@ void GenerateCustomModelDialog::DoBulbIdentify()
         Slider_AdjustBlur->Disable();
         Slider_BI_Sensitivity->Disable();
         Slider_BI_MinSeparation->Disable();
+        Slider_BI_MinScale->Disable();
         Slider_BI_Contrast->Disable();
         CheckBox_BI_ManualUpdate->Disable();
         CheckBox_BI_IsSteady->Disable();
@@ -1586,6 +1610,7 @@ void GenerateCustomModelDialog::DoBulbIdentify()
         Button_BI_Back->Disable();
         Gauge_Progress->SetValue(0);
         Gauge_Progress->Show();
+        Panel_BulbIdentify->Layout();
         SetCursor(wxCURSOR_WAIT);
         StaticBitmap_Preview->SetEraseBackground(false);
 
@@ -1597,6 +1622,7 @@ void GenerateCustomModelDialog::DoBulbIdentify()
         logger_gcm.info("   Sensitivity: %d.", Slider_BI_Sensitivity->GetValue());
         logger_gcm.info("   Contrast: %d.", Slider_BI_Contrast->GetValue());
         logger_gcm.info("   Minimum Separation: %d.", Slider_BI_MinSeparation->GetValue());
+        logger_gcm.info("   Minimum Scale: %d.", Slider_BI_MinScale->GetValue());
         logger_gcm.info("   Clip Rectangle: (%d,%d)-(%d,%d).", _clip.GetLeft(), _clip.GetTop(), _clip.GetRight(), _clip.GetBottom());
         if (CheckBox_BI_IsSteady->GetValue())
         {
@@ -1629,7 +1655,7 @@ void GenerateCustomModelDialog::DoBulbIdentify()
             wxImage frame;
 
             int sincefound = 0;
-            while (currentTime < _vr->GetLengthMS() && !_warned && sincefound < BLANKFRAMESBEFOREABORT)
+            while (currentTime < _vr->GetLengthMS() && !_warned && sincefound < BLANKFRAMESBEFOREABORT && !wxGetKeyState(WXK_ESCAPE))
             {
                 Gauge_Progress->SetValue((currentTime * 100) / _vr->GetLengthMS());
                 logger_gcm.info("   Looking for frame at %d for node %d.", currentTime, n);
@@ -1647,12 +1673,12 @@ void GenerateCustomModelDialog::DoBulbIdentify()
                     if (bwFrame.IsOk())
                     {
                         advance++;
-                        if (advance > 3)
+                        if (advance > 4)
                         {
                             logger_gcm.info("   No bulb found so assuming bulb %d is not visible.", n);
                             advance = 0;
                             n++;
-                            currentTime = zerotime + (n - 1)*(NODEON + NODEOFF);
+                            currentTime = zerotime + (n - 1)*(NODEON + NODEOFF) - FRAMEMS;
                         }
                         else
                         {
@@ -1697,23 +1723,24 @@ void GenerateCustomModelDialog::DoBulbIdentify()
                     }
                     else
                     {
+                        logger_gcm.info("   Video drift %d.", delta);
                         // This helps correct for video drift
                         if (abs(delta) > 2 * FRAMEMS)
                         {
                             if (delta < 0)
                             {
-                                logger_gcm.info("   *** Video drift %d adjusting by %d.", delta, -1 * FRAMEMS);
+                                logger_gcm.info("       *** Adjusting by %d.", -1 * FRAMEMS);
                                 zerotime -= FRAMEMS;
                             }
                             else
                             {
-                                logger_gcm.info("   *** Video drift %d adjusting by %d.", delta, FRAMEMS);
-                                zerotime += FRAMEMS;
+                                logger_gcm.info("       *** Adjusting by %d.", delta);
+                                zerotime += delta;
                             }
                         }
                     }
 
-                    currentTime = zerotime + (n - 1)*(NODEON + NODEOFF);
+                    currentTime = zerotime + (n - 1)*(NODEON + NODEOFF) - FRAMEMS;
                 }
             }
 
@@ -1730,6 +1757,7 @@ void GenerateCustomModelDialog::DoBulbIdentify()
         Slider_AdjustBlur->Enable();
         Slider_BI_Sensitivity->Enable();
         Slider_BI_MinSeparation->Enable();
+        Slider_BI_MinScale->Enable();
         Slider_BI_Contrast->Enable();
         CheckBox_BI_ManualUpdate->Enable();
         CheckBox_BI_IsSteady->Enable();
@@ -1738,6 +1766,7 @@ void GenerateCustomModelDialog::DoBulbIdentify()
         Button_BI_Next->Enable();
         Button_BI_Back->Enable();
         Gauge_Progress->Hide();
+        Panel_BulbIdentify->Layout();
         SetCursor(wxCURSOR_ARROW);
         logger_gcm.info("Result: %s.", (const char *)TextCtrl_BI_Status->GetValue().c_str());
         _busy = false;
@@ -1752,11 +1781,13 @@ void GenerateCustomModelDialog::BITabEntry(bool setdefault)
         TextCtrl_BI_Status->SetValue("");
         SetBIDefault();
     }
+    _biFrame = CreateDetectMask(_biFrame, true, _clip);
     ShowImage(_biFrame);
     StaticText_BI->SetLabel("The red circles on the image show the bulbs we have identified. Adjust the sensitivity if there are bulbs missing or phantom bulbs identified.\n\nClick next when you are happy that all bulbs have been detected.");
     Slider_BI_Sensitivity->Enable();
     Slider_AdjustBlur->Enable();
     Slider_BI_MinSeparation->Enable();
+    Slider_BI_MinScale->Enable();
     Slider_BI_Contrast->Enable();
     Button_CB_RestoreDefault->Enable();
     Button_BI_Next->Enable();
@@ -1766,7 +1797,7 @@ void GenerateCustomModelDialog::BITabEntry(bool setdefault)
 int GenerateCustomModelDialog::GetMaxNum()
 {
     int max = -1;
-    for (auto it = _lights.begin(); it != _lights.end(); it++)
+    for (auto it = _lights.begin(); it != _lights.end(); ++it)
     {
         if (!it->isSupressed() && it->GetNum() > max)
         {
@@ -1780,7 +1811,7 @@ int GenerateCustomModelDialog::GetMaxNum()
 int GenerateCustomModelDialog::GetBulbCount()
 {
     int count = 0;
-    for (auto it = _lights.begin(); it != _lights.end(); it++)
+    for (auto it = _lights.begin(); it != _lights.end(); ++it)
     {
         if (!it->isSupressed())
         {
@@ -1796,7 +1827,7 @@ wxString GenerateCustomModelDialog::GetMissingNodes()
 {
     wxString res;
     int current = 0;
-    for (auto it = _lights.begin(); it != _lights.end(); it++)
+    for (auto it = _lights.begin(); it != _lights.end(); ++it)
     {
         if (!it->isSupressed())
         {
@@ -1834,7 +1865,7 @@ wxString GenerateCustomModelDialog::GetMultiBulbNodes()
     wxString res;
     int current = -1;
     int last = -2;
-    for (auto it = _lights.begin(); it != _lights.end(); it++)
+    for (auto it = _lights.begin(); it != _lights.end(); ++it)
     {
         if (!it->isSupressed())
         {
@@ -1899,7 +1930,7 @@ wxString GenerateCustomModelDialog::GenerateStats(int minseparation)
     {
         res += wxString::Format("Nodes with more than 1 bulb: %s\n", mbn);
     }
-    wxSize p = CalcSize();
+    wxSize p = CalcSize((float)Slider_BI_MinScale->GetValue() / 100.0);
     res += wxString::Format("Model size: %dx%d\n", p.x, p.y);
 
     return res;
@@ -1958,7 +1989,7 @@ wxImage GenerateCustomModelDialog::CreateDetectMask(wxImage ref, bool includeima
     dc.DrawRectangle(_clip);
 
     // draw blue first
-    for (auto c = _lights.begin(); c != _lights.end(); c++)
+    for (auto c = _lights.begin(); c != _lights.end(); ++c)
     {
         if (c->isSupressedButDraw())
         {
@@ -1967,7 +1998,7 @@ wxImage GenerateCustomModelDialog::CreateDetectMask(wxImage ref, bool includeima
     }
 
     // now red so they are easy to see
-    for (auto c = _lights.begin(); c != _lights.end(); c++)
+    for (auto c = _lights.begin(); c != _lights.end(); ++c)
     {
         if (!c->isSupressed())
         {
@@ -2098,8 +2129,10 @@ void GenerateCustomModelDialog::OnSlider_BI_MinSeparationCmdSliderUpdated(wxScro
 
 void GenerateCustomModelDialog::SetBIDefault()
 {
-    Slider_BI_MinSeparation->SetValue(10);
-    TextCtrl_BI_MinSeparation->SetValue("10");
+    Slider_BI_MinSeparation->SetValue(100);
+    TextCtrl_BI_MinSeparation->SetValue("100");
+    Slider_BI_MinScale->SetValue(1);
+    TextCtrl_BI_MinScale->SetValue("1");
     Slider_AdjustBlur->SetValue(1);
     TextCtrl_BC_Blur->SetValue("1");
     Slider_BI_Sensitivity->SetValue(127);
@@ -2275,7 +2308,7 @@ wxPoint GenerateCustomModelDialog::CalcTrim(std::list<GCMBulb>& lights)
     int x = 999999;
     int y = 999999;
 
-    for (auto it = lights.begin(); it != lights.end(); it++)
+    for (auto it = lights.begin(); it != lights.end(); ++it)
     {
         if (!it->isSupressed())
         {
@@ -2294,7 +2327,7 @@ wxPoint GenerateCustomModelDialog::CalcTrim(std::list<GCMBulb>& lights)
     return wxPoint(x, y);
 }
 
-wxSize GenerateCustomModelDialog::CalcSize()
+wxSize GenerateCustomModelDialog::CalcSize(float min)
 {
     if (_lights.size() == 0)
     {
@@ -2306,7 +2339,7 @@ wxSize GenerateCustomModelDialog::CalcSize()
     float best = 1.0f;
     float curr = 0.9f;
 
-    while (curr > 0 && TestScale(_lights, _lights.begin(), curr, _trim))
+    while (curr >= min && TestScale(_lights, _lights.begin(), curr, _trim))
     {
         best = curr;
         curr = curr - 0.1f;
@@ -2314,7 +2347,7 @@ wxSize GenerateCustomModelDialog::CalcSize()
     curr = best;
     float start = curr;
     curr = curr - 0.01;
-    while (curr > start && TestScale(_lights, _lights.begin(), curr, _trim))
+    while (curr > start && curr >= min && TestScale(_lights, _lights.begin(), curr, _trim))
     {
         best = curr;
         curr = curr - 0.01;
@@ -2324,7 +2357,7 @@ wxSize GenerateCustomModelDialog::CalcSize()
     int x = 0;
     int y = 0;
 
-    for (auto it = _lights.begin(); it != _lights.end(); it++)
+    for (auto it = _lights.begin(); it != _lights.end(); ++it)
     {
         if (!it->isSupressed())
         {
@@ -2375,24 +2408,40 @@ int GenerateCustomModelDialog::ApplyMinimumSeparation(std::list<GCMBulb>& lights
     int min = 9999999;
     for (auto it = lights.begin(); it != lights.end(); ++it)
     {
+        // No point looking at this light as it is already suppressed
         if (!it->isSupressed())
         {
             for (auto it2 = it; it2 != lights.end(); ++it2)
             {
-                if (it != it2 && !it2->isSupressed())
+                // No point looking at this light as it is already suppressed
+                if (!it2->isSupressed())
                 {
-                    if (IsWithin(it->GetLocation().x, it->GetLocation().y, it2->GetLocation().x, it2->GetLocation().y, minseparation))
+                    // only do suppression if they are both tagged with the same number
+                    if (it->GetNum() == it2->GetNum())
                     {
-                        if (it->GetBrightness() >= it2->GetBrightness())
+                        // and they are not the same light
+                        if (it != it2)
                         {
-                            it2->TooClose();
-                        }
-                        else
-                        {
-                            it->TooClose();
+                            // If it is within our minimum separation distance
+                            if (IsWithin(it->GetLocation().x, it->GetLocation().y, it2->GetLocation().x, it2->GetLocation().y, minseparation))
+                            {
+                                // Suppress the dimmer of the two under the assumption the reflection is more likely to be dimmer
+                                if (it->GetBrightness() >= it2->GetBrightness())
+                                {
+                                    it2->TooClose();
+                                }
+                                else
+                                {
+                                    it->TooClose();
+                                }
+                            }
                         }
                     }
-                    else
+
+                    // If both are not suppressed update the minimum separation
+                    // we need minimum separation so we can work out the minimal grid that puts each node in its
+                    // own cell
+                    if (it != it2 && !it->isSupressed() && !it2->isSupressed())
                     {
                         int d = GetSeparation(it->GetLocation().x, it->GetLocation().y, it2->GetLocation().x, it2->GetLocation().y);
                         if (d < min)
@@ -2424,7 +2473,7 @@ void GenerateCustomModelDialog::DoGenerateCustomModel()
     RemoveClippedLights(_lights, _clip);
     ApplyMinimumSeparation(_lights, Slider_BI_MinSeparation->GetValue());
 
-    _size = CalcSize();
+    _size = CalcSize((float)Slider_BI_MinScale->GetValue() / 100.0);
 
     Grid_CM_Result->ClearGrid();
     if (Grid_CM_Result->GetNumberCols() > 0)
@@ -2442,7 +2491,7 @@ void GenerateCustomModelDialog::DoGenerateCustomModel()
         Grid_CM_Result->CreateGrid(_size.y, _size.x);
     }
 
-    for (auto it = _lights.begin(); it != _lights.end(); it++)
+    for (auto it = _lights.begin(); it != _lights.end(); ++it)
     {
         if (!it->isSupressed())
         {
@@ -3032,4 +3081,20 @@ void GenerateCustomModelDialog::OnButtonBumpFwdClick(wxCommandEvent& event)
     _biFrame = CreateManualMask(_MI_CurrentFrame);
     ShowImage(_biFrame);
     MIValidateWindow();
+}
+
+void GenerateCustomModelDialog::OnSlider_BI_MinScaleCmdScrollChanged(wxScrollEvent& event)
+{
+    if (!CheckBox_BI_ManualUpdate->GetValue())
+    {
+        if (!_busy)
+        {
+            DoBulbIdentify();
+        }
+    }
+}
+
+void GenerateCustomModelDialog::OnSlider_BI_MinScaleCmdSliderUpdated(wxScrollEvent& event)
+{
+    TextCtrl_BI_MinScale->SetValue(wxString::Format(wxT("%i"), Slider_BI_MinScale->GetValue()));
 }

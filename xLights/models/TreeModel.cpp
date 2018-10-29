@@ -1,4 +1,3 @@
-
 #include <wx/tokenzr.h>
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/advprops.h>
@@ -422,6 +421,9 @@ void TreeModel::ImportXlightsModel(std::string filename, xLightsFrame* xlights, 
             wxString tp = root->GetAttribute("TreePerspective");
             wxString tr = root->GetAttribute("TreeRotation");
             wxString tsr = root->GetAttribute("TreeSpiralRotations");
+            wxString pc = root->GetAttribute("PixelCount");
+            wxString pt = root->GetAttribute("PixelType");
+            wxString psp = root->GetAttribute("PixelSpacing");
 
             // Add any model version conversion logic here
             // Source version will be the program version that created the custom model
@@ -443,6 +445,9 @@ void TreeModel::ImportXlightsModel(std::string filename, xLightsFrame* xlights, 
             SetProperty("TreePerspective", tp);
             SetProperty("TreeRotation", tr);
             SetProperty("TreeSpiralRotations", tsr);
+            SetProperty("PixelCount", pc);
+            SetProperty("PixelType", pt);
+            SetProperty("PixelSpacing", psp);
 
             wxString newname = xlights->AllModels.GenerateModelName(name.ToStdString());
             GetModelScreenLocation().Write(ModelXml);

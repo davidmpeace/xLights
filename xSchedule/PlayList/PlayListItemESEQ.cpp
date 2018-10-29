@@ -2,6 +2,7 @@
 #include "wx/xml/xml.h"
 #include <wx/notebook.h>
 #include "PlayListItemESEQPanel.h"
+#include "../../xLights/UtilFunctions.h"
 
 PlayListItemESEQ::PlayListItemESEQ(wxXmlNode* node) : PlayListItem(node)
 {
@@ -50,6 +51,7 @@ wxXmlNode* PlayListItemESEQ::Save()
     wxXmlNode * node = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, "PLIESEQ");
 
     node->AddAttribute("ESEQFile", _ESEQFileName);
+    _ESEQFileName = FixFile("", _ESEQFileName);
     node->AddAttribute("ApplyMethod", wxString::Format(wxT("%i"), (int)_applyMethod));
 
     PlayListItem::Save(node);
@@ -100,8 +102,10 @@ void PlayListItemESEQ::Frame(wxByte* buffer, size_t size, size_t ms, size_t fram
     }
 }
 
-void PlayListItemESEQ::Start()
+void PlayListItemESEQ::Start(long stepLengthMS)
 {
+    PlayListItem::Start(stepLengthMS);
+
     // load the FSEQ
     LoadFiles();
 }
@@ -133,7 +137,7 @@ void PlayListItemESEQ::CloseFiles()
     }
 }
 
-std::list<std::string> PlayListItemESEQ::GetMissingFiles() const
+std::list<std::string> PlayListItemESEQ::GetMissingFiles() 
 {
     std::list<std::string> res;
     if (!wxFile::Exists(GetESEQFileName()))

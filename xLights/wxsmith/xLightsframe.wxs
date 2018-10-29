@@ -5,6 +5,7 @@
 		<size>1411,1103</size>
 		<id_arg>0</id_arg>
 		<handler function="OnClose" entry="EVT_CLOSE" />
+		<handler function="OnChar" entry="EVT_CHAR" />
 		<handler function="OnResize" entry="EVT_SIZE" />
 		<object class="wxAuiManager" variable="MainAuiManager" member="yes">
 			<style>wxAUI_MGR_ALLOW_FLOATING|wxAUI_MGR_ALLOW_ACTIVE_PANE|wxAUI_MGR_DEFAULT</style>
@@ -628,6 +629,17 @@
 													<option>1</option>
 												</object>
 												<object class="sizeritem">
+													<object class="wxButton" name="ID_BUTTON_OTHER_FOLDERS" variable="ButtonOtherFolders" member="yes">
+														<label>Subfolders..</label>
+														<handler function="OnButtonOtherFoldersClick" entry="EVT_BUTTON" />
+													</object>
+													<col>3</col>
+													<row>0</row>
+													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+													<border>5</border>
+													<option>1</option>
+												</object>
+												<object class="sizeritem">
 													<object class="wxButton" name="ID_BUTTON3" variable="Button03" member="no">
 														<label>Change</label>
 														<handler function="OnMenuOpenFolderSelected" entry="EVT_BUTTON" />
@@ -645,50 +657,6 @@
 													<col>2</col>
 													<row>0</row>
 													<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
-													<border>5</border>
-													<option>1</option>
-												</object>
-												<object class="sizeritem">
-													<object class="wxStaticText" name="wxID_ANY" variable="StaticText28" member="no">
-														<label>Media Directory:</label>
-													</object>
-													<col>0</col>
-													<row>1</row>
-													<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
-													<border>5</border>
-													<option>1</option>
-												</object>
-												<object class="sizeritem">
-													<object class="wxButton" name="ID_BUTTON_CHANGE_MEDIA_DIR" variable="Button_Change_Media_Dir" member="yes">
-														<label>Change</label>
-														<handler function="ChangeMediaDirectory" entry="EVT_BUTTON" />
-													</object>
-													<col>1</col>
-													<row>1</row>
-													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-													<border>5</border>
-													<option>1</option>
-												</object>
-												<object class="sizeritem">
-													<object class="wxStaticText" name="ID_ANY" variable="MediaDirectoryLabel" member="yes">
-														<label>{Media Directory not set}</label>
-													</object>
-													<col>2</col>
-													<row>1</row>
-													<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
-													<border>5</border>
-													<option>1</option>
-												</object>
-												<object class="sizeritem">
-													<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Link_Dirs" variable="BitmapButton_Link_Dirs" member="yes">
-														<bitmap stock_id="xlART_UNLINK" stock_client="wxART_OTHER" />
-														<tooltip>Link Directories</tooltip>
-														<handler function="OnBitmapButton_Link_DirsClick" entry="EVT_BUTTON" />
-													</object>
-													<rowspan>2</rowspan>
-													<col>3</col>
-													<row>0</row>
-													<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 													<border>5</border>
 													<option>1</option>
 												</object>
@@ -753,6 +721,24 @@
 															<object class="wxButton" name="ID_BUTTON2" variable="ButtonArtNET" member="yes">
 																<label>Add ArtNET</label>
 																<handler function="OnButtonArtNETClick" entry="EVT_BUTTON" />
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxButton" name="ID_BUTTON_ADD_LOR" variable="ButtonAddLOR" member="yes">
+																<label>Add LOR</label>
+																<handler function="OnButtonAddLORClick" entry="EVT_BUTTON" />
+															</object>
+															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxButton" name="ID_BUTTON_ADD_DDP" variable="ButtonAddDDP" member="yes">
+																<label>Add DDP</label>
+																<handler function="OnButtonAddDDPClick" entry="EVT_BUTTON" />
 															</object>
 															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 															<border>5</border>
@@ -879,7 +865,7 @@
 						<label>Layout</label>
 					</object>
 					<object class="AuiNotebookPage">
-						<object class="wxPanel" name="ID_PANEL7" variable="PanelSequencer" member="yes">
+						<object class="wxPanel" name="XLIGHTS_SEQUENCER_TAB" variable="PanelSequencer" member="yes">
 							<style>wxTAB_TRAVERSAL|wxWANTS_CHARS</style>
 							<handler function="OnPanelSequencerPaint" entry="EVT_PAINT" />
 							<object class="wxAuiManager" variable="m_mgr" member="yes">
@@ -934,7 +920,6 @@
 											<size>100,-1d</size>
 										</object>
 										<flag>wxEXPAND</flag>
-										<minsize>100,-1d</minsize>
 									</object>
 								</object>
 							</object>
@@ -988,12 +973,12 @@
 					<bitmap stock_id="wxART_FILE_OPEN" />
 					<handler function="OnMenuItem_File_Open_SequenceSelected" entry="EVT_MENU" />
 				</object>
-				<object class="wxMenuItem" name="IS_SAVE_SEQ" variable="MenuItem_File_Save_Sequence" member="yes">
-					<label>Save Sequence</label>
+				<object class="wxMenuItem" name="IS_SAVE_SEQ" variable="MenuItem_File_Save" member="yes">
+					<label>Save</label>
 					<accel>CTRL-S</accel>
 					<enabled>0</enabled>
 					<bitmap stock_id="wxART_FILE_SAVE" />
-					<handler function="OnMenuItem_File_Save_SequenceSelected" entry="EVT_MENU" />
+					<handler function="OnMenuItem_File_Save_Selected" entry="EVT_MENU" />
 				</object>
 				<object class="wxMenuItem" name="ID_SAVE_AS_SEQUENCE" variable="MenuItem_File_SaveAs_Sequence" member="yes">
 					<label>Save Sequence As</label>
@@ -1004,6 +989,11 @@
 					<label>Close Sequence</label>
 					<enabled>0</enabled>
 					<handler function="OnMenuItem_File_Close_SequenceSelected" entry="EVT_MENU" />
+				</object>
+				<object class="separator" />
+				<object class="wxMenuItem" name="ID_EXPORT_VIDEO" variable="MenuItem_File_Export_Video" member="yes">
+					<label>Export House Preview Video</label>
+					<handler function="OnMenuItem_File_Export_VideoSelected" entry="EVT_MENU" />
 				</object>
 				<object class="separator" />
 				<object class="wxMenuItem" name="ID_MENUITEM2" variable="MenuItem5" member="no">
@@ -1060,6 +1050,10 @@
 					<help>Use this options to shift all effects in the sequence.</help>
 					<handler function="OnMenuItemShiftEffectsSelected" entry="EVT_MENU" />
 				</object>
+				<object class="wxMenuItem" name="ID_MNU_SHIFT_SELECTED_EFFECTS" variable="MenuItemShiftSelectedEffects" member="yes">
+					<label>Shift Selected Effects</label>
+					<handler function="OnMenuItemShiftSelectedEffectsSelected" entry="EVT_MENU" />
+				</object>
 			</object>
 			<object class="wxMenu" variable="Menu1" member="yes">
 				<label>&amp;Tools</label>
@@ -1089,7 +1083,7 @@
 					<handler function="OnMenuItem_ViewLogSelected" entry="EVT_MENU" />
 				</object>
 				<object class="wxMenuItem" name="ID_MENUITEM18" variable="MenuItem38" member="yes">
-					<label>&amp;Package Log FIles</label>
+					<label>&amp;Package Log Files</label>
 					<help>Packages up current configuration, logs and sequence for reporting a problem to development team.</help>
 					<handler function="OnMenuItemPackageDebugFiles" entry="EVT_MENU" />
 				</object>
@@ -1109,13 +1103,37 @@
 					<label>Package &amp;Sequence</label>
 					<handler function="OnMenuItem_PackageSequenceSelected" entry="EVT_MENU" />
 				</object>
+				<object class="wxMenuItem" name="ID_MENU_USER_DICT" variable="MenuItemUserDict" member="yes">
+					<label>User Lyric Dictionary</label>
+					<handler function="OnMenuItemUserDictSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_DOWNLOADSEQUENCES" variable="MenuItem_DownloadSequences" member="yes">
+					<label>Download Sequences/Lyrics</label>
+					<handler function="OnMenuItem_DownloadSequencesSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="ID_MENU_BATCH_RENDER" variable="MenuItemBatchRender" member="no">
+					<label>&amp;Batch Render</label>
+					<handler function="OnMenuItemBatchRenderSelected" entry="EVT_MENU" />
+				</object>
 				<object class="wxMenuItem" name="ID_MNU_XSCHEDULE" variable="MenuItem_xSchedule" member="yes">
 					<label>xSchedu&amp;le</label>
 					<handler function="OnMenuItem_xScheduleSelected" entry="EVT_MENU" />
 				</object>
+				<object class="wxMenuItem" name="iD_MNU_VENDORCACHEPURGE" variable="MenuItem_PurgeVendorCache" member="yes">
+					<label>Purge Download Cache</label>
+					<handler function="OnMenuItem_PurgeVendorCacheSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_PURGERENDERCACHE" variable="MenuItem_PurgeRenderCache" member="yes">
+					<label>Purge Render Cache</label>
+					<handler function="OnMenuItem_PurgeRenderCacheSelected" entry="EVT_MENU" />
+				</object>
 				<object class="wxMenuItem" name="ID_MNU_CRASH" variable="MenuItem_CrashXLights" member="yes">
 					<label>Crash xLights</label>
 					<handler function="OnMenuItem_CrashXLightsSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_DUMPRENDERSTATE" variable="MenuItem_LogRenderState" member="yes">
+					<label>Log Render State</label>
+					<handler function="OnMenuItem_LogRenderStateSelected" entry="EVT_MENU" />
 				</object>
 			</object>
 			<object class="wxMenu" variable="MenuView" member="yes">
@@ -1205,6 +1223,18 @@
 						<label>Effect Assist</label>
 						<handler function="ShowHideEffectAssistWindow" entry="EVT_MENU" />
 					</object>
+					<object class="wxMenuItem" name="ID_MENUITEM_SELECT_EFFECT" variable="MenuItemSelectEffect" member="yes">
+						<label>Select Effect</label>
+						<handler function="OnMenuItemSelectEffectSelected" entry="EVT_MENU" />
+					</object>
+					<object class="wxMenuItem" name="ID_MENUITEM_VIDEOPREVIEW" variable="MenuItem52" member="yes">
+						<label>Video Preview</label>
+						<handler function="OnMenuItemShowHideVideoPreview" entry="EVT_MENU" />
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_JUKEBOX" variable="MenuItem_Jukebox" member="yes">
+						<label>Jukebox</label>
+						<handler function="OnMenuItem_JukeboxSelected" entry="EVT_MENU" />
+					</object>
 					<object class="separator" />
 					<object class="wxMenuItem" name="ID_MENUITEM_WINDOWS_PERSPECTIVE" variable="MenuItem26" member="no">
 						<label>Perspectives</label>
@@ -1262,6 +1292,27 @@
 					<handler function="SetPlaySpeed" entry="EVT_MENU" />
 					<radio>1</radio>
 				</object>
+				<object class="separator" />
+				<object class="wxMenuItem" name="ID_MNU_LOUDVOLUME" variable="MenuItem_LoudVol" member="yes">
+					<label>Loud</label>
+					<handler function="OnMenuItem_LoudVolSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_MEDVOLUME" variable="MenuItem_MedVol" member="yes">
+					<label>Medium</label>
+					<handler function="OnMenuItem_MedVolSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_QUIET" variable="MenuItem_QuietVol" member="yes">
+					<label>Quiet</label>
+					<handler function="OnMenuItem_QuietVolSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_SUPERQUIET" variable="MenuItem_VQuietVol" member="yes">
+					<label>Very Quiet</label>
+					<handler function="OnMenuItem_VQuietVolSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
 			</object>
 			<object class="wxMenu" variable="Menu2" member="no">
 				<label>&amp;Import</label>
@@ -1282,6 +1333,12 @@
 					<handler function="OnMenuItemRenderOnSave" entry="EVT_MENU" />
 					<checkable>1</checkable>
 				</object>
+				<object class="wxMenuItem" name="ID_SAVE_FSEQ_ON_SAVE" variable="mSaveFseqOnSaveMenuItem" member="yes">
+					<label>Save FSEQ On Save</label>
+					<checked>1</checked>
+					<handler function="OnmSaveFseqOnSaveMenuItemSelected" entry="EVT_MENU" />
+					<checkable>1</checkable>
+				</object>
 				<object class="wxMenuItem" name="ID_BACKUP_ON_SAVE" variable="mBackupOnSaveMenuItem" member="yes">
 					<label>Backup On Save</label>
 					<handler function="OnmBackupOnSaveSelected" entry="EVT_MENU" />
@@ -1294,9 +1351,33 @@
 					<handler function="OnMenuItem_BackupOnLaunchSelected" entry="EVT_MENU" />
 					<checkable>1</checkable>
 				</object>
-				<object class="wxMenuItem" name="ID_ALT_BACKUPLOCATION" variable="mAltBackupLocationMenuItem" member="yes">
-					<label>Alt Backup Location</label>
-					<handler function="OnmAltBackupLocationMenuItemSelected" entry="EVT_MENU" />
+				<object class="wxMenu" name="ID_MNU_BKP_PURGE" variable="MenuItem_BackupPurge" member="yes">
+					<label>Purge Backups Older Than</label>
+					<object class="wxMenuItem" name="ID_MNU_BKPPURGE_NEVER" variable="MenuItem_BkpPNever" member="yes">
+						<label>Never</label>
+						<handler function="OnMenuItem_BackupPurgeIntervalSelected" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_BKPPURGE_YEAR" variable="MenuItem_BkpPYear" member="yes">
+						<label>365 Days</label>
+						<handler function="OnMenuItem_BackupPurgeIntervalSelected" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_BKPPURGE_QUARTER" variable="MenuItem_BkpPQuarter" member="yes">
+						<label>90 Days</label>
+						<handler function="OnMenuItem_BackupPurgeIntervalSelected" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_BKPPURGE_MONTH" variable="MenuItem_BkpPMonth" member="yes">
+						<label>31 Days</label>
+						<handler function="OnMenuItem_BackupPurgeIntervalSelected" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_BKPPURGE_WEEK" variable="MenuItem_BkpPWeek" member="yes">
+						<label>7 Days</label>
+						<handler function="OnMenuItem_BackupPurgeIntervalSelected" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
 				</object>
 				<object class="wxMenuItem" name="ID_MNU_BACKUP" variable="MenuItem_BackupSubfolders" member="yes">
 					<label>Backup Subfolders</label>
@@ -1340,35 +1421,35 @@
 						<radio>1</radio>
 					</object>
 				</object>
+				<object class="wxMenuItem" name="ID_MNU_SMALLWAVEFORM" variable="MenuItem_SmallWaveform" member="yes">
+					<label>Small Waveform</label>
+					<handler function="OnMenuItem_SmallWaveformSelected" entry="EVT_MENU" />
+					<checkable>1</checkable>
+				</object>
 				<object class="wxMenu" name="ID_MENUITEM6" variable="GridSpacingMenu" member="yes">
 					<label>Grid Spacing</label>
 					<object class="wxMenuItem" name="ID_MENUITEM_GRID_ICON_XSMALL" variable="MenuItem16" member="yes">
 						<label>Extra Small</label>
-						<accel>CTRL-1</accel>
 						<handler function="SetIconSize" entry="EVT_MENU" />
 						<radio>1</radio>
 					</object>
 					<object class="wxMenuItem" name="ID_MENUITEM_GRID_ICON_SMALL" variable="MenuItem17" member="no">
 						<label>Small</label>
-						<accel>CTRL-2</accel>
 						<handler function="SetIconSize" entry="EVT_MENU" />
 						<radio>1</radio>
 					</object>
 					<object class="wxMenuItem" name="ID_MENUITEM_GRID_ICON_MEDIUM" variable="MenuItem19" member="no">
 						<label>Medium</label>
-						<accel>CTRL-3</accel>
 						<handler function="SetIconSize" entry="EVT_MENU" />
 						<radio>1</radio>
 					</object>
 					<object class="wxMenuItem" name="ID_MENUITEM_GRID_ICON_LARGE" variable="MenuItem27" member="no">
 						<label>Large</label>
-						<accel>CTRL-4</accel>
 						<handler function="SetIconSize" entry="EVT_MENU" />
 						<radio>1</radio>
 					</object>
 					<object class="wxMenuItem" name="ID_MENUITEM_GRID_ICON_XLARGE" variable="MenuItem28" member="no">
 						<label>Extra Large</label>
-						<accel>CTRL-5</accel>
 						<handler function="SetIconSize" entry="EVT_MENU" />
 						<radio>1</radio>
 					</object>
@@ -1404,6 +1485,24 @@
 				<object class="wxMenuItem" name="ID_COLOR_MANAGER" variable="MenuItemColorManager" member="yes">
 					<label>Color Manager</label>
 					<handler function="OnMenuItemColorManagerSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenu" name="ID_MNU_RENDERCACHE" variable="MenuItem_EnableRenderCache" member="yes">
+					<label>Render Cache</label>
+					<object class="wxMenuItem" name="ID_MNU_RC_ENABLE" variable="MenuItem_RC_Enable" member="yes">
+						<label>Enable</label>
+						<handler function="OnMenuItem_RenderCache" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_RC_LOCKEDONLY" variable="MenuItem_RC_LockedOnly" member="yes">
+						<label>Locked Effects Only</label>
+						<handler function="OnMenuItem_RenderCache" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_RC_DISABLED" variable="MenuItem_RC_Disable" member="yes">
+						<label>Disable</label>
+						<handler function="OnMenuItem_RenderCache" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
 				</object>
 				<object class="wxMenu" name="ID_MENUITEM_RENDER_MODE" variable="MenuItemRenderMode" member="yes">
 					<label>Render Mode</label>
@@ -1517,6 +1616,24 @@
 						<radio>1</radio>
 					</object>
 				</object>
+				<object class="wxMenu" name="ID_MNU_XFADE" variable="MenuItem53" member="yes">
+					<label>xFade/xSchedule</label>
+					<object class="wxMenuItem" name="ID_MNU_XFADE_DISABLED" variable="MenuItem_xFade_Disabled" member="yes">
+						<label>Disabled</label>
+						<handler function="OnMenuItem_xFadeDisabledSelected" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_XFADE_A" variable="MenuItem_xFade_A" member="yes">
+						<label>Port A</label>
+						<handler function="OnMenuItem_XFade_ASelected" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+					<object class="wxMenuItem" name="ID_MNU_XFADE_B" variable="MenuItem_xFade_B" member="yes">
+						<label>Port B</label>
+						<handler function="OnMenuItem_xFade_BSelected" entry="EVT_MENU" />
+						<radio>1</radio>
+					</object>
+				</object>
 				<object class="wxMenu" name="ID_MNU_SUPPRESSDUPLICATES" variable="MenuItem29" member="yes">
 					<label>Duplicate Frames To Suppress</label>
 					<object class="wxMenuItem" name="ID_MNU_SD_None" variable="MenuItem_SD_None" member="yes">
@@ -1551,9 +1668,27 @@
 					<handler function="OnMenuItem_ForceLocalIPSelected" entry="EVT_MENU" />
 					<checkable>1</checkable>
 				</object>
+				<object class="wxMenuItem" name="ID_MNU_DEFAULTMODELBLENDOFF" variable="MenuItem_ModelBlendDefaultOff" member="yes">
+					<label>Model Blend Default Off</label>
+					<handler function="OnMenuItem_ModelBlendDefaultOffSelected" entry="EVT_MENU" />
+					<checkable>1</checkable>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_SNAP_TO_TIMING" variable="MenuItem_SnapToTimingMarks" member="yes">
+					<label>Snap to Timing Marks</label>
+					<handler function="OnMenuItem_SnapToTimingMarksSelected" entry="EVT_MENU" />
+					<checkable>1</checkable>
+				</object>
 			</object>
 			<object class="wxMenu" variable="MenuHelp" member="no">
 				<label>&amp;Help</label>
+				<object class="wxMenuItem" name="ID_MNU_ZOOM" variable="MenuItem_Zoom" member="yes">
+					<label>Zoom</label>
+					<handler function="OnMenuItem_ZoomSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_KEYBINDINGS" variable="MenuItem_ShowKeyBindings" member="yes">
+					<label>Key Bindings</label>
+					<handler function="OnMenuItem_ShowKeyBindingsSelected" entry="EVT_MENU" />
+				</object>
 				<object class="wxMenuItem" name="idMenuHelpContent" variable="MenuItem4" member="no">
 					<label>Content</label>
 					<accel>F1</accel>
@@ -1588,15 +1723,18 @@
 					<help>Donate to the xLights project.</help>
 					<handler function="OnMenuItem_DonateSelected" entry="EVT_MENU" />
 				</object>
+				<object class="wxMenuItem" name="ID_MNU_UPDATE" variable="MenuItem_Update" member="yes">
+					<label>Check for Updates</label>
+					<help>Check for newer xLights updates</help>
+					<enabled>0</enabled>
+					<handler function="OnMenuItem_UpdateSelected" entry="EVT_MENU" />
+				</object>
 				<object class="wxMenuItem" name="wxID_ABOUT" variable="MenuItem2" member="no">
 					<label>About</label>
 					<help>Show info about this application</help>
 					<handler function="OnAbout" entry="EVT_MENU" />
 				</object>
 			</object>
-		</object>
-		<object class="wxDirDialog" variable="DirDialog1" member="yes">
-			<message>Select Show Directory</message>
 		</object>
 		<object class="wxTimer" name="ID_TIMER1" subclass="xLightsTimer" variable="Timer1" member="yes">
 			<handler function="OnTimer1Trigger" entry="EVT_TIMER" />

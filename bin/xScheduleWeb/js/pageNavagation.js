@@ -53,6 +53,7 @@ function updatePage(type, pageName, args) {
         pageName);
     }
   } else if (type == "plugin") {
+	pageName = encodeURI(pageName);
     $('#pageContent').load('plugins/' + pageName + '/' + pageName + '.html');
     $('#navPlugins').attr('class', "dropdown active");
     if (args != "") {
@@ -71,7 +72,7 @@ function getQueryVariable(variable) {
   for (var i = 0; i < vars.length; i++) {
     var pair = vars[i].split("=");
     if (pair[0] == variable) {
-      return pair[1];
+      return decodeURIComponent(pair[1]);
     }
   }
   return (false);

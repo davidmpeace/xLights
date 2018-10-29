@@ -1,6 +1,7 @@
 #include "Element.h"
 #include "../models/Model.h"
 #include <list>
+#include "UtilFunctions.h"
 
 Element::Element(SequenceElements *p, const std::string &name) :
 mEffectLayers(),
@@ -16,8 +17,24 @@ Element::~Element() {
     for (size_t x = 0; x < mEffectLayers.size(); x++) {
         delete mEffectLayers[x];
     }
+    while (!mLayersToDelete.empty()) {
+        delete *mLayersToDelete.begin();
+        mLayersToDelete.pop_front();
+    }
     mEffectLayers.clear();
 }
+
+void Element::CleanupAfterRender() {
+    for (auto &a : mEffectLayers) {
+        a->CleanupAfterRender();
+    }
+    std::unique_lock<std::recursive_mutex> lock(changeLock);
+    while (!mLayersToDelete.empty()) {
+        delete *mLayersToDelete.begin();
+        mLayersToDelete.pop_front();
+    }
+}
+
 std::string Element::GetFullName() const {
     return mName;
 }
@@ -49,12 +66,11 @@ bool Element::HasEffects() const {
 
 EffectLayer* Element::GetEffectLayerFromExclusiveIndex(int index)
 {
-    for( size_t i = 0; i < mEffectLayers.size(); i++ )
+    for (size_t i = 0; i < mEffectLayers.size(); i++)
     {
-        if( mEffectLayers[i]->GetIndex() == index )
+        if ( mEffectLayers[i]->GetIndex() == index)
             return mEffectLayers[i];
     }
-    
     
     return nullptr;
 }
@@ -63,6 +79,21 @@ EffectLayer* Element::GetEffectLayer(int index) const
 {
     if( index >= mEffectLayers.size() ) return nullptr;
     return mEffectLayers[index];
+}
+
+int Element::GetLayerNumberFromIndex(int index)
+{
+    int i = 0;
+    for (auto it = mEffectLayers.begin(); it != mEffectLayers.end(); ++it)
+    {
+        if ((*it)->GetIndex() == index)
+        {
+            return i + 1;
+        }
+        i++;
+    }
+
+    return -1;
 }
 
 EffectLayer* Element::AddEffectLayer()
@@ -88,12 +119,34 @@ EffectLayer* Element::InsertEffectLayer(int index)
     return new_layer;
 }
 
+bool Element::operator==(const Element& e) const
+{
+    return e.GetType() == GetType() && e.GetName() == GetName();
+}
+
+bool Element::operator<(const Element& e) const
+{
+    auto myType = GetType();
+    auto theirType = e.GetType();
+
+    if (myType == theirType)
+    {
+        return NumberAwareStringCompare(GetName(), e.GetName()) == -1;
+    }
+    else
+    {
+        if (myType == ELEMENT_TYPE_TIMING) return true;
+    }
+
+    return false;
+}
+
 void Element::RemoveEffectLayer(int index)
 {
     std::unique_lock<std::recursive_mutex> lock(changeLock);
     EffectLayer *l = GetEffectLayer(index);
     mEffectLayers.erase(mEffectLayers.begin()+index);
-    delete l;
+    mLayersToDelete.push_back(l);
     IncrementChangeCount(-1, -1);
 }
 
@@ -156,6 +209,18 @@ StrandElement::~StrandElement() {
     }
     mNodeLayers.clear();
 }
+
+std::string StrandElement::GetFullName() const {
+    return GetModelName() + "/" + GetStrandName();
+}
+
+void StrandElement::CleanupAfterRender() {
+    for (auto &a : mNodeLayers) {
+        a->CleanupAfterRender();
+    }
+    Element::CleanupAfterRender();
+}
+
 NodeLayer *StrandElement::GetNodeLayer(int n, bool create) {
     while (create && n >= mNodeLayers.size()) {
         mNodeLayers.push_back(new NodeLayer(this));
@@ -218,8 +283,27 @@ ModelElement::~ModelElement()
         delete mStrands[x];
     }
     mStrands.clear();
+    for (size_t x = 0; x < mSubModels.size(); x++) {
+        delete mSubModels[x];
+    }
+    mSubModels.clear();
 }
 
+// remove but dont delete all submodels ... used for submodel reordering
+void ModelElement::RemoveAllSubModels()
+{
+    mSubModels.clear();
+}
+
+void ModelElement::CleanupAfterRender() {
+    for (auto &a : mStrands) {
+        a->CleanupAfterRender();
+    }
+    for (auto &a : mSubModels) {
+        a->CleanupAfterRender();
+    }
+    Element::CleanupAfterRender();
+}
 
 int ModelElement::GetWaitCount() {
     return waitCount;
@@ -348,9 +432,9 @@ void ModelElement::Init(Model &model) {
         //no strands for a whole house model
         return;
     }
-    for (auto sm = model.GetSubModels().begin(); sm != model.GetSubModels().end(); sm++) {
+    for (auto sm = model.GetSubModels().begin(); sm != model.GetSubModels().end(); ++sm) {
         bool found = false;
-        for (auto sm2 = mSubModels.begin(); sm2 != mSubModels.end(); sm2++) {
+        for (auto sm2 = mSubModels.begin(); sm2 != mSubModels.end(); ++sm2) {
             found |= ((*sm2)->GetName() == (*sm)->Name());
         }
         if (!found) {
@@ -379,14 +463,20 @@ StrandElement* ModelElement::GetStrand(int index, bool create) {
     return mStrands[index];
 }
 
-int ModelElement::GetSubModelCount() const {
+int ModelElement::GetSubModelAndStrandCount() const {
     return mSubModels.size() +  mStrands.size();
 }
+
+int ModelElement::GetSubModelCount() const {
+    return mSubModels.size();
+}
+
 void ModelElement::RemoveSubModel(const std::string &name) {
-    for (auto a = mSubModels.begin(); a != mSubModels.end(); a++) {
+    for (auto a = mSubModels.begin(); a != mSubModels.end(); ++a) {
         if (name == (*a)->GetName()) {
             delete *a;
             mSubModels.erase(a);
+            break;
         }
     }
 }
@@ -401,13 +491,19 @@ SubModelElement *ModelElement::GetSubModel(int i) {
     }
     return mStrands[i];
 }
+
+void ModelElement::AddSubModel(SubModelElement* sme)
+{
+    mSubModels.push_back(sme);
+}
+
 SubModelElement *ModelElement::GetSubModel(const std::string &name, bool create) {
-    for (auto a = mSubModels.begin(); a != mSubModels.end(); a++) {
+    for (auto a = mSubModels.begin(); a != mSubModels.end(); ++a) {
         if (name == (*a)->GetName()) {
             return *a;
         }
     }
-    for (auto a = mStrands.begin(); a != mStrands.end(); a++) {
+    for (auto a = mStrands.begin(); a != mStrands.end(); ++a) {
         if (name == (*a)->GetName()) {
             return *a;
         }
@@ -433,3 +529,28 @@ std::list<std::string> Element::GetFileReferences(EffectManager& em) const
     return res;
 }
 
+bool Element::SelectEffectUsingDescription(std::string description)
+{
+    for (int j = 0; j < GetEffectLayerCount(); j++)
+    {
+        EffectLayer* el = GetEffectLayer(j);
+        if (el->SelectEffectUsingDescription(description))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Element::SelectEffectUsingLayerTime(int layer, int time)
+{
+    if (layer < GetEffectLayerCount())
+    {
+        EffectLayer* el = GetEffectLayer(layer);
+        if (el->SelectEffectUsingTime(time))
+        {
+            return true;
+        }
+    }
+    return false;
+}

@@ -118,7 +118,12 @@ public:
         alpha = a;
     }
 
-    bool IsNilColor()
+    void SetAlpha(uint8_t a)
+    {
+        alpha = a;
+    }
+
+    bool IsNilColor() const
     {
         return (red == 0 && green == 0 && blue == 0 && alpha == 0);
     }
@@ -133,15 +138,16 @@ public:
             || (blue != rgb.blue)
             || (green != rgb.green); //don't compare alpha
     }
+
     xlColor&operator=(const HSVValue& hsv) {
         fromHSV(hsv);
         return *this;
     }
+
     xlColor&operator=(const HSLValue& hsl) {
         fromHSL(hsl);
         return *this;
     }
-
 
     HSVValue asHSV() const {
         HSVValue v;
@@ -178,12 +184,29 @@ public:
     xlColor AlphaBlend(const xlColor &bc) const {
         if (alpha == 0) return bc;
         if (alpha == 255) return *this;
-        double a = alpha;
+        float a = alpha;
         a /= 255; // 0 (transparent) - 1.0 (opague)
-        double dr = red * a + bc.red * (1.0 - a);
-        double dg = green * a + bc.green * (1.0 - a);
-        double db = blue * a + bc.blue * (1.0 - a);
+        float dr = red * a + bc.red * (1.0f - a);
+        float dg = green * a + bc.green * (1.0f - a);
+        float db = blue * a + bc.blue * (1.0f - a);
         return xlColor((uint8_t)dr, (uint8_t)dg, (uint8_t)db);
+    }
+    
+    /** AlphaBlend the fg color onto this color **/
+    void AlphaBlendForgroundOnto(const xlColor &fc) {
+        if (fc.alpha == 0) return;
+        if (fc.alpha == 255) {
+            *this = fc;
+            return;
+        }
+        float a = fc.alpha;
+        a /= 255; // 0 (transparent) - 1.0 (opague)
+        float dr = fc.red * a + red * (1.0f - a);
+        float dg = fc.green * a + green * (1.0f - a);
+        float db = fc.blue * a + blue * (1.0f - a);
+        red = (uint8_t)dr;
+        green = (uint8_t)dg;
+        blue = (uint8_t)db;
     }
 
     void SetFromString(const std::string &str);
@@ -207,6 +230,7 @@ static const xlColor xlLIGHT_GREY(211, 211, 211);
 static const xlColor xlDARK_GREY(96, 96, 96);
 static const xlColor xlCYAN(0, 255, 255);
 static const xlColor xlMAGENTA(255, 0, 255);
+static const xlColor xlCLEAR(0, 0, 0, 0);
 
 typedef std::vector<xlColor> xlColorVector;
 typedef std::vector<ColorCurve> xlColorCurveVector;

@@ -24,8 +24,6 @@
 #include "MeteorsEffect.h"
 #include "MorphEffect.h"
 #include "MusicEffect.h"
-#include "OffEffect.h"
-#include "OnEffect.h"
 #include "PianoEffect.h"
 #include "PicturesEffect.h"
 #include "PinwheelEffect.h"
@@ -49,8 +47,8 @@
 #include "TwinkleEffect.h"
 #include "VideoEffect.h"
 #include "VUMeterEffect.h"
+#include "WarpEffect.h"
 #include "WaveEffect.h"
-
 
 EffectManager::EffectManager()
 {
@@ -100,7 +98,8 @@ EffectManager::EffectManager()
 	add(new TwinkleEffect(eff_TWINKLE));
 	add(new VideoEffect(eff_VIDEO));
 	add(new VUMeterEffect(eff_VUMETER));
-	add(new WaveEffect(eff_WAVE));
+    add(new WarpEffect(eff_WARP));
+    add(new WaveEffect(eff_WAVE));
 
     //Map an old name
     effectsByName["CoroFaces"] = GetEffect("Faces");
@@ -108,10 +107,11 @@ EffectManager::EffectManager()
 
 EffectManager::~EffectManager()
 {
-    for (auto it = begin(); it != end(); it++) {
+    for (auto it = begin(); it != end(); ++it) {
         delete *it;
     }
 }
+
 void EffectManager::add(RenderableEffect *eff) {
     int id = eff->GetId();
     if (id >= size()) {
@@ -133,6 +133,7 @@ int EffectManager::GetEffectIndex(const std::string &effectName) const {
     }
     return -1;
 }
+
 const std::string &EffectManager::GetEffectName(int idx) const {
     RenderableEffect *eff = GetEffect(idx);
     if (eff != nullptr) {
@@ -144,9 +145,7 @@ const std::string &EffectManager::GetEffectName(int idx) const {
 std::vector<RenderableEffect*>::const_iterator EffectManager::begin() const {
     return effects.begin();
 }
+
 std::vector<RenderableEffect*>::const_iterator EffectManager::end() const {
     return effects.end();
 }
-
-
-

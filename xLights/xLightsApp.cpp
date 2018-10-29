@@ -7,24 +7,26 @@
  * License:
  **************************************************************/
 
-#ifdef _MSC_VER
-//#include <vld.h> // visual leak detector ... https://vld.codeplex.com/
-#endif
-
-#include "xLightsApp.h"
-//#include "heartbeat.h" //DJ
-
 //(*AppHeaders
 #include "xLightsMain.h"
 #include <wx/image.h>
 //*)
+
+#include <wx/stdpaths.h>
 #include <wx/config.h>
 
+#include <stdlib.h>     /* srand */
+#include <time.h>       /* time */
+#include <thread>
+#include <iomanip>
+
+#include "xLightsApp.h"
 #include "xLightsVersion.h"
+#include "Parallel.h"
+
 #include <log4cpp/Category.hh>
 #include <log4cpp/PropertyConfigurator.hh>
 #include <log4cpp/Configurator.hh>
-
 
 #ifdef LINUX
 #include <GL/glut.h>
@@ -35,6 +37,8 @@
 #else
 #include "MSWStackWalk.h"
 #endif
+
+xLightsFrame* xLightsApp::__frame = nullptr;
 
 void InitialiseLogging(bool fromMain)
 {
@@ -59,7 +63,10 @@ void InitialiseLogging(bool fromMain)
 
 #endif
 #ifdef __LINUX__
-        std::string initFileName = "/usr/share/xLights/xlights.linux.properties";
+        std::string initFileName = wxStandardPaths::Get().GetInstallPrefix() + "/bin/xlights.linux.properties";
+        if (!wxFile::Exists(initFileName)) {
+            initFileName = wxStandardPaths::Get().GetInstallPrefix() + "/share/xLights/xlights.linux.properties";
+        }
 #endif
 
         if (!wxFile::Exists(initFileName))
@@ -175,7 +182,7 @@ void DumpConfig()
     int verMaj = -1;
     int verMin = -1;
     wxOperatingSystemId o = wxGetOsVersion(&verMaj, &verMin);
-    logger_base.info("  OS: %s %d.%d.%d", (const char *)DecodeOS(o).c_str(), verMaj, verMin);
+    logger_base.info("  OS: %s %d.%d", (const char *)DecodeOS(o).c_str(), verMaj, verMin);
     if (wxIsPlatform64Bit())
     {
         logger_base.info("      64 bit");
@@ -207,6 +214,7 @@ void DumpConfig()
 //IMPLEMENT_APP(xLightsApp)
 int main(int argc, char **argv)
 {
+    srand(time(NULL));
     InitialiseLogging(true);
     // Dan/Chris ... if you get an exception here the most likely reason is the line
     // appender.A1.fileName= in the xlights.xxx.properties file
@@ -237,13 +245,25 @@ wxIMPLEMENT_APP_NO_MAIN(xLightsApp);
 #include <wx/debugrpt.h>
 
 xLightsFrame *topFrame = nullptr;
+
 void handleCrash(void *data) {
+    static volatile bool inCrashHandler = false;
+    
+    if (inCrashHandler) {
+        //need to ignore any crashes in the crash handler
+        return;
+    }
+    inCrashHandler = true;
+    
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     logger_base.crit("Crash handler called.");
 	wxDebugReportCompress *report = new wxDebugReportCompress();
     report->SetCompressedFileDirectory(topFrame->CurrentDir);
-    report->AddAll(wxDebugReport::Context_Exception);
-    report->AddAll(wxDebugReport::Context_Current);
+
+    #ifndef __WXMSW__
+        // dont call these for windows as they dont seem to do anything.
+        report->AddAll(wxDebugReport::Context_Exception);
+    #endif
 
     wxFileName fn(topFrame->CurrentDir, OutputManager::GetNetworksFileName());
     if (fn.Exists()) {
@@ -254,34 +274,6 @@ void handleCrash(void *data) {
     }
     if (topFrame->UnsavedRgbEffectsChanges &&  wxFileName(topFrame->CurrentDir, "xlights_rgbeffects.xbkp").Exists()) {
         report->AddFile(wxFileName(topFrame->CurrentDir, "xlights_rgbeffects.xbkp").GetFullPath(), "xlights_rgbeffects.xbkp");
-    }
-
-    wxString dir;
-#ifdef __WXMSW__
-    wxGetEnv("APPDATA", &dir);
-    std::string filename = std::string(dir.c_str()) + "/xLights_l4cpp.log";
-#endif
-#ifdef __WXOSX_MAC__
-    wxFileName home;
-    home.AssignHomeDir();
-    dir = home.GetFullPath();
-    std::string filename = std::string(dir.c_str()) + "/Library/Logs/xLights_l4cpp.log";
-#endif
-#ifdef __LINUX__
-    std::string filename = "/tmp/xLights_l4cpp.log";
-#endif
-
-    if (wxFile::Exists(filename))
-    {
-        report->AddFile(filename, "xLights_l4cpp.log");
-    }
-    else if (wxFile::Exists(wxFileName(topFrame->CurrentDir, "xLights_l4cpp.log").GetFullPath()))
-    {
-        report->AddFile(wxFileName(topFrame->CurrentDir, "xLights_l4cpp.log").GetFullPath(), "xLights_l4cpp.log");
-    }
-    else if (wxFile::Exists(wxFileName(wxGetCwd(), "xLights_l4cpp.log").GetFullPath()))
-    {
-        report->AddFile(wxFileName(wxGetCwd(), "xLights_l4cpp.log").GetFullPath(), "xLights_l4cpp.log");
     }
 
     if (topFrame->GetSeqXmlFileName() != "") {
@@ -326,17 +318,54 @@ void handleCrash(void *data) {
     trace += windows_get_stacktrace(data);
 #endif
 
-    int id = (int)wxThread::GetCurrentId();
-    trace += wxString::Format("\nCrashed thread id: %X or %i\n", id, id);
-#ifndef LINUX
-    trace += topFrame->GetThreadStatusReport();
-#endif // LINUX
-
-	logger_base.crit(trace);
+    if (wxThread::IsMain()) {
+        trace += wxString::Format("\nCrashed thread the Main Thread\n");
+    } else {
+        
+        std::stringstream ret;
+        ret << std::showbase // show the 0x prefix
+            << std::internal // fill between the prefix and the number
+            << std::setfill('0') << std::setw(10)
+            << std::hex << std::this_thread::get_id();
+        
+        std::string id = ret.str();
+        trace += wxString::Format("\nCrashed thread id: %s\n", id.c_str());
+    }
+    //These will be added on the main thread
+    //trace += topFrame->GetThreadStatusReport();
+    //trace += ParallelJobPool::POOL.GetThreadStatus();
 
     report->AddText("backtrace.txt", trace, "Backtrace");
 
     logger_base.crit("%s", (const char *)trace.c_str());
+
+    wxString dir;
+#ifdef __WXMSW__
+    wxGetEnv("APPDATA", &dir);
+    std::string filename = std::string(dir.c_str()) + "/xLights_l4cpp.log";
+#endif
+#ifdef __WXOSX_MAC__
+    wxFileName home;
+    home.AssignHomeDir();
+    dir = home.GetFullPath();
+    std::string filename = std::string(dir.c_str()) + "/Library/Logs/xLights_l4cpp.log";
+#endif
+#ifdef __LINUX__
+    std::string filename = "/tmp/xLights_l4cpp.log";
+#endif
+
+    if (wxFile::Exists(filename))
+    {
+        report->AddFile(filename, "xLights_l4cpp.log");
+    }
+    else if (wxFile::Exists(wxFileName(topFrame->CurrentDir, "xLights_l4cpp.log").GetFullPath()))
+    {
+        report->AddFile(wxFileName(topFrame->CurrentDir, "xLights_l4cpp.log").GetFullPath(), "xLights_l4cpp.log");
+    }
+    else if (wxFile::Exists(wxFileName(wxGetCwd(), "xLights_l4cpp.log").GetFullPath()))
+    {
+        report->AddFile(wxFileName(wxGetCwd(), "xLights_l4cpp.log").GetFullPath(), "xLights_l4cpp.log");
+    }
 
     if (!wxThread::IsMain() && topFrame != nullptr) 
     {
@@ -359,20 +388,36 @@ wxString xLightsFrame::GetThreadStatusReport() {
 }
 
 void xLightsFrame::CreateDebugReport(wxDebugReportCompress *report) {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
     static bool inHere = false;
 
-    // if we are in here a second time ... just exit
-    if (inHere) exit(1);
+    // if we are in here a second time ... just return
+    if (inHere) return;
 
     inHere = true;
+
+    //add thread status - must be done on main thread
+    //due to mutex locks potentially being problematic
+    std::string status = "Render Pool:\n";
+    status += topFrame->GetThreadStatusReport();
+    status += "\nParallel Job Pool:\n";
+    status += ParallelJobPool::POOL.GetThreadStatus();
+
+    wxFileName fileName(report->GetDirectory(), "backtrace.txt");
+    wxFile file(fileName.GetFullPath(),  wxFile::write_append);
+    file.Write("\n");
+    file.Write(status);
+    file.Flush();
+    file.Close();
+    logger_base.crit("%s", (const char *)status.c_str());
+
 
     if (wxDebugReportPreviewStd().Show(*report)) {
         report->Process();
         SendReport("crashUpload", *report);
         wxMessageBox("Crash report saved to " + report->GetCompressedFileName());
     }
-    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     logger_base.crit("Exiting after creating debug report: %s", (const char *)report->GetCompressedFileName().c_str());
 	delete report;
 
@@ -397,13 +442,19 @@ bool xLightsApp::OnInit()
     InitialiseLogging(false);
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     logger_base.info("******* OnInit: XLights started.");
+
     DumpConfig();
+
+    int id = (int)wxThread::GetCurrentId();
+    logger_base.info("Main thread id: 0x%X or %i", id, id);
 
 #ifdef _MSC_VER
 	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
+#ifdef VISUALSTUDIO_MEMORYLEAKDETECTION
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 #endif
 
 #if wxUSE_ON_FATAL_EXCEPTION
@@ -425,28 +476,52 @@ bool xLightsApp::OnInit()
         { wxCMD_LINE_SWITCH, "r", "render", "render files and exit"},
         { wxCMD_LINE_OPTION, "m", "media", "specify media directory"},
         { wxCMD_LINE_OPTION, "s", "show", "specify show directory" },
+        { wxCMD_LINE_OPTION, "g", "opengl", "specify OpenGL version" },
         { wxCMD_LINE_SWITCH, "w", "wipe", "wipe settings clean" },
+        { wxCMD_LINE_SWITCH, "o", "on", "turn on output to lights" },
 #ifdef __LINUX__
         { wxCMD_LINE_SWITCH, "x", "xschedule", "run xschedule" },
+        { wxCMD_LINE_SWITCH, "c", "xcapture", "run xcapture" },
+        { wxCMD_LINE_SWITCH, "f", "xfade", "run xfade" },
 #endif
         { wxCMD_LINE_PARAM, "", "", "sequence file", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL | wxCMD_LINE_PARAM_MULTIPLE},
         { wxCMD_LINE_NONE }
     };
 
-// Add option to run xschedule via xlights on linux (for AppImage usage)
+// Add option to run xutils via xlights on linux (for AppImage usage)
 #ifdef __LINUX__
        int run_xschedule = FALSE;
-       wxString cmdline(wxT("xSchedule"));
+       int run_xcapture = FALSE;
+       int run_xfade= FALSE;
+       wxFileName f(wxStandardPaths::Get().GetExecutablePath());
+       wxString appPath(f.GetPath());
+       wxString cmdlineC(appPath+wxT("/xCapture"));
+       wxString cmdlineS(appPath+wxT("/xSchedule"));
+       wxString cmdlineF(appPath+wxT("/xFade"));
         for (int i=1; i< argc;i++) {
-            if (strncmp(argv[i],"-x",2) == 0) {
+            if (strncmp(argv[i].c_str(), "-x", 2) == 0) {
                 run_xschedule = TRUE;
+            } else if (strncmp(argv[i].c_str(), "-c", 2) == 0) {
+                run_xcapture = TRUE;
+            } else if (strncmp(argv[i].c_str(), "-f", 2) == 0) {
+                run_xfade = TRUE;
             } else {
-                cmdline += wxT(" ");
-                cmdline += wxString::FromUTF8(argv[i]);
+                cmdlineS += wxT(" ");
+                cmdlineS += wxString::FromUTF8(argv[i]);
+                cmdlineC += wxT(" ");
+                cmdlineC += wxString::FromUTF8(argv[i]);
+                cmdlineF += wxT(" ");
+                cmdlineF += wxString::FromUTF8(argv[i]);
             }
         }
         if (run_xschedule) {
-            wxExecute(cmdline, wxEXEC_ASYNC,NULL,NULL);
+            wxExecute(cmdlineS, wxEXEC_BLOCK,NULL,NULL);
+            exit(0);
+        } else if (run_xcapture) {
+            wxExecute(cmdlineC, wxEXEC_BLOCK,NULL,NULL);
+            exit(0);
+        } else if (run_xfade) {
+            wxExecute(cmdlineF, wxEXEC_BLOCK,NULL,NULL);
             exit(0);
         }
 #endif
@@ -457,6 +532,26 @@ bool xLightsApp::OnInit()
         // help was given
         return false;
     case 0:
+        {
+            wxString glVersion;
+            if (parser.Found("g", &glVersion))
+            {
+                wxConfigBase* config = wxConfigBase::Get();
+                if (glVersion == "" || glVersion.Lower() == "auto")
+                {
+                    config->Write("ForceOpenGLVer", 99);
+                }
+                else
+                {
+                    int gl = wxAtoi(glVersion);
+                    if (gl != 0)
+                    {
+                        config->Write("ForceOpenGLVer", gl);
+                    }
+                }
+                info += _("Forcing open GL version\n");
+            }
+        }
         if (parser.Found("w"))
         {
             logger_base.info("-w: Wiping settings");
@@ -489,13 +584,13 @@ bool xLightsApp::OnInit()
             }
             sequenceFiles.push_back(sequenceFile);
         }
-        if (!parser.Found("r") && !info.empty())
+        if (!parser.Found("r") && !parser.Found("o") && !info.empty())
         {
-            logger_base.info("Unrecognised command line parameter found.");
             wxMessageBox(info, _("Command Line Options")); //give positive feedback*/
         }
         break;
     default:
+        logger_base.info("Unrecognised command line parameter found.");
         wxMessageBox(_("Unrecognized command line parameters"),_("Command Line Error"));
         return false;
     }
@@ -503,22 +598,36 @@ bool xLightsApp::OnInit()
     //(*AppInitialize
     bool wxsOK = true;
     wxInitAllImageHandlers();
-    if ( wxsOK )
+    if (wxsOK)
     {
-    	xLightsFrame* Frame = new xLightsFrame(0);
+    	xLightsFrame* Frame = new xLightsFrame(nullptr);
+        if (Frame->CurrentDir == "")
+        {
+            return false;
+        }
     	Frame->Show();
     	SetTopWindow(Frame);
     }
     //*)
-    topFrame = (xLightsFrame* )GetTopWindow();
+
+    topFrame = (xLightsFrame*)GetTopWindow();
+    __frame = topFrame;
 
     if (parser.Found("r")) {
         logger_base.info("-r: Render mode is ON");
         topFrame->_renderMode = true;
-        topFrame->CallAfter(&xLightsFrame::OpenRenderAndSaveSequences, sequenceFiles);
+        topFrame->CallAfter(&xLightsFrame::OpenRenderAndSaveSequences, sequenceFiles, true);
     }
 
-    wxImage::AddHandler(new wxPNGHandler);
+    if (parser.Found("o"))
+    {
+        logger_base.info("-o: Turning on output to lights");
+
+        // Turn on output to lights - ignore if another xLights/xSchedule is already outputting
+        topFrame->CheckBoxLightOutput->SetValue(true);
+        topFrame->EnableOutputs(true);
+    }
+
     #ifdef LINUX
         glutInit(&(wxApp::argc), wxApp::argv);
     #endif
@@ -530,7 +639,7 @@ bool xLightsApp::OnInit()
 
 
 void xLightsApp::OnFatalException() {
-    handleCrash(NULL);
+    handleCrash(nullptr);
 }
 
 void xLightsApp::WipeSettings()

@@ -1,5 +1,3 @@
-#include "ConvertDialog.h"
-
 // xml
 #include "../include/spxml-0.5/spxmlparser.hpp"
 #include "../include/spxml-0.5/spxmlevent.hpp"
@@ -11,21 +9,26 @@
 #include "../include/spxml-0.5/spxmlstag.cpp"
 
 #include <map>
+
 #include <wx/base64.h>
 #include <wx/confbase.h>
 #include <wx/wfstream.h>
+#include <wx/xml/xml.h>
+#include <wx/filename.h>
 
 //(*InternalHeaders(ConvertDialog)
 #include <wx/intl.h>
 #include <wx/string.h>
 //*)
 
+#include "ConvertDialog.h"
 #include "FileConverter.h"
 #include "xLightsMain.h"
 #include "outputs/Output.h"
+#include "UtilFunctions.h"
+#include "outputs/OutputManager.h"
 
 #include <log4cpp/Category.hh>
-#include "UtilFunctions.h"
 
 //(*IdInit(ConvertDialog)
 const long ConvertDialog::ID_STATICTEXT2 = wxNewId();
@@ -96,7 +99,6 @@ ConvertDialog::ConvertDialog(wxWindow* parent, SeqDataType& SeqData_, OutputMana
 	FlexGridSizer4->Add(StaticText6, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 	ChoiceOutputFormat = new wxChoice(this, ID_CHOICE_OUTPUT_FORMAT, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_OUTPUT_FORMAT"));
 	ChoiceOutputFormat->SetSelection( ChoiceOutputFormat->Append(_("Falcon Pi Player, *.fseq")) );
-	ChoiceOutputFormat->Append(_("xLights Sequence, *.xseq"));
 	ChoiceOutputFormat->Append(_("Lynx Conductor, *.seq"));
 	ChoiceOutputFormat->Append(_("Vix,Vixen 2.1 *.vix sequence file"));
 	ChoiceOutputFormat->Append(_("Vir, Vixen 2.1 *.vir routine file"));
@@ -171,8 +173,7 @@ ConvertDialog::ConvertDialog(wxWindow* parent, SeqDataType& SeqData_, OutputMana
 
     wxConfigBase* config = wxConfigBase::Get();
     wxString dir;
-    bool ok = true;
-    ok = config->Read("LastDir", &dir);
+    bool ok = config->Read("LastDir", &dir);
     wxString ConvertDir;
     ConvertDir.clear();
     if (ok && !config->Read("ConvertDir", &ConvertDir))
@@ -180,6 +181,8 @@ ConvertDialog::ConvertDialog(wxWindow* parent, SeqDataType& SeqData_, OutputMana
         ConvertDir = dir;
     }
     FileDialogConvert->SetDirectory(ConvertDir);
+
+    SetEscapeId(ButtonClose->GetId());
 }
 
 ConvertDialog::~ConvertDialog()
@@ -257,6 +260,8 @@ void ConvertDialog::OnButtonCloseClick(wxCommandEvent& event)
 }
 
 void ConvertDialog::AppendConvertStatus(const wxString &msg, bool flushBuffer) {
+    static log4cpp::Category &logger_conversion = log4cpp::Category::getInstance(std::string("log_conversion"));
+
     if (flushBuffer && !msgBuffer.IsEmpty()) {
         msgBuffer.append(msg);
         TextCtrlConversionStatus->AppendText(msgBuffer);
@@ -267,25 +272,29 @@ void ConvertDialog::AppendConvertStatus(const wxString &msg, bool flushBuffer) {
     }
     else {
         msgBuffer.append(msg);
-        if (msgBuffer.size() > 10000) {
+        if (msgBuffer.size() > 15000) {
             TextCtrlConversionStatus->AppendText(msgBuffer);
             msgBuffer.Clear();
         }
     }
 
-    static log4cpp::Category &logger_conversion = log4cpp::Category::getInstance(std::string("log_conversion"));
-    logger_conversion.info("ConvertStatus: " + msg);
+    wxString m = msg;
+    if (m.EndsWith("\n")) m = m.Left(m.length() - 1);
+    logger_conversion.info("ConvertStatus: %s", (const char*)m.c_str());
 }
 
 bool ConvertDialog::mapEmptyChannels() {
     return CheckBoxMapEmptyChannels->IsChecked();
 }
+
 bool ConvertDialog::showChannelMapping() {
     return CheckBoxShowChannelMapping->IsChecked();
 }
+
 bool ConvertDialog::isSetOffAtEnd() {
     return CheckBoxOffAtEnd->IsChecked();
 }
+
 void ConvertDialog::SetStatusText(const wxString &msg) {
     StaticTextStatus->SetLabel(msg);
 }
@@ -295,6 +304,7 @@ void ConvertDialog::SetStatusText(const wxString &msg) {
 wxString ConvertDialog::FromAscii(const char *val) {
     return wxString::FromAscii(val);
 }
+
 void RemoveAt(wxArrayString &v, int i) {
     v.RemoveAt(i);
 }
@@ -316,26 +326,19 @@ bool ConvertDialog::WriteVixenFile(const wxString& filename)
     wxString ChannelName, TestName;
     int32_t ChannelColor;
     long TotalTime = SeqData.TotalTime();
-    wxXmlNode *node, *chparent, *textnode;
     wxXmlDocument doc;
     wxXmlNode* root = new wxXmlNode(wxXML_ELEMENT_NODE, "Program");
     doc.SetRoot(root);
 
     // add nodes to root in reverse order
-
-
-
-    node = new wxXmlNode(root, wxXML_ELEMENT_NODE, "EventValues");
-    textnode = new wxXmlNode(node, wxXML_TEXT_NODE, wxEmptyString, base64_encode(SeqData));
-
+    wxXmlNode *node = new wxXmlNode(root, wxXML_ELEMENT_NODE, "EventValues");
+    wxXmlNode *textnode = new wxXmlNode(node, wxXML_TEXT_NODE, wxEmptyString, SeqData.base64_encode());
 
     node = new wxXmlNode(root, wxXML_ELEMENT_NODE, "Audio");
     node->AddAttribute("filename", mediaFilename);
     node->AddAttribute("duration", string_format("%ld", TotalTime));
     textnode = new wxXmlNode(node, wxXML_TEXT_NODE, wxEmptyString, "Music");
-
-    chparent = new wxXmlNode(root, wxXML_ELEMENT_NODE, "Channels");
-
+    wxXmlNode *chparent = new wxXmlNode(root, wxXML_ELEMENT_NODE, "Channels");
 
     for (int ch = 0; ch < SeqData.NumChannels(); ch++)
     {
@@ -405,7 +408,7 @@ bool ConvertDialog::WriteVixenFile(const wxString& filename)
     textnode = new wxXmlNode(node, wxXML_TEXT_NODE, wxEmptyString, "0");
 
     node = new wxXmlNode(root, wxXML_ELEMENT_NODE, "EventPeriodInMilliseconds");
-    textnode = new wxXmlNode(node, wxXML_TEXT_NODE, wxEmptyString, string_format("%ld", SeqData.FrameTime()));
+    textnode = new wxXmlNode(node, wxXML_TEXT_NODE, wxEmptyString, string_format("%d", (int)SeqData.FrameTime()));
 
     node = new wxXmlNode(root, wxXML_ELEMENT_NODE, "Time");
     textnode = new wxXmlNode(node, wxXML_TEXT_NODE, wxEmptyString, string_format("%ld", TotalTime));
@@ -480,13 +483,18 @@ void ConvertDialog::WriteLorFile(const wxString& filename)
     int rgbChanIndexes[3] = { 0,0,0 };
     int curRgbChanCount = 0;
 
+    int interval = SeqData.FrameTime() / 10;  // in centiseconds
+    long centiseconds = SeqData.NumFrames() * interval;
+    if( interval * 10 != SeqData.FrameTime() ) {
+        _parent->ConversionError(wxString("Cannot convert to LOR unless the sequence timing is evenly divisible by 10ms"));
+        return;
+    }
+
     if (!f.Create(filename, true))
     {
         _parent->ConversionError(wxString("Unable to create file: ") + filename);
         return;
     }
-    int interval = SeqData.FrameTime() / 10;  // in centiseconds
-    long centiseconds = SeqData.NumFrames() * interval;
 
     f.Write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
     f.Write("<sequence saveFileVersion=\"3\"");
@@ -498,7 +506,7 @@ void ConvertDialog::WriteLorFile(const wxString& filename)
     f.Write("\t<channels>\n");
     for (ch = 0; ch < SeqData.NumChannels(); ch++)
     {
-        SetStatusText(wxString("Status: ") + string_format(" Channel %ld ", ch));
+        SetStatusText(wxString("Status: ") + string_format(" Channel %d ", ch));
 
         // KW - not sure why this was this way but now test tab is removed I need to remove it
         //		if (ch < CheckListBoxTestChannels->GetCount())
@@ -544,7 +552,7 @@ void ConvertDialog::WriteLorFile(const wxString& filename)
             // default to white
             ChannelColor = 0x00ffffff;
         }
-        f.Write("\t\t<channel name=\"" + ChannelName + string_format("\" color=\"%d\" centiseconds=\"%ld\" savedIndex=\"%d\">\n", ChannelColor, centiseconds, index));
+        f.Write("\t\t<channel name=\"" + ChannelName + string_format("\" color=\"%d\" centiseconds=\"%d\" savedIndex=\"%d\">\n", ChannelColor, centiseconds, index));
         // write intensity values for this channel
         LastIntensity = 0;
         for (p = 0, csec = 0; p < SeqData.NumFrames(); p++, csec += interval)
@@ -596,7 +604,7 @@ void ConvertDialog::WriteLorFile(const wxString& filename)
     }
     f.Write("\t</channels>\n");
     f.Write("\t<tracks>\n");
-    f.Write(string_format("\t\t<track totalCentiseconds=\"%ld\">\n", centiseconds));
+    f.Write(string_format("\t\t<track totalCentiseconds=\"%d\">\n", centiseconds));
     f.Write("\t\t\t<channels>\n");
     for (ii = 0; ii < savedIndexCount; ii++)
     {
@@ -618,7 +626,7 @@ void ConvertDialog::WriteLorFile(const wxString& filename)
 }
 void ConvertDialog::WriteLcbFile(const wxString& filename)
 {
-    _parent->WriteLcbFile(filename, SeqData.NumChannels(), SeqData.NumFrames(), &SeqData);
+    _parent->WriteLcbFile(filename, SeqData.NumChannels(), SeqData.NumFrames(), &SeqData, 1, 1);
 }
 
 void ConvertDialog::WriteConductorFile(const wxString& filename)
@@ -670,12 +678,12 @@ bool ConvertDialog::LoadVixenProfile(const wxString& ProfileName, wxArrayInt& Vi
     {
         VixChannels.clear();
         wxXmlNode* root = doc.GetRoot();
-        for (wxXmlNode* e = root->GetChildren(); e != NULL; e = e->GetNext())
+        for (wxXmlNode* e = root->GetChildren(); e != nullptr; e = e->GetNext())
         {
             tag = e->GetName();
             if (tag == wxString("ChannelObjects"))
             {
-                for (wxXmlNode* p = e->GetChildren(); p != NULL; p = p->GetNext())
+                for (wxXmlNode* p = e->GetChildren(); p != nullptr; p = p->GetNext())
                 {
                     if (p->GetName() == wxString("Channel"))
                     {
@@ -754,8 +762,7 @@ void ConvertDialog::ReadGlediatorFile(const wxString& FileName)
 {
     wxFile f;
 
-    size_t fileLength;
-    int j, period, x_width = 32, y_height = 32; // for now hard code matrix to be 32x32. after we get this working, we will prompt for this info during convert
+    int x_width = 32, y_height = 32; // for now hard code matrix to be 32x32. after we get this working, we will prompt for this info during convert
     wxString filename = string_format(wxString("01 - Carol of the Bells.mp3")); // hard code a mp3 file for now
     size_t readcnt;
 
@@ -766,7 +773,7 @@ void ConvertDialog::ReadGlediatorFile(const wxString& FileName)
         return;
     }
 
-    fileLength = f.Length();
+    size_t fileLength = f.Length();
     int numChannels = (x_width * 3 * y_height); // 3072 = 32*32*3
     char *frameBuffer = new char[SeqData.NumChannels()];
 
@@ -775,10 +782,10 @@ void ConvertDialog::ReadGlediatorFile(const wxString& FileName)
     SeqData.init(numChannels, numFrames, 50);
 
     wxYield();
-    period = 0;
+    int period = 0;
     while ((readcnt = f.Read(frameBuffer, SeqData.NumChannels())))   // Read one period of channels
     {
-        for (j = 0; j<readcnt; j++)   // Loop thru all channel.s
+        for (int j = 0; j<readcnt; j++)   // Loop thru all channel.s
         {
             SeqData[period][j] = frameBuffer[j];
         }
@@ -808,7 +815,7 @@ void ConvertDialog::ReadGlediatorFile(const wxString& FileName)
     delete[] frameBuffer;
 
 #ifndef NDEBUG
-    AppendConvertStatus(string_format(wxString("ReadGlediatorFile SeqData.NumFrames()=%ld SeqData.NumChannels()=%ld\n"), SeqData.NumFrames(), SeqData.NumChannels()));
+    AppendConvertStatus(string_format(wxString("ReadGlediatorFile SeqData.NumFrames()=%d SeqData.NumChannels()=%d\n"), SeqData.NumFrames(), SeqData.NumChannels()));
 #endif
 }
 
@@ -836,7 +843,7 @@ wxString ConvertDialog::getAttributeValueSafe(SP_XmlStartTagEvent* stagEvent, co
 
 void ConvertDialog::ReadVixFile(const wxString& filename)
 {
-    wxString NodeName, NodeValue, msg;
+    wxString NodeValue, msg;
     std::vector<unsigned char> VixSeqData;
     wxArrayInt VixChannels;
     wxArrayString VixChannelNames;
@@ -844,7 +851,6 @@ void ConvertDialog::ReadVixFile(const wxString& filename)
     wxArrayString context;
     long VixEventPeriod = -1;
     long MaxIntensity = 255;
-    int OutputChannel;
 
     _parent->ConversionInit();
     AppendConvertStatus(wxString("Reading Vixen sequence\n"));
@@ -884,7 +890,7 @@ void ConvertDialog::ReadVixFile(const wxString& filename)
             case SP_XmlPullEvent::eStartTag:
             {
                 SP_XmlStartTagEvent * stagEvent = (SP_XmlStartTagEvent*)event;
-                NodeName = FromAscii(stagEvent->getName());
+                wxString NodeName = FromAscii(stagEvent->getName());
                 context.push_back(NodeName);
                 cnt++;
                 //msg=wxString("Element: ") + NodeName + string_format(wxString(" (%ld)\n"),cnt);
@@ -962,6 +968,8 @@ void ConvertDialog::ReadVixFile(const wxString& filename)
                 cnt = context.size();
                 break;
             }
+            default:
+                break;
             }
             delete event;
         }
@@ -996,7 +1004,7 @@ void ConvertDialog::ReadVixFile(const wxString& filename)
         numChannels = 0;
     }
     AppendConvertStatus(string_format(wxString("Max Intensity=%ld\n"), MaxIntensity), false);
-    AppendConvertStatus(string_format(wxString("# of Channels=%ld\n"), numChannels), false);
+    AppendConvertStatus(string_format(wxString("# of Channels=%d\n"), numChannels), false);
     AppendConvertStatus(string_format(wxString("Vix Event Period=%ld\n"), VixEventPeriod), false);
     AppendConvertStatus(string_format(wxString("Vix data len=%ld\n"), VixDataLen), false);
     if (numChannels == 0)
@@ -1011,19 +1019,16 @@ void ConvertDialog::ReadVixFile(const wxString& filename)
     }
     SeqData.init(numChannels, VixNumPeriods, VixEventPeriod);
 
-    // reorder channels according to output number, scale so that max intensity is 255
-    int newper, intensity;
-    size_t ch;
-    for (ch = 0; ch < SeqData.NumChannels(); ch++)
+    for (size_t ch = 0; ch < SeqData.NumChannels(); ch++)
     {
-        OutputChannel = VixChannels[ch] - min;
+        int OutputChannel = VixChannels[ch] - min;
         if (ch < VixChannelNames.size())
         {
             ChannelNames[OutputChannel] = VixChannelNames[ch];
         }
-        for (newper = 0; newper < SeqData.NumFrames(); newper++)
+        for (int newper = 0; newper < SeqData.NumFrames(); newper++)
         {
-            intensity = VixSeqData[ch*VixNumPeriods + newper];
+            int intensity = VixSeqData[ch*VixNumPeriods + newper];
             if (MaxIntensity != 255)
             {
                 intensity = intensity * 255 / MaxIntensity;
@@ -1035,16 +1040,17 @@ void ConvertDialog::ReadVixFile(const wxString& filename)
 
 void ConvertDialog::ReadHLSFile(const wxString& filename)
 {
-    long timeCells = 0;
-    long msPerCell = 50;
+    int timeCells = 0;
+    int msPerCell = 50;
     long channels = 0;
     long cnt = 0;
     long tmp;
     long universe = 0;
     long channelsInUniverse = 0;
-    wxString NodeName, NodeValue, Data, ChannelName;
-    wxArrayString context;
+    std::string NodeName;
+    std::vector<std::string> context;
     wxArrayInt map;
+    bool showChannelMap = showChannelMapping();
 
 
     SP_XmlPullParser *parser = new SP_XmlPullParser();
@@ -1080,7 +1086,7 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
             case SP_XmlPullEvent::eStartTag:
             {
                 SP_XmlStartTagEvent * stagEvent = (SP_XmlStartTagEvent*)event;
-                NodeName = FromAscii(stagEvent->getName());
+                NodeName = stagEvent->getName();
                 context.push_back(NodeName);
                 cnt++;
                 break;
@@ -1091,19 +1097,18 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
                 if (cnt > 0)
                 {
                     NodeName = context[cnt - 1];
-                    NodeValue = FromAscii(stagEvent->getText());
 
-                    if (NodeName == wxString("MilliSecPerTimeUnit"))
+                    if (NodeName == "MilliSecPerTimeUnit")
                     {
-                        msPerCell = atol(NodeValue.c_str());
+                        msPerCell = atol(stagEvent->getText());
                     }
-                    if (NodeName == wxString("NumberOfTimeCells"))
+                    if (NodeName == "NumberOfTimeCells")
                     {
-                        timeCells = atol(NodeValue.c_str());
+                        timeCells = atol(stagEvent->getText());
                     }
-                    if (NodeName == wxString("AudioSourcePcmFile"))
+                    if (NodeName == "AudioSourcePcmFile")
                     {
-                        mediaFilename = NodeValue;
+                        mediaFilename = FromAscii(stagEvent->getText());;
                         if (Right(mediaFilename, 4) == ".PCM")
                         {
                             //nothing can deal with PCM files, we'll assume this came from an mp3
@@ -1111,14 +1116,14 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
                             mediaFilename += ".mp3";
                         }
                     }
-                    if (NodeName == wxString("ChannelsInUniverse"))
+                    if (NodeName == "ChannelsInUniverse")
                     {
-                        channelsInUniverse = atol(NodeValue.c_str());
+                        channelsInUniverse = atol(stagEvent->getText());
                         channels += channelsInUniverse;
                     }
-                    if (NodeName == wxString("UniverseNumber"))
+                    if (NodeName == "UniverseNumber")
                     {
-                        tmp = atol(NodeValue.c_str());
+                        tmp = atol(stagEvent->getText());
                         universe = tmp;
                     }
                 }
@@ -1129,7 +1134,7 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
                 if (cnt > 0)
                 {
                     NodeName = context[cnt - 1];
-                    if (NodeName == wxString("Universe"))
+                    if (NodeName == "Universe")
                     {
                         map.push_back(universe);
                         map.push_back(channelsInUniverse);
@@ -1147,11 +1152,13 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
                         }
                     }
 
-                    RemoveAt(context, cnt - 1);
+                    context.pop_back();
                 }
                 cnt = context.size();
                 break;
             }
+            default:
+                break;
             }
             delete event;
         }
@@ -1164,8 +1171,6 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
 
     file.Seek(0);
 
-
-
     channels = 0;
 
     for (tmp = 0; tmp < map.size(); tmp += 2)
@@ -1173,15 +1178,15 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
         int i = map[tmp + 1];
         int orig = _outputManager->GetOutput(tmp / 2)->GetChannels();
         if (i < orig) {
-            AppendConvertStatus(string_format(wxString("Found Universe: %ld   Channels in Seq: %ld   Configured: %d\n"), map[tmp], i, orig), false);
+            AppendConvertStatus(string_format(wxString("Found Universe: %d   Channels in Seq: %d   Configured: %d\n"), map[tmp], i, orig), false);
             i = orig;
         }
         else if (i > orig) {
-            AppendConvertStatus(string_format(wxString("WARNING Universe: %ld contains more channels than you have configured.\n"), map[tmp]), false);
-            AppendConvertStatus(string_format(wxString("Found Universe: %ld   Channels in Seq: %ld   Configured: %d\n"), map[tmp], i, orig), false);
+            AppendConvertStatus(string_format(wxString("WARNING Universe: %d contains more channels than you have configured.\n"), map[tmp]), false);
+            AppendConvertStatus(string_format(wxString("Found Universe: %d   Channels in Seq: %d   Configured: %d\n"), map[tmp], i, orig), false);
         }
         else {
-            AppendConvertStatus(string_format(wxString("Found Universe: %ld   Channels in Seq: %ld\n"), map[tmp], i, orig), false);
+            AppendConvertStatus(string_format(wxString("Found Universe: %d   Channels in Seq: %d    Configured: %d\n"), map[tmp], i, orig), false);
         }
 
 
@@ -1191,7 +1196,7 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
 
     AppendConvertStatus(string_format(wxString("TimeCells = %d\n"), timeCells), false);
     AppendConvertStatus(string_format(wxString("msPerCell = %d ms\n"), msPerCell), false);
-    AppendConvertStatus(string_format(wxString("Channels = %d\n"), channels), false);
+    AppendConvertStatus(string_format(wxString("Channels = %ld\n"), channels), true);
     if (channels == 0)
     {
         return;
@@ -1216,7 +1221,10 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
 
     event = parser->getNext();
     done = 0;
+    int mapCount = 0;
     int nodecnt = 0;
+    wxString Data, ChannelName;
+
     while (!done)
     {
         if (!event)
@@ -1241,7 +1249,7 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
             case SP_XmlPullEvent::eStartTag:
             {
                 SP_XmlStartTagEvent * stagEvent = (SP_XmlStartTagEvent*)event;
-                NodeName = FromAscii(stagEvent->getName());
+                NodeName = stagEvent->getName();
                 context.push_back(NodeName);
                 cnt++;
                 break;
@@ -1252,21 +1260,21 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
                 if (cnt > 0)
                 {
                     NodeName = context[cnt - 1];
-                    NodeValue = FromAscii(stagEvent->getText());
 
-                    if (NodeName == wxString("ChanInfo"))
+                    if (NodeName == "ChanInfo")
                     {
                         //channel name and type
-                        ChannelName = NodeValue;
+                        ChannelName = FromAscii(stagEvent->getText());
                     }
-                    if (NodeName == wxString("Block"))
+                    if (NodeName == "Block")
                     {
+                        wxString NodeValue = FromAscii(stagEvent->getText());
                         int idx = NodeValue.find("-");
                         Data.append(NodeValue.substr(idx + 1));
                     }
-                    if (NodeName == wxString("UniverseNumber"))
+                    if (NodeName == "UniverseNumber")
                     {
-                        tmp = atol(NodeValue.c_str());
+                        tmp = atol(stagEvent->getText());
                         universe = tmp;
                         for (tmp = 0; tmp < map.size(); tmp += 2)
                         {
@@ -1290,24 +1298,24 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
                 if (cnt > 0)
                 {
                     NodeName = context[cnt - 1];
-                    if (NodeName == wxString("ChannelData"))
+                    if (NodeName == "ChannelData")
                     {
 
                         //finished reading this channel, map the data
                         int idx = ChannelName.find(", ");
-                        wxString type = ChannelName.substr(idx + 2);
+                        std::string type = ChannelName.substr(idx + 2).ToStdString();
                         wxString origName = ChannelNames[channels];
-                        if (type == wxString("RGB-R"))
+                        if (type == "RGB-R")
                         {
                             ChannelNames[channels] = Left(ChannelName, idx) + wxString("-R");
                             ChannelColors[channels] = 0x000000FF;
                         }
-                        else if (type == wxString("RGB-G"))
+                        else if (type == "RGB-G")
                         {
                             ChannelNames[channels] = Left(ChannelName, idx) + wxString("-G");
                             ChannelColors[channels] = 0x0000FF00;
                         }
-                        else if (type == wxString("RGB-B"))
+                        else if (type == "RGB-B")
                         {
                             ChannelNames[channels] = Left(ChannelName, idx) + wxString("-B");
                             ChannelColors[channels] = 0x00FF0000;
@@ -1317,26 +1325,37 @@ void ConvertDialog::ReadHLSFile(const wxString& filename)
                             ChannelNames[channels] = Left(ChannelName, idx);
                             ChannelColors[channels] = 0x00FFFFFF;
                         }
-                        wxString o2 = _outputManager->GetChannelName(channels);
-                        AppendConvertStatus(string_format("Map %s -> %s (%s)\n",
-                            ChannelNames[channels].c_str(),
-                            origName.c_str(),
-                            o2.c_str()), false);
+                        if (showChannelMap) {
+                            wxString o2 = _outputManager->GetChannelName(channels);
+                            AppendConvertStatus(string_format("Map %s -> %s (%s)\n",
+                                                              ChannelNames[channels].c_str(),
+                                                              origName.c_str(),
+                                                              o2.c_str()), false);
+                        } else {
+                            mapCount++;
+                            if (mapCount % 1000 == 0) {
+                                AppendConvertStatus(string_format("Mapped %d channels\n", mapCount), true);
+                            }
+                        }
+                        const char *dta = Data.c_str();
                         for (long newper = 0; newper < SeqData.NumFrames(); newper++)
                         {
                             long intensity;
-                            intensity = strtoul(Data.substr(newper * 3, 2).c_str(), NULL, 16);
+                            char tc[3] = { dta[newper*3], dta[newper*3 + 1], 0 };
+                            intensity = strtoul(tc, NULL, 16);
                             SeqData[newper][channels] = intensity;
                         }
                         Data.clear();
                         channels++;
                     }
 
-                    RemoveAt(context, cnt - 1);
+                    context.pop_back();
                 }
                 cnt = context.size();
                 break;
             }
+            default:
+                break;
             }
             delete event;
         }
@@ -1414,10 +1433,12 @@ static void mapLORInfo(const LORInfo &info, std::vector< std::vector<int> > *uni
 
 void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
 {
-    wxString NodeName, msg, EffectType, ChannelName, deviceType, networkAsString;
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
+    wxString NodeName, msg, deviceType, networkAsString;
     wxArrayString context;
-    int unit, circuit, startcsec, endcsec, intensity, startIntensity, endIntensity, rampdiff, ChannelColor;
-    int i, startper, endper, perdiff, twinklestate, nexttwinkle;
+    int unit, circuit, rampdiff;
+    int i, twinklestate;
     int twinkleperiod = 400;
     int curchannel = -1;
     int MappedChannelCnt = 0;
@@ -1435,7 +1456,6 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
     _parent->ConversionInit();
     AppendConvertStatus(wxString("Reading LOR sequence\n"));
     SetStatusText(wxString("Reading LOR sequence"));
-
 
     int centisec = -1;
     int nodecnt = 0;
@@ -1559,6 +1579,8 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                     RemoveAt(context, cnt - 1);
                 }
                 cnt = context.size();
+                break;
+            default:
                 break;
             }
             delete event;
@@ -1703,7 +1725,7 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                         unit = 1;
                     }
                     circuit = getAttributeValueAsInt(stagEvent, "circuit");
-                    ChannelName = getAttributeValueSafe(stagEvent, "name");
+                    wxString ChannelName = getAttributeValueSafe(stagEvent, "name");
                     savedIndex = getAttributeValueAsInt(stagEvent, "savedIndex");
 
                     empty = rgbChannels[savedIndex].empty;
@@ -1712,7 +1734,7 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                         chindex = circuit - 1;
                         network--;
                         network += lorUnitSizes.size();
-                        curchannel = _outputManager->GetAbsoluteChannel(network, chindex);
+                        curchannel = _outputManager->GetAbsoluteChannel(network, chindex) - 1;
                     }
                     else if (Left(deviceType, 3) == "LOR")
                     {
@@ -1722,7 +1744,7 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                             chindex += lorUnitSizes[network][z];
                         }
                         chindex += circuit - 1;
-                        curchannel = _outputManager->GetAbsoluteChannel(network, chindex);
+                        curchannel = _outputManager->GetAbsoluteChannel(network, chindex) - 1;
                     }
                     else if ("" == deviceType && "" == networkAsString && !MapLORChannelsWithNoNetwork->IsChecked()) {
                         curchannel = -1;
@@ -1748,7 +1770,7 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                         }
                         MappedChannelCnt++;
                         ChannelNames[curchannel] = ChannelName;
-                        ChannelColor = getAttributeValueAsInt(stagEvent, "color");
+                        int ChannelColor = getAttributeValueAsInt(stagEvent, "color");
                         ChannelColors[curchannel] = ChannelColor;
                         if (showChannelMap)
                         {
@@ -1764,24 +1786,24 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                 {
                     empty = false;
                     EffectCnt++;
-                    startcsec = getAttributeValueAsInt(stagEvent, "startCentisecond");
-                    endcsec = getAttributeValueAsInt(stagEvent, "endCentisecond");
-                    intensity = getAttributeValueAsInt(stagEvent, "intensity");
-                    startIntensity = getAttributeValueAsInt(stagEvent, "startIntensity");
-                    endIntensity = getAttributeValueAsInt(stagEvent, "endIntensity");
-                    startper = startcsec * 10 / LORImportInterval;
-                    endper = endcsec * 10 / LORImportInterval;
-                    perdiff = endper - startper;  // # of ticks
+                    int startcsec = getAttributeValueAsInt(stagEvent, "startCentisecond");
+                    int endcsec = getAttributeValueAsInt(stagEvent, "endCentisecond");
+                    int intensity = getAttributeValueAsInt(stagEvent, "intensity");
+                    int startIntensity = getAttributeValueAsInt(stagEvent, "startIntensity");
+                    int endIntensity = getAttributeValueAsInt(stagEvent, "endIntensity");
+                    int startper = startcsec * 10 / LORImportInterval;
+                    int endper = endcsec * 10 / LORImportInterval;
+                    int perdiff = endper - startper;  // # of ticks
                     LorTimingList.insert(startper);
 
                     if (perdiff > 0)
                     {
-                        EffectType = getAttributeValueSafe(stagEvent, "type");
+                        wxString EffectType = getAttributeValueSafe(stagEvent, "type");
                         if (EffectType != "DMX intensity")
                         {
-                                intensity=intensity * 255 / MaxIntensity;
-                                startIntensity=startIntensity * 255 / MaxIntensity;
-                                endIntensity=endIntensity * 255 / MaxIntensity;
+                            intensity = intensity * 255 / MaxIntensity;
+                            startIntensity = startIntensity * 255 / MaxIntensity;
+                            endIntensity = endIntensity * 255 / MaxIntensity;
                         }
                         if (EffectType == "intensity" || EffectType == "DMX intensity")
                         {
@@ -1796,6 +1818,7 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                             {
                                 // ramp
                                 rampdiff = endIntensity - startIntensity;
+                                if (rampdiff == 0) logger_base.crit("This is going to crash. AAA");
                                 for (i = 0; i < perdiff; i++)
                                 {
                                     intensity = (int)((double)(i) / perdiff * rampdiff + startIntensity);
@@ -1810,7 +1833,7 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                                 intensity = MaxIntensity;
                             }
                             twinklestate = static_cast<int>(rand01()*2.0) & 0x01;
-                            nexttwinkle = static_cast<int>(rand01()*twinkleperiod + 100) / LORImportInterval;
+                            int nexttwinkle = static_cast<int>(rand01()*twinkleperiod + 100) / LORImportInterval;
                             if (intensity > 0)
                             {
                                 for (i = 0; i < perdiff; i++)
@@ -1859,6 +1882,7 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
                             {
                                 // ramp
                                 rampdiff = endIntensity - startIntensity;
+                                if (rampdiff == 0) logger_base.crit("This is going to crash. BBB");
                                 for (i = 0; i < perdiff; i++)
                                 {
                                     twinklestate = (startper + i) & 0x01;
@@ -1883,7 +1907,6 @@ void ConvertDialog::ReadLorFile(const wxString& filename, int LORImportInterval)
     delete[] bytes;
     delete parser;
     file.Close();
-
 
     AppendConvertStatus(string_format(wxString("# of mapped channels with effects=%d\n"), MappedChannelCnt), false);
     AppendConvertStatus(string_format(wxString("# of effects=%d\n"), EffectCnt), false);

@@ -17,10 +17,22 @@ class OutputManager;
 #define OUTPUT_PIXELNET "Pixelnet"
 #define OUTPUT_OPENPIXELNET "Pixelnet-Open"
 #define OUTPUT_LOR "LOR"
+#define OUTPUT_LOR_OPT "LOR Optimised"
 #define OUTPUT_DLIGHT "D-Light"
 #define OUTPUT_RENARD "Renard"
 #define OUTPUT_OPENDMX "OpenDMX"
 #pragma endregion Output Constants
+
+typedef enum
+{
+    PING_OK,
+    PING_WEBOK,
+    PING_OPEN,
+    PING_OPENED,
+    PING_ALLFAILED,
+    PING_UNAVAILABLE,
+    PING_UNKNOWN
+} PINGSTATE;
 
 class Output
 {
@@ -35,6 +47,7 @@ protected:
     int _baudRate;
     int _universe;
     bool _enabled;
+    bool _suspend;
     Controller* _controller;
     int _outputNumber; // cached ordinal of this output ... may change when reordered or other output are changed
     int _nullNumber; // cached ordinal of null controllers ... may change when reordered or other output are changed
@@ -69,6 +82,7 @@ public:
     void ClearDirty() { _dirty = false; }
     long GetStartChannel() const { return _startChannel; }
     long GetActualEndChannel() const { return _startChannel + _channels - 1; }
+    void Suspend(bool suspend) { _suspend = suspend; }
     virtual long GetEndChannel() const { return _startChannel + _channels - 1; }
     std::string GetDescription() const { return _description; }
     void SetDescription(const std::string& description) { _description = description; _dirty = true; }
@@ -96,6 +110,7 @@ public:
     bool IsOk() const { return _ok; }
     virtual std::string GetType() const = 0;
     virtual std::string GetLongDescription() const = 0;
+    virtual std::string GetPingDescription() const = 0;
     virtual bool IsIpOutput() const = 0;
     virtual bool IsSerialOutput() const = 0;
     virtual bool IsOutputable() const { return true; }
@@ -107,14 +122,16 @@ public:
     virtual size_t TxNonEmptyCount() const { return 0; }
     virtual bool TxEmpty() const { return true; }
     bool IsSuppressDuplicateFrames() const { return _suppressDuplicateFrames; }
+    virtual PINGSTATE Ping() const = 0;
+    virtual bool CanPing() const = 0;
     #pragma endregion Getters and Setters
 
     #pragma region Operators
     bool operator==(const Output& output) const;
     #pragma endregion Operators
-        
+
     virtual wxXmlNode* Save();
-    
+
     #pragma region Start and Stop
     virtual bool Open();
     virtual void Close() = 0;
@@ -124,7 +141,7 @@ public:
     virtual void StartFrame(long msec) { _timer_msec = msec; }
     virtual void EndFrame(int suppressFrames) = 0;
     virtual void ResetFrame() {}
-    void FrameOutput() { _lastOutputTime = wxGetUTCTimeMillis(); _skippedFrames = 0; _changed = false; }
+    void FrameOutput();
     void SkipFrame() { _skippedFrames++; }
     bool NeedToOutput(int suppressFrames) const { return !IsSuppressDuplicateFrames() || _skippedFrames >= suppressFrames; }
     #pragma endregion Frame Handling
@@ -134,7 +151,7 @@ public:
     virtual void SetManyChannels(long channel, unsigned char data[], long size);
     virtual void AllOff() = 0;
     #pragma endregion Data Setting
-    
+
     virtual void SendHeartbeat() const {}
 
     #pragma region UI

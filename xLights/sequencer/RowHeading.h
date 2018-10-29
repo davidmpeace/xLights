@@ -29,6 +29,7 @@ class RowHeading : public wxWindow
         int getHeight() const;
         int GetMaxRows();
         void SetCanPaste(bool value) { mCanPaste = value; }
+        void ToggleExpand(Element * element);
 
     static int rowHeadingSize;
 
@@ -52,9 +53,10 @@ class RowHeading : public wxWindow
         void BreakdownTimingWords(TimingElement* element);
     xlColor GetHeaderColor(Row_Information_Struct* info) const;
         bool ExpandElementIfEffects(Element* e);
-        bool ModelInView(const std::string& model, int view);
+        bool ModelInView(const std::string& model, int view) const;
 
         wxBitmap papagayo_icon;
+        wxBitmap papagayox_icon;
         wxBitmap model_group_icon;
 
         int mSelectedRow;
@@ -74,12 +76,19 @@ class RowHeading : public wxWindow
         static const long ID_ROW_MNU_EDIT_DISPLAY_ELEMENTS;
         static const long ID_ROW_MNU_TOGGLE_STRANDS;
         static const long ID_ROW_MNU_SHOW_EFFECTS;
-        static const long ID_ROW_MNU_COLLAPSEALL;
+        static const long ID_ROW_MNU_COLLAPSEALLMODELS;
+        static const long ID_ROW_MNU_COLLAPSEALLLAYERS;
         static const long ID_ROW_MNU_TOGGLE_NODES;
         static const long ID_ROW_MNU_CONVERT_TO_EFFECTS;
         static const long ID_ROW_MNU_PROMOTE_EFFECTS;
         static const long ID_ROW_MNU_COPY_ROW;
+        static const long ID_ROW_MNU_COPY_MODEL;
         static const long ID_ROW_MNU_PASTE_ROW;
+        static const long ID_ROW_MNU_PASTE_MODEL;
+        static const long ID_ROW_MNU_DELETE_ROW_EFFECTS;
+        static const long ID_ROW_MNU_DELETE_MODEL_EFFECTS;
+        static const long ID_ROW_MNU_SELECT_ROW_EFFECTS;
+        static const long ID_ROW_MNU_SELECT_MODEL_EFFECTS;
 
         static const long ID_ROW_MNU_ADD_TIMING_TRACK;
         static const long ID_ROW_MNU_RENAME_TIMING_TRACK;

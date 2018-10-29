@@ -10,7 +10,7 @@
 					<cols>4</cols>
 					<growablecols>1</growablecols>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT38" variable="StaticText34" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Spirals_Count" variable="StaticText34" member="yes">
 							<label>Palette Rep</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -22,19 +22,18 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="ID_SLIDER_Spirals_Count" variable="Slider_Spirals_Count" member="yes">
+								<object class="wxSlider" name="ID_SLIDER_Spirals_Count" subclass="BulkEditSlider" variable="Slider_Spirals_Count" member="yes">
 									<value>1</value>
 									<min>1</min>
 									<max>5</max>
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Spirals_Count" subclass="ValueCurveButton" variable="BitmapButton_VCSpiralsCount" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Spirals_Count" subclass="BulkEditValueCurveButton" variable="BitmapButton_VCSpiralsCount" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -48,21 +47,20 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Spirals_Count" variable="TextCtrl36" member="no">
+						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Spirals_Count" subclass="BulkEditTextCtrl" variable="TextCtrl36" member="no">
 							<value>1</value>
 							<maxlength>2</maxlength>
 							<size>25,-1d</size>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>5</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Spirals_Count" variable="BitmapButton_SpiralsCount" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Spirals_Count" variable="BitmapButton_SpiralsCount" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+							<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -71,7 +69,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="wxID_ANY" variable="StaticText36" member="no">
+						<object class="wxStaticText" name="ID_STATICTEXT_Spirals_Rotation" variable="StaticText36" member="yes">
 							<label>Spiral Wraps</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -83,20 +81,19 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="ID_SLIDER_Spirals_Rotation" variable="Slider_Spirals_Rotation" member="yes">
+								<object class="wxSlider" name="ID_SLIDER_Spirals_Rotation" subclass="BulkEditSliderF1" variable="Slider_Spirals_Rotation" member="yes">
 									<value>20</value>
 									<min>-300</min>
 									<max>300</max>
 									<tooltip>Number of times a band wraps around the matrix</tooltip>
-									<handler function="UpdateLinkedTextCtrlFloatVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Spirals_Rotation" subclass="ValueCurveButton" variable="BitmapButton_VCSpirals_Rotation" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Spirals_Rotation" subclass="BulkEditValueCurveButton" variable="BitmapButton_VCSpirals_Rotation" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -110,21 +107,20 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Spirals_Rotation" variable="TextCtrl37" member="no">
+						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Spirals_Rotation" subclass="BulkEditTextCtrlF1" variable="TextCtrl37" member="no">
 							<value>2.0</value>
 							<maxlength>5</maxlength>
 							<size>25,-1d</size>
-							<handler function="UpdateLinkedSliderFloat" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>5</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Spirals_Rotation" variable="BitmapButton_SpiralsRotation" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Spirals_Rotation" variable="BitmapButton_SpiralsRotation" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+							<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -133,7 +129,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT42" variable="StaticText38" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Spirals_Thickness" variable="StaticText38" member="yes">
 							<label>Thickness</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -145,17 +141,16 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="ID_SLIDER_Spirals_Thickness" variable="Slider_Spirals_Thickness" member="yes">
+								<object class="wxSlider" name="ID_SLIDER_Spirals_Thickness" subclass="BulkEditSlider" variable="Slider_Spirals_Thickness" member="yes">
 									<value>50</value>
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Spirals_Thickness" subclass="ValueCurveButton" variable="BitmapButton_VCSpirals_Thickness" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Spirals_Thickness" subclass="BulkEditValueCurveButton" variable="BitmapButton_VCSpirals_Thickness" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -169,21 +164,20 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Spirals_Thickness" variable="TextCtrl38" member="no">
+						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Spirals_Thickness" subclass="BulkEditTextCtrl" variable="TextCtrl38" member="no">
 							<value>50</value>
 							<maxlength>3</maxlength>
 							<size>25,-1d</size>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>5</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Spirals_Thickness" variable="BitmapButton_SpiralsThickness" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Spirals_Thickness" variable="BitmapButton_SpiralsThickness" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+							<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -192,7 +186,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT44" variable="StaticText40" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Spirals_Movement" variable="StaticText40" member="yes">
 							<label>Movement</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -204,19 +198,18 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="IDD_SLIDER_Spirals_Movement" variable="Slider_Spirals_Movement" member="yes">
+								<object class="wxSlider" name="IDD_SLIDER_Spirals_Movement" subclass="BulkEditSliderF1" variable="Slider_Spirals_Movement" member="yes">
 									<value>10</value>
 									<min>-200</min>
 									<max>200</max>
-									<handler function="UpdateLinkedTextCtrlFloatVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>5</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Spirals_Movement" subclass="ValueCurveButton" variable="BitmapButton_VCSpirals_Movement" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Spirals_Movement" subclass="BulkEditValueCurveButton" variable="BitmapButton_VCSpirals_Movement" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -230,21 +223,20 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Spirals_Movement" variable="TextCtrl39" member="no">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Spirals_Movement" subclass="BulkEditTextCtrlF1" variable="TextCtrl39" member="no">
 							<value>1.0</value>
 							<maxlength>5</maxlength>
 							<size>25,-1d</size>
-							<handler function="UpdateLinkedSliderFloat" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>5</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_SLIDER_Spirals_Direction" variable="BitmapButton_SpiralsDirection" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Spirals_Movement" variable="BitmapButton_SpiralsDirection" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+							<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -260,7 +252,7 @@
 				<object class="wxFlexGridSizer" variable="FlexGridSizer130" member="no">
 					<cols>5</cols>
 					<object class="sizeritem">
-						<object class="wxCheckBox" name="ID_CHECKBOX_Spirals_Blend" variable="CheckBox_Spirals_Blend" member="yes">
+						<object class="wxCheckBox" name="ID_CHECKBOX_Spirals_Blend" subclass="BulkEditCheckBox" variable="CheckBox_Spirals_Blend" member="yes">
 							<label>Blend</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -268,10 +260,10 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHECKBOX_Spirals_Blend" variable="BitmapButton_SpiralsBlend" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_CHECKBOX_Spirals_Blend" variable="BitmapButton_SpiralsBlend" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+							<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -286,7 +278,7 @@
 						<size>20,-1d</size>
 					</object>
 					<object class="sizeritem">
-						<object class="wxCheckBox" name="ID_CHECKBOX_Spirals_3D" variable="CheckBox_Spirals_3D" member="yes">
+						<object class="wxCheckBox" name="ID_CHECKBOX_Spirals_3D" subclass="BulkEditCheckBox" variable="CheckBox_Spirals_3D" member="yes">
 							<label>3D</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -294,10 +286,10 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHECKBOX_Spirals_3D" variable="BitmapButton_Spirals3D" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_CHECKBOX_Spirals_3D" variable="BitmapButton_Spirals3D" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+							<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -306,7 +298,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxCheckBox" name="ID_CHECKBOX_Spirals_Grow" variable="CheckBox_Spirals_Grow" member="yes">
+						<object class="wxCheckBox" name="ID_CHECKBOX_Spirals_Grow" subclass="BulkEditCheckBox" variable="CheckBox_Spirals_Grow" member="yes">
 							<label>Grow</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -314,10 +306,10 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHECKBOX_Spirals_Grow" variable="BitmapButton_SpiralsGrow" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_CHECKBOX_Spirals_Grow" variable="BitmapButton_SpiralsGrow" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+							<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -332,7 +324,7 @@
 						<size>20,-1d</size>
 					</object>
 					<object class="sizeritem">
-						<object class="wxCheckBox" name="ID_CHECKBOX_Spirals_Shrink" variable="CheckBox_Spirlas_Shrink" member="yes">
+						<object class="wxCheckBox" name="ID_CHECKBOX_Spirals_Shrink" subclass="BulkEditCheckBox" variable="CheckBox_Spirlas_Shrink" member="yes">
 							<label>Shrink</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -340,10 +332,10 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHECKBOX_Spirals_Shrink" variable="BitmapButton_SpiralsShrink" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_CHECKBOX_Spirals_Shrink" variable="BitmapButton_SpiralsShrink" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+							<bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>

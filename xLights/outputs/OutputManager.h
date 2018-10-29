@@ -25,6 +25,13 @@ class OutputManager
     wxCriticalSection _outputCriticalSection; // used to protect areas that must be single threaded
     #pragma endregion Member Variables
 
+    static int _lastSecond;
+    static int _currentSecond;
+    static int _lastSecondCount;
+    static int _currentSecondCount;
+
+    bool SetGlobalOutputtingFlag(bool state, bool force = false);
+
 public:
 
     #pragma region Constructors and Destructors
@@ -34,6 +41,8 @@ public:
 
     #pragma region Static Functions
     static std::string GetNetworksFileName() { return NETWORKSFILE; }
+    int GetPacketsPerSecond() const;
+    static void RegisterSentPacket();
     #pragma endregion Static Functions
 
     #pragma region Save and Load
@@ -50,15 +59,18 @@ public:
     bool AreAllIPOutputs(std::list<int> outputNumbers);
     std::list<Output*> GetAllOutputs(const std::string& ip, const std::list<int>& selected = std::list<int>()) const;
     std::list<Output*> GetAllOutputs(const std::list<int>& outputNumbers) const;
+    std::list<Output*> GetAllOutputs() const;
     std::list<Output*> GetOutputs() const { return _outputs; } // returns a list like that on setup tab
     void Replace(Output* replacethis, Output* withthis);
     Output* GetOutput(int outputNumber) const;
-    Output* GetOutput(long absoluteChannel, long& startChannel) const;
+    Output* GetOutput(long absoluteChannel, long& startChannel) const; // returns the output ... even if it is in a collection
+    Output* GetLevel1Output(long absoluteChannel, long& startChannel) const; // returns the output ... but always level 1
     Output* GetOutput(int universe, const std::string& ip) const;
     std::list<int> GetIPUniverses(const std::string& ip = "") const;
     int GetOutputCount() const { return _outputs.size(); }
     bool Discover(); // discover controllers and add them to the list if they are not already there
     void SetShowDir(const std::string& showDir);
+    void SuspendAll(bool suspend);
     #pragma endregion Output Management
 
     void SomethingChanged() const;
@@ -70,6 +82,7 @@ public:
     //both outputNumber and startChannel are 0 based
     long GetAbsoluteChannel(int outputNumber, int startChannel) const;
     long GetAbsoluteChannel(const std::string& ip, int universe, int startChannel) const;
+    long DecodeStartChannel(const std::string& startChannelString);
     #pragma endregion Channel Mapping
 
     #pragma region Start and Stop
@@ -98,7 +111,7 @@ public:
     #pragma region Data Setting
     void SetOneChannel(long channel, unsigned char data);
     void SetManyChannels(long channel, unsigned char* data, long size);
-    void AllOff();
+    void AllOff(bool send = true);
     #pragma endregion Data Setting
 
     #pragma region Test Presets
@@ -114,6 +127,8 @@ public:
     bool TxEmpty();
     std::string GetChannelName(long channel);
     void SendHeartbeat();
+
+    bool IsOutputOpenInAnotherProcess();
 };
 
 #endif

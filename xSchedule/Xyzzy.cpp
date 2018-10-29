@@ -102,7 +102,7 @@ void Xyzzy::DrawNode(int x, int y, wxColour c, wxByte* buffer, size_t size)
 
     if (bl > size) return; // outside bounds ... this would crash
 
-    if (bl >= _matrixMapper->GetChannels() + _matrixMapper->GetStartChannel())
+    if (bl >= _matrixMapper->GetChannels() + _matrixMapper->GetStartChannelAsNumber())
     {
         // off the top
     }
@@ -132,6 +132,19 @@ void Xyzzy::DrawPixel(int x, int y, wxColour c, wxByte* buffer, size_t size)
     }
 }
 
+void Xyzzy::DrawBlack(wxByte* buffer, size_t size)
+{
+    if (_matrixMapper == nullptr) return;
+
+    for (int x = 0; x < _matrixMapper->GetWidth(); x++)
+    {
+        for (int y = 0; y < _matrixMapper->GetHeight(); y++)
+        {
+            DrawNode(x, y, *wxBLACK, buffer, size);
+        }
+    }
+}
+
 bool Xyzzy::Frame(wxByte* buffer, size_t size, bool outputframe)
 {
     if (_matrixMapper == nullptr) return false;
@@ -146,6 +159,15 @@ bool Xyzzy::Frame(wxByte* buffer, size_t size, bool outputframe)
         if (!_gameRunning)
         {
             colour = *wxRED;
+        }
+
+        // Erase the board background
+        for (int x = _sideBorder; x < _sideBorder + BOARDWIDTH * _colsPerSquare; x++)
+        {
+            for (int y = _bottomBorder; y < _bottomBorder + BOARDHEIGHT * _rowsPerSquare; y++)
+            {
+                DrawNode(x, y, *wxBLACK, buffer, size);
+            }
         }
 
         // draw borders
@@ -759,6 +781,8 @@ XyzzyPiece* XyzzyPiece::CreatePiece()
         case 6:
             hardcount++;
             return new TPiece();
+        default:
+            break;
         }
     }
     else
@@ -777,6 +801,8 @@ XyzzyPiece* XyzzyPiece::CreatePiece()
             return new JPiece();
         case 3:
             return new OPiece();
+        default:
+            break;
         }
     }
 
@@ -838,6 +864,8 @@ std::list<wxPoint> LPiece::GetPoints(int rotation, wxPoint position) const
         res.push_back(wxPoint(position.x, position.y + 1));
         res.push_back(wxPoint(position.x - 1, position.y + 1));
         break;
+    default:
+        break;
     }
 
     return res;
@@ -874,6 +902,8 @@ std::list<wxPoint> JPiece::GetPoints(int rotation, wxPoint position) const
         res.push_back(wxPoint(position.x, position.y + 1));
         res.push_back(wxPoint(position.x - 1, position.y - 1));
         break;
+    default:
+        break;
     }
 
     return res;
@@ -898,6 +928,8 @@ std::list<wxPoint> SPiece::GetPoints(int rotation, wxPoint position) const
         res.push_back(wxPoint(position.x + 1, position.y - 1));
         res.push_back(wxPoint(position.x + 1, position.y));
         break;
+    default:
+        break;
     }
 
     return res;
@@ -921,6 +953,8 @@ std::list<wxPoint> ZPiece::GetPoints(int rotation, wxPoint position) const
         res.push_back(wxPoint(position.x, position.y));
         res.push_back(wxPoint(position.x + 1, position.y + 1));
         res.push_back(wxPoint(position.x + 1, position.y));
+        break;
+    default:
         break;
     }
 
@@ -969,6 +1003,8 @@ std::list<wxPoint> TPiece::GetPoints(int rotation, wxPoint position) const
         res.push_back(wxPoint(position.x, position.y));
         res.push_back(wxPoint(position.x, position.y + 1));
         res.push_back(wxPoint(position.x - 1, position.y));
+        break;
+    default:
         break;
     }
 
@@ -1160,6 +1196,8 @@ void Xyzzy::CheckFullRow()
         break;
     case 4:
         AddToScore(ROWSCORE4);
+        break;
+    default:
         break;
     }
 }

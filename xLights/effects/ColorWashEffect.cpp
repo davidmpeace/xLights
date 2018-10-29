@@ -1,16 +1,14 @@
-#include "ColorWashEffect.h"
-
-#include "ColorWashPanel.h"
 #include <wx/checkbox.h>
 #include <wx/notebook.h>
 
+#include "ColorWashEffect.h"
+#include "ColorWashPanel.h"
 #include "../sequencer/Effect.h"
 #include "../sequencer/EffectLayer.h"
 #include "../sequencer/Element.h"
 #include "../RenderBuffer.h"
 #include "../UtilClasses.h"
 #include "../../include/ColorWash.xpm"
-#include "../xLightsMain.h" //xLightsFrame
 #include "../models/DmxModel.h"
 
 #include <sstream>
@@ -32,7 +30,6 @@ ColorWashEffect::~ColorWashEffect()
     //dtor
 }
 
-
 int ColorWashEffect::DrawEffectBackground(const Effect *e, int x1, int y1, int x2, int y2,
                                           DrawGLUtils::xlAccumulator &bg, xlColor* colorMask, bool ramps) {
     if (e->HasBackgroundDisplayList()) {
@@ -49,7 +46,7 @@ int ColorWashEffect::DrawEffectBackground(const Effect *e, int x1, int y1, int x
     return 2;
 }
 
-void ColorWashEffect::SetDefaultParameters(Model *cls) {
+void ColorWashEffect::SetDefaultParameters() {
     ColorWashPanel *p = (ColorWashPanel*)panel;
     if (p == nullptr) {
         return;
@@ -59,7 +56,6 @@ void ColorWashEffect::SetDefaultParameters(Model *cls) {
     SetCheckBoxValue(p->VFadeCheckBox, false);
     SetCheckBoxValue(p->ShimmerCheckBox, false);
     SetCheckBoxValue(p->CircularPaletteCheckBox, false);
-    p->BitmapButton_ColorWash_CyclesVC->SetValue("Active=FALSE");
     p->BitmapButton_ColorWash_CyclesVC->SetActive(false);
 }
 
@@ -149,14 +145,14 @@ void ColorWashEffect::RemoveDefaults(const std::string &version, Effect *effect)
 void ColorWashEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
 
     float oset = buffer.GetEffectTimeIntervalPosition();
-    float cycles = GetValueCurveDouble("ColorWash_Cycles", 1.0, SettingsMap, oset, COLOURWASH_CYCLES_MIN, COLOURWASH_CYCLES_MAX);
+    float cycles = GetValueCurveDouble("ColorWash_Cycles", 1.0, SettingsMap, oset, COLOURWASH_CYCLES_MIN, COLOURWASH_CYCLES_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
 
     bool HorizFade = SettingsMap.GetBool(CHECKBOX_ColorWash_HFade);
     bool VertFade = SettingsMap.GetBool(CHECKBOX_ColorWash_VFade);
     bool shimmer = SettingsMap.GetBool(CHECKBOX_ColorWash_Shimmer);
     bool circularPalette = SettingsMap.GetBool(CHECKBOX_ColorWash_CircularPalette);
 
-    int x,y;
+    int y;
     xlColor color, orig;
 
     double position = buffer.GetEffectTimeIntervalPosition(cycles);
@@ -172,31 +168,43 @@ void ColorWashEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuf
     // the proper red, green, and blue channels.
     //////////////////////////////////////////////////////////////
     if (buffer.cur_model != "") {
-        Model* model_info = buffer.frame->AllModels[buffer.cur_model];
+        Model* model_info = buffer.GetModel();
         if (model_info != nullptr) {
             if( model_info->GetDisplayAs() == "DMX" ) {
                 xlColor c;
                 DmxModel* dmx = (DmxModel*)model_info;
-                int red_channel = dmx->GetRedChannel();
-                int grn_channel = dmx->GetGreenChannel();
-                int blu_channel = dmx->GetBlueChannel();
-                if( red_channel != 0 ) {
+
+                int white_channel = dmx->GetWhiteChannel();
+                if (white_channel > 0 && color.red == color.green && color.red == color.blue)
+                {
                     c.red = color.red;
                     c.green = color.red;
                     c.blue = color.red;
-                    buffer.SetPixel(red_channel-1, 0, c);
+                    buffer.SetPixel(white_channel - 1, 0, c);
                 }
-                if( grn_channel != 0 ) {
-                    c.red = color.green;
-                    c.green = color.green;
-                    c.blue = color.green;
-                    buffer.SetPixel(grn_channel-1, 0, c);
-                }
-                if( blu_channel != 0 ) {
-                    c.red = color.blue;
-                    c.green = color.blue;
-                    c.blue = color.blue;
-                    buffer.SetPixel(blu_channel-1, 0, c);
+                else
+                {
+                    int red_channel = dmx->GetRedChannel();
+                    int grn_channel = dmx->GetGreenChannel();
+                    int blu_channel = dmx->GetBlueChannel();
+                    if (red_channel != 0) {
+                        c.red = color.red;
+                        c.green = color.red;
+                        c.blue = color.red;
+                        buffer.SetPixel(red_channel - 1, 0, c);
+                    }
+                    if (grn_channel != 0) {
+                        c.red = color.green;
+                        c.green = color.green;
+                        c.blue = color.green;
+                        buffer.SetPixel(grn_channel - 1, 0, c);
+                    }
+                    if (blu_channel != 0) {
+                        c.red = color.blue;
+                        c.green = color.blue;
+                        c.blue = color.blue;
+                        buffer.SetPixel(blu_channel - 1, 0, c);
+                    }
                 }
                 return;
             }
@@ -214,7 +222,7 @@ void ColorWashEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuf
         orig = color;
         HSVValue hsvOrig = color.asHSV();
         xlColor color2 = color;
-        for (x=startX; x <= endX; x++)
+        for (int x = startX; x <= endX; x++)
         {
             HSVValue hsv = hsvOrig;
             if (HorizFade) {

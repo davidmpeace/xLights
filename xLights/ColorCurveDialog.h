@@ -2,25 +2,28 @@
 #define COLORCURVEDIALOG_H
 
 //(*Headers(ColorCurveDialog)
+#include <wx/button.h>
+#include <wx/choice.h>
+#include <wx/dialog.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
-#include <wx/choice.h>
-#include <wx/button.h>
-#include <wx/dialog.h>
 //*)
+
+#include <wx/colourdata.h>
+#include <wx/dir.h>
 
 #include "xlCustomControl.h"
 #include "ColorCurve.h"
 
-class wxDir;
 class wxAutoBufferedPaintDC;
+class Element;
 
 wxDECLARE_EVENT(EVT_CCP_CHANGED, wxCommandEvent);
 
 class ColorCurvePanel : public wxWindow, public xlCustomControl
 {
 public:
-    ColorCurvePanel(ColorCurve* cc, wxWindow* parent, wxWindowID id, const wxPoint &pos = wxDefaultPosition,
+    ColorCurvePanel(ColorCurve* cc, Element* timingElement, int start, int end , wxColourData &colorData, wxWindow* parent, wxWindowID id, const wxPoint &pos = wxDefaultPosition,
         const wxSize &size = wxDefaultSize, long style = 0);
     virtual ~ColorCurvePanel() {};
     virtual void SetValue(const std::string &val) override {};
@@ -57,6 +60,8 @@ private:
     void DrawStopsAsLines(wxAutoBufferedPaintDC& pdc);
     void DrawStopsAsHouses(wxAutoBufferedPaintDC& pdc);
     void DrawHouse(wxAutoBufferedPaintDC& pdc, int x, int height, bool selected, const wxColor& c, wxPointList& pl);
+    void DrawTiming(wxAutoBufferedPaintDC& pdc);
+    void DrawTiming(wxAutoBufferedPaintDC& pdc, long timeMS);
     ColorCurve *_cc;
     //float _originalGrabbedPoint;
     float _grabbedPoint;
@@ -65,6 +70,10 @@ private:
     float _maxGrabbedPoint;
     std::string _type;
     std::list<ccSortableColorPoint> _undo;
+    int _start;
+    int _end;
+    wxColourData& _colorData;
+    Element* _timingElement;
 };
 
 class ColorCurveDialog: public wxDialog
@@ -80,19 +89,19 @@ class ColorCurveDialog: public wxDialog
 
     public:
 
-		ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
+		ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxColourData& colorData, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
 		virtual ~ColorCurveDialog();
         void OnCCPChanged(wxCommandEvent& event);
 
 		//(*Declarations(ColorCurveDialog)
 		wxButton* ButtonExport;
+		wxButton* ButtonLoad;
+		wxButton* Button_Cancel;
+		wxButton* Button_Flip;
 		wxButton* Button_Ok;
+		wxChoice* Choice1;
 		wxFlexGridSizer* PresetSizer;
 		wxStaticText* StaticText1;
-		wxButton* Button_Cancel;
-		wxButton* ButtonLoad;
-		wxButton* Button_Flip;
-		wxChoice* Choice1;
 		//*)
 
 	protected:

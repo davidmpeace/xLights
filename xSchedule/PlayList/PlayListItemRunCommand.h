@@ -31,7 +31,7 @@ public:
 
     #pragma region Getters and Setters
     std::string GetNameNoTime() const override;
-    std::string GetRawName() const { return _name; }
+
     void SetCommand(const std::string& command) {
         if (_command != command) { _command = command; _changeCount++; }
     }
@@ -57,7 +57,7 @@ public:
 
     #pragma region Playing
     virtual void Frame(wxByte* buffer, size_t size, size_t ms, size_t framems, bool outputframe) override;
-    virtual void Start() override;
+    virtual void Start(long stepLengthMS) override;
     #pragma endregion Playing
 
     #pragma region UI

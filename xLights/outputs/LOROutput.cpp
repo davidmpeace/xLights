@@ -1,7 +1,6 @@
 #include "LOROutput.h"
 
 #include <wx/xml/xml.h>
-#include <log4cpp/Category.hh>
 
 #pragma region Constructors and Destructors
 LOROutput::LOROutput(SerialOutput* output) : SerialOutput(output)
@@ -78,7 +77,7 @@ bool LOROutput::Open()
 #pragma region Frame Handling
 void LOROutput::EndFrame(int suppressFrames)
 {
-    if (!_enabled) return;
+    if (!_enabled || _suspend) return;
 
     // send heartbeat
     if (_timer_msec > _lastheartbeat + 300 || _timer_msec < _lastheartbeat || _lastheartbeat < 0)
@@ -128,6 +127,7 @@ void LOROutput::AllOff()
     }
     SendHeartbeat();
     _lastheartbeat = _timer_msec;
+    wxMilliSleep(50);
 }
 #pragma endregion Data Setting
 

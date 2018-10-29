@@ -9,6 +9,7 @@
 class wxXmlNode;
 class wxWindow;
 class AudioManager;
+class OutputManager;
 
 #define FSEQFILES "FSEQ files|*.fseq|All files (*.*)|*.*"
 
@@ -25,10 +26,13 @@ protected:
     AudioManager* _audioManager;
     size_t _durationMS;
     bool _controlsTimingCache;
-    size_t _startChannel;
+    size_t _sc;
+    std::string _startChannel;
+    OutputManager* _outputManager;
     size_t _channels;
     bool _fastStartAudio;
-#pragma endregion Member Variables
+    std::string _cachedAudioFilename;
+    #pragma endregion Member Variables
 
     void LoadFiles();
     void CloseFiles();
@@ -38,15 +42,15 @@ protected:
 public:
 
     #pragma region Constructors and Destructors
-    PlayListItemFSEQ(wxXmlNode* node);
-    PlayListItemFSEQ();
+    PlayListItemFSEQ(OutputManager* outputManager, wxXmlNode* node);
+    PlayListItemFSEQ(OutputManager* outputManager);
     virtual ~PlayListItemFSEQ();
     virtual PlayListItem* Copy() const override;
     #pragma endregion Constructors and Destructors
 
     #pragma region Getters and Setters
     AudioManager* GetAudioManager() const { return _audioManager; }
-    std::string GetAudioFilename() const;
+    std::string GetAudioFilename();
     int GetBlendMode() const { return _applyMethod; }
     void SetBlendMode(const std::string blendMode) { if (_applyMethod != EncodeBlendMode(blendMode)) { _applyMethod = EncodeBlendMode(blendMode); _changeCount++; } }
     virtual size_t GetDurationMS() const override { return _delay + _durationMS; }
@@ -64,14 +68,16 @@ public:
     virtual size_t GetFrameMS() const override { return _msPerFrame; }
     virtual bool Done() const override { return GetPositionMS() >= GetDurationMS() - GetFrameMS(); }
     virtual std::string GetSyncItemFSEQ() const override { return GetFSEQFileName(); }
-    virtual std::string GetSyncItemMedia() const override { return GetAudioFilename(); }
+    virtual std::string GetSyncItemMedia() override { return GetAudioFilename(); }
     virtual std::string GetTitle() const override;
-    long GetStartChannel() const { return _startChannel; }
-    void SetStartChannel(long startChannel) { if (_startChannel != startChannel) { _startChannel = startChannel; _changeCount++; } }
+    std::string GetStartChannel() const { return _startChannel; }
+    size_t GetStartChannelAsNumber();
+    void SetStartChannel(std::string startChannel) { if (_startChannel != startChannel) { _startChannel = startChannel; _sc = 0; _changeCount++; } }
     long GetChannels() const { return _channels; }
     void SetChannels(long channels) { if (_channels != channels) { _channels = channels; _changeCount++; } }
-    virtual std::list<std::string> GetMissingFiles() const override;
+    virtual std::list<std::string> GetMissingFiles() override;
     bool SetPosition(size_t frame, size_t ms);
+    virtual long GetFSEQChannels() const override;
     #pragma endregion Getters and Setters
 
     virtual wxXmlNode* Save() override;
@@ -79,7 +85,7 @@ public:
 
     #pragma region Playing
     virtual void Frame(wxByte* buffer, size_t size, size_t ms, size_t framems, bool outputframe) override;
-    virtual void Start() override;
+    virtual void Start(long stepLengthMS) override;
     virtual void Stop() override;
     virtual void Restart() override;
     virtual void Pause(bool pause) override;

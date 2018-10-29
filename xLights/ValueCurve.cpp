@@ -1,12 +1,17 @@
-#include "ValueCurve.h"
 #include <wx/wx.h>
 #include <wx/string.h>
+#include <wx/msgdlg.h>
+
+#include "ValueCurve.h"
 #include "xLightsVersion.h"
 #include "xLightsMain.h"
 #include "xLightsXmlFile.h"
-#include <wx/msgdlg.h>
 #include "UtilFunctions.h"
+#include "AudioManager.h"
+
 #include <log4cpp/Category.hh>
+
+AudioManager* ValueCurve::__audioManager = nullptr;
 
 float ValueCurve::SafeParameter(size_t p, float v)
 {
@@ -109,6 +114,11 @@ void ValueCurve::GetRangeParm1(const std::string& type, float& low, float &high)
         low = MINVOID;
         high = MAXVOID;
     }
+    else if (type == "Random")
+    {
+        low = MINVOID;
+        high = MAXVOID;
+    }
     else if (type == "Ramp")
     {
         low = MINVOID;
@@ -125,6 +135,11 @@ void ValueCurve::GetRangeParm1(const std::string& type, float& low, float &high)
         high = MAXVOID;
     }
     else if (type == "Saw Tooth")
+    {
+        low = MINVOID;
+        high = MAXVOID;
+    }
+    else if (type == "Music")
     {
         low = MINVOID;
         high = MAXVOID;
@@ -153,6 +168,9 @@ void ValueCurve::GetRangeParm1(const std::string& type, float& low, float &high)
     {
     }
     else if (type == "Sine")
+    {
+    }
+    else if (type == "Decaying Sine")
     {
     }
     else if (type == "Abs Sine")
@@ -171,12 +189,22 @@ void ValueCurve::GetRangeParm2(const std::string& type, float& low, float &high)
     else if (type == "Flat")
     {
     }
+    else if (type == "Random")
+    {
+        low = MINVOID;
+        high = MAXVOID;
+    }
     else if (type == "Ramp")
     {
         low = MINVOID;
         high = MAXVOID;
     }
     else if (type == "Ramp Up/Down")
+    {
+        low = MINVOID;
+        high = MAXVOID;
+    }
+    else if (type == "Music")
     {
         low = MINVOID;
         high = MAXVOID;
@@ -230,6 +258,11 @@ void ValueCurve::GetRangeParm2(const std::string& type, float& low, float &high)
     {
         low = MINVOID;
         high = MAXVOID;
+    }
+    else if (type == "Decaying Sine")
+    {
+        //low = MINVOID;
+        //high = MAXVOID;
     }
     else if (type == "Abs Sine")
     {
@@ -257,6 +290,11 @@ void ValueCurve::GetRangeParm3(const std::string& type, float& low, float &high)
         low = MINVOID;
         high = MAXVOID;
     }
+    else if (type == "Random")
+    {
+        low = 1;
+        high = VC_X_POINTS;
+    }
     else if (type == "Ramp Up/Down Hold")
     {
     }
@@ -287,6 +325,9 @@ void ValueCurve::GetRangeParm3(const std::string& type, float& low, float &high)
     else if (type == "Sine")
     {
     }
+    else if (type == "Decaying Sine")
+    {
+    }
     else if (type == "Abs Sine")
     {
     }
@@ -304,6 +345,9 @@ void ValueCurve::GetRangeParm4(const std::string& type, float& low, float &high)
     {
     }
     else if (type == "Ramp")
+    {
+    }
+    else if (type == "Random")
     {
     }
     else if (type == "Ramp Up/Down")
@@ -341,10 +385,89 @@ void ValueCurve::GetRangeParm4(const std::string& type, float& low, float &high)
         low = MINVOID;
         high = MAXVOID;
     }
+    else if (type == "Decaying Sine")
+    {
+    }
     else if (type == "Abs Sine")
     {
         low = MINVOID;
         high = MAXVOID;
+    }
+}
+
+void ValueCurve::Reverse()
+{
+    _timeOffset = 100 - _timeOffset;
+    if (_type == "Custom")
+    {
+        for (auto it = _values.begin(); it != _values.end(); ++it)
+        {
+            it->x = 1.0 - it->x;
+        }
+    }
+    else if (_type == "Ramp")
+    {
+        float p1 = GetParameter1();
+        SetParameter1(GetParameter2());
+        SetParameter2(p1);
+    }
+    else if (_type == "Ramp Up/Down")
+    {
+        float p1 = GetParameter1();
+        SetParameter1(GetParameter3());
+        SetParameter3(p1);
+    }
+    //else if (_type == "Logarithmic Up")
+    //{
+    //    float p1 = GetParameter1();
+    //    float p2 = GetParameter2();
+    //    SetType("Logarithmic Down");
+    //    SetParameter1(100.0 - p1);
+    //    SetParameter2(p2);
+    //}
+    //else if (_type == "Logarithmic Down")
+    //{
+    //    float p1 = GetParameter1();
+    //    float p2 = GetParameter2();
+    //    SetType("Logarithmic Up");
+    //    SetParameter1(100.0 - p1);
+    //    SetParameter2(p2);
+    //}
+    //else if (_type == "Exponential Up")
+    //{
+    //    float p1 = GetParameter1();
+    //    float p2 = GetParameter2();
+    //    SetType("Exponential Down");
+    //    SetParameter1(100.0 - p1);
+    //    SetParameter2(p2);
+    //}
+    //else if (_type == "Exponential Down")
+    //{
+    //    float p1 = GetParameter1();
+    //    float p2 = GetParameter2();
+    //    SetType("Exponential Up");
+    //    SetParameter1(100.0 - p1);
+    //    SetParameter2(p2);
+    //}
+    else if (_type == "Sine")   
+    {
+        SetParameter1((int)(GetParameter1() + 25.0) % 100);
+        _timeOffset = 100 - _timeOffset;
+        _timeOffset += 0.5 * 100 * 10 / _parameter3;
+        _timeOffset %= 100;
+    }
+    else if (_type == "Abs Sine")
+    {
+        SetParameter1((int)(GetParameter1() + 25.0) % 100);
+        _timeOffset = 100 - _timeOffset;
+        _timeOffset += 0.5 * 100 * 10 / _parameter3;
+        _timeOffset %= 100;
+    }
+    else if (_type == "Square")
+    {
+        float p1 = GetParameter1();
+        SetParameter1(GetParameter2());
+        SetParameter2(p1);
     }
 }
 
@@ -413,6 +536,35 @@ void ValueCurve::UnFixChangedScale(float newmin, float newmax)
     }
 }
 
+// fixes curves that were saved with the wrong scale
+void ValueCurve::FixScale(int scale)
+{
+    float min, max;
+    GetRangeParm(1, _type, min, max);
+    if (min == MINVOID)
+    {
+        _parameter1 *= scale;
+    }
+
+    GetRangeParm(2, _type, min, max);
+    if (min == MINVOID)
+    {
+        _parameter2 *= scale;
+    }
+
+    GetRangeParm(3, _type, min, max);
+    if (min == MINVOID)
+    {
+        _parameter3 *= scale;
+    }
+
+    GetRangeParm(4, _type, min, max);
+    if (min == MINVOID)
+    {
+        _parameter4 *= scale;
+    }
+}
+
 // fixes the changed scale from 0-100 to whatever it is now
 void ValueCurve::FixChangedScale(float newmin, float newmax, int divisor)
 {
@@ -458,7 +610,9 @@ void ValueCurve::ConvertChangedScale(float newmin, float newmax)
     if (newrange > oldrange)
     {
         // this is suspicious ... generally ranges increase with versions not decrease so I am going to ignore this request
-        return;
+        wxASSERT(false);
+        // continue otherwise it doesnt stop it happening in future
+        // return;
     }
 
     // now handle custom
@@ -525,6 +679,10 @@ void ValueCurve::RenderType()
             _values.push_back(vcSortablePoint(i * per + per / 2.0f, parameter2 / 100.0, false));
             _values.push_back(vcSortablePoint((i + 1) * per, parameter1 / 100.0, false));
         }
+    }
+    else if (_type == "Music")
+    {
+        // ???
     }
     else if (_type == "Square")
     {
@@ -799,6 +957,7 @@ void ValueCurve::RenderType()
         for (double i = 0.0; i <= 1.01; i += 0.025)
         {
             if (i > 1.0) i = 1.0;
+
             float r = i * maxx + (((float)_parameter1 * pi2) / 100.0f);
             float exponent = exp(-0.1 * i * maxx);
             float y = ((float)_parameter4 - 50.0) / 50.0 + (exponent * cos(r) * (std::max((float)_parameter2, 1.0f) / 200.0f)) + 0.5f;
@@ -819,6 +978,40 @@ void ValueCurve::RenderType()
             bool lastwrapped = false;
             if (_values.size() > 0) _values.back().IsWrapped();
             _values.push_back(vcSortablePoint(i, Safe01(y), (lastwrapped != wrapped)));
+        }
+    }
+    else if (_type == "Random")
+    {
+        // p1 - minimum
+        // p2 - maximum
+        // p3 - points
+        float min = parameter1 / 100.0;
+        float max = parameter2 / 100.0;
+        int points = std::round(Denormalise(3, parameter3));
+
+        if (points == 1)
+        {
+            float value = rand01() * (max - min) + min;
+            _values.push_back(vcSortablePoint(0.0f, value, false));
+            _values.push_back(vcSortablePoint(1.0f, value, false));
+        }
+        else
+        {
+            float value = rand01() * (max - min) + min;
+            _values.push_back(vcSortablePoint(0.0f, value, false));
+            value = rand01() * (max - min) + min;
+            _values.push_back(vcSortablePoint(1.0f, value, false));
+
+            for (int i = 2; i < points; i++)
+            {
+                float x = vcSortablePoint::Normalise(rand01());
+                while (IsSetPoint(x))
+                {
+                    x = vcSortablePoint::Normalise(rand01());
+                }
+                value = rand01() * (max - min) + min;
+                _values.push_back(vcSortablePoint(x, value, false));
+            }
         }
     }
     else if (_type == "Abs Sine")
@@ -865,6 +1058,8 @@ ValueCurve::ValueCurve(const std::string& id, float min, float max, const std::s
     _wrap = wrap;
     _realValues = true;
     _divisor = divisor;
+    wxASSERT(_divisor == 1 || _divisor == 10 || _divisor == 100);
+    _timeOffset = 0;
     _parameter1 = SafeParameter(1, parameter1);
     _parameter2 = SafeParameter(2, parameter2);
     _parameter3 = SafeParameter(3, parameter3);
@@ -888,6 +1083,7 @@ void ValueCurve::SetDefault(float min, float max, int divisor)
     _parameter2 = 0;
     _parameter3 = 0;
     _parameter4 = 0;
+    _timeOffset = 0;
     _active = false;
     _wrap = false;
     _realValues = true;
@@ -895,6 +1091,7 @@ void ValueCurve::SetDefault(float min, float max, int divisor)
     {
         _divisor = divisor;
     }
+    wxASSERT(_divisor == 1 || _divisor == 10 || _divisor == 100);
 
     RenderType();
 }
@@ -903,8 +1100,8 @@ ValueCurve::ValueCurve(const std::string& s)
 {
     _min = MINVOIDF;
     _max = MAXVOIDF;
-    SetDefault();
     _divisor = 1;
+    SetDefault();
     Deserialise(s);
 }
 
@@ -931,13 +1128,14 @@ void ValueCurve::Deserialise(const std::string& s, bool holdminmax)
         _parameter2 = 0.0f;
         _parameter3 = 0.0f;
         _parameter4 = 0.0f;
+        _timeOffset = 0;
         _wrap = false;
 
         float oldmin = _min;
         float oldmax = _max;
 
         wxArrayString v = wxSplit(wxString(s.c_str()), '|');
-        for (auto vs = v.begin(); vs != v.end(); vs++)
+        for (auto vs = v.begin(); vs != v.end(); ++vs)
         {
             wxArrayString v1 = wxSplit(*vs, '=');
             if (v1.size() == 2)
@@ -965,18 +1163,18 @@ void ValueCurve::Deserialise(const std::string& s, bool holdminmax)
                         // otherwise use the scale of this VC ... this is not great ... if the VC range has been expanded then
                         // it isnt going to convert correctly
 
-                        // this is actually checking for something .25 or newer
+                        // this is actually checking for something 2018.23 or newer
                         // this should be updated every release by 1 until we decide to change a slider range for the first time
-                        // at that point we are going to need to force people to go back to a version after .24 but before the
+                        // at that point we are going to need to force people to go back to a version after 2017.24 but before the
                         // first version with the change
-                        if (!::IsVersionOlder("2018.01", xlights_version_string.ToStdString()))
+                        if (!::IsVersionOlder("2018.30", xlights_version_string.ToStdString()))
                         {
                             static std::string warnedfile = "";
 
                             if (xLightsFrame::CurrentSeqXmlFile != nullptr && warnedfile != xLightsFrame::CurrentSeqXmlFile->GetFullName().ToStdString())
                             {
                                 warnedfile = xLightsFrame::CurrentSeqXmlFile->GetFullName().ToStdString();
-                                wxMessageBox("Sequence contains value curves that cannot be converted automatically. Please open and save this sequence in v2017.24 before proceeding.");
+                                wxMessageBox("Sequence contains value curves that cannot be converted automatically. Please open and save this sequence in v2018.23 before proceeding.");
                             }
                         }
                         FixChangedScale(oldmin, oldmax, _divisor);
@@ -1018,19 +1216,23 @@ std::string ValueCurve::Serialise()
         res += "Max=" + std::string(wxString::Format("%.2f", _max).c_str()) + "|";
         if (_parameter1 != 0)
         {
-            res += "P1=" + std::string(wxString::Format("%d", (int)_parameter1).c_str()) + "|";
+            res += "P1=" + std::string(wxString::Format("%.2f", _parameter1).c_str()) + "|";
         }
         if (_parameter2 != 0)
         {
-            res += "P2=" + std::string(wxString::Format("%d", (int)_parameter2).c_str()) + "|";
+            res += "P2=" + std::string(wxString::Format("%.2f", _parameter2).c_str()) + "|";
         }
         if (_parameter3 != 0)
         {
-            res += "P3=" + std::string(wxString::Format("%d", (int)_parameter3).c_str()) + "|";
+            res += "P3=" + std::string(wxString::Format("%.2f", _parameter3).c_str()) + "|";
         }
         if (_parameter4 != 0)
         {
-            res += "P4=" + std::string(wxString::Format("%d", (int)_parameter4).c_str()) + "|";
+            res += "P4=" + std::string(wxString::Format("%.2f", _parameter4).c_str()) + "|";
+        }
+        if (_timeOffset != 0)
+        {
+            res += "TO=" + std::string(wxString::Format("%d", _timeOffset).c_str()) + "|";
         }
         if (_wrap)
         {
@@ -1086,50 +1288,53 @@ void ValueCurve::SetSerialisedValue(std::string k, std::string s)
         _type = s;
     }
     else if (kk == "Min")
-        {
-            _min = wxAtof(wxString(s.c_str()));
-        }
-        else if (kk == "Max")
-        {
-            _max = wxAtof(wxString(s.c_str()));
-        }
-        else if (kk == "P1")
-        {
-            _parameter1 = (float)wxAtoi(wxString(s.c_str()));
-        }
-        else if (kk == "WRAP")
-        {
-            _wrap = true;
-        }
-        else if (kk == "RV")
-        {
-            _realValues = true;
-        }
-        else if (kk == "P2")
-        {
-            _parameter2 = (float)wxAtoi(wxString(s.c_str()));
-        }
-        else if (kk == "P3")
-        {
-            _parameter3 = (float)wxAtoi(wxString(s.c_str()));
-        }
-        else if (kk == "P4")
-        {
-            _parameter4 = (float)wxAtoi(wxString(s.c_str()));
-        }
-        else if (kk == "Values")
-        {
-            wxArrayString points = wxSplit(s, ';');
+    {
+        _min = wxAtof(wxString(s.c_str()));
+    }
+    else if (kk == "Max")
+    {
+        _max = wxAtof(wxString(s.c_str()));
+    }
+    else if (kk == "P1")
+    {
+        _parameter1 = wxAtof(wxString(s.c_str()));
+    }
+    else if (kk == "TO")
+    {
+        _timeOffset = wxAtoi(wxString(s.c_str()));
+    }
+    else if (kk == "WRAP")
+    {
+        _wrap = true;
+    }
+    else if (kk == "RV")
+    {
+        _realValues = true;
+    }
+    else if (kk == "P2")
+    {
+        _parameter2 = wxAtof(wxString(s.c_str()));
+    }
+    else if (kk == "P3")
+    {
+        _parameter3 = wxAtof(wxString(s.c_str()));
+    }
+    else if (kk == "P4")
+    {
+        _parameter4 = wxAtof(wxString(s.c_str()));
+    }
+    else if (kk == "Values")
+    {
+        wxArrayString points = wxSplit(s, ';');
 
-            for (auto p = points.begin(); p != points.end(); p++)
-            {
-                wxArrayString xy = wxSplit(*p, ':');
-                _values.push_back(vcSortablePoint(wxAtof(wxString(xy.front().c_str())), wxAtof(wxString(xy.back().c_str())), false));
-            }
+        for (auto p = points.begin(); p != points.end(); ++p)
+        {
+            wxArrayString xy = wxSplit(*p, ':');
+            _values.push_back(vcSortablePoint(wxAtof(wxString(xy.front().c_str())), wxAtof(wxString(xy.back().c_str())), false));
         }
+    }
 
     _values.sort();
-    //_active = true;
 }
 
 void ValueCurve::SetType(std::string type)
@@ -1138,69 +1343,92 @@ void ValueCurve::SetType(std::string type)
     RenderType();
 }
 
-float ValueCurve::GetOutputValue(float offset)
+float ValueCurve::GetScaledValue(float offset) const
 {
     wxASSERT(_min != MINVOIDF);
     wxASSERT(_max != MAXVOIDF);
     return (_min + (_max - _min) * offset) / _divisor;
 }
 
-float ValueCurve::GetOutputValueAt(float offset)
+float ValueCurve::GetOutputValueAt(float offset, long startMS, long endMS)
 {
     wxASSERT(_min != MINVOIDF);
     wxASSERT(_max != MAXVOIDF);
-    return _min + (_max - _min) * GetValueAt(offset);
+    return _min + (_max - _min) * GetValueAt(offset, startMS, endMS);
 }
 
-float ValueCurve::GetOutputValueAtDivided(float offset)
+float ValueCurve::GetOutputValueAtDivided(float offset, long startMS, long endMS)
 {
     wxASSERT(_min != MINVOIDF);
     wxASSERT(_max != MAXVOIDF);
-    return _min + (_max - _min) * GetValueAt(offset) / _divisor;
+    return (_min + (_max - _min) * GetValueAt(offset, startMS, endMS)) / _divisor;
 }
 
-float ValueCurve::GetValueAt(float offset)
+float ValueCurve::GetValueAt(float offset, long startMS, long endMS)
 {
     float res = 0.0f;
 
-    if (_values.size() < 2) return 1.0f;
-    if (!_active) return 1.0f;
-
-    if (offset < 0.0f) offset = 0.0;
-    if (offset > 1.0f) offset = 1.0;
-
-    vcSortablePoint last = _values.front();
-    auto it = _values.begin();
-    ++it;
-
-    while (it != _values.end() && it->x < offset)
+    if (_type == "Music")
     {
-        last = *it;
-        ++it;
-    }
+        if (__audioManager != nullptr)
+        {
+            long time = (float)startMS + offset * (endMS - startMS);
+            float f = 0.0;
+            auto pf = __audioManager->GetFrameData(FRAMEDATATYPE::FRAMEDATA_HIGH, "", time);
+            if (pf != nullptr)
+            {
+                f = *pf->begin();
+            }
 
-    if (it == _values.end())
-    {
-        res = _values.back().y;
-    }
-    else if (it->x == last.x)
-    {
-        // this should not be possible
-        res = it->y;
+            float min = (GetParameter1() - _min) / (_max - _min);
+            float max = (GetParameter2() - _min) / (_max - _min);
+            res = min + f * (max - min);
+        }
     }
     else
     {
-        if (it->x == offset)
+        if (_values.size() < 2) return 1.0f;
+        if (!_active) return 1.0f;
+
+        if (offset < 0.0f) offset = 0.0;
+        if (offset > 1.0f) offset = 1.0;
+
+        offset += (float)_timeOffset / 100;
+        if (offset > 1.0) offset -= 1.0;
+
+        vcSortablePoint last = _values.front();
+        auto it = _values.begin();
+        ++it;
+
+        while (it != _values.end() && it->x < offset)
         {
-            res = it->y;
+            last = *it;
+            ++it;
         }
-        else if (it->IsWrapped())
+
+        if (it == _values.end())
         {
+            res = _values.back().y;
+        }
+        else if (it->x == last.x)
+        {
+            // this should not be possible
             res = it->y;
         }
         else
         {
-            res = last.y + (it->y - last.y) * (offset - last.x) / (it->x - last.x);
+            if (it->x == offset)
+            {
+                res = it->y;
+            }
+            else if (it->IsWrapped())
+            {
+                res = it->y;
+            }
+            else
+            {
+                res = last.y + (it->y - last.y) * (offset - last.x) / (it->x - last.x);
+            }
         }
     }
 
@@ -1225,7 +1453,7 @@ bool ValueCurve::IsSetPoint(float offset)
         {
             return true;
         }
-        it++;
+        ++it;
     }
 
     return false;
@@ -1243,7 +1471,7 @@ void ValueCurve::DeletePoint(float offset)
                 _values.remove(*it);
                 break;
             }
-            it++;
+            ++it;
         }
     }
 }
@@ -1253,9 +1481,9 @@ void ValueCurve::RemoveExcessCustomPoints()
     // go through list and remove middle points where 3 in a row have the same value
     auto it1 = _values.begin();
     auto it2 = it1;
-    it2++;
+    ++it2;
     auto it3 = it2;
-    it3++;
+    ++it3;
 
     while (it1 != _values.end() && it2 != _values.end() && it3 != _values.end())
     {
@@ -1263,15 +1491,15 @@ void ValueCurve::RemoveExcessCustomPoints()
         {
             _values.remove(*it2);
             it2 = it1;
-            it2++;
+            ++it2;
             it3 = it2;
-            it3++;
+            ++it3;
         }
         else
         {
-            it1++;
-            it2++;
-            it3++;
+            ++it1;
+            ++it2;
+            ++it3;
         }
     }
 }
@@ -1286,7 +1514,7 @@ void ValueCurve::SetValueAt(float offset, float value)
             _values.remove(*it);
             break;
         }
-        it++;
+        ++it;
     }
     _values.push_back(vcSortablePoint(offset, value, false));
     _values.sort();
@@ -1298,7 +1526,7 @@ void ValueCurve::SetWrap(bool wrap)
 
     if (!_wrap)
     {
-        for (auto it = _values.begin(); it != _values.end(); it++)
+        for (auto it = _values.begin(); it != _values.end(); ++it)
         {
             it->ClearWrap();
         }
@@ -1307,11 +1535,17 @@ void ValueCurve::SetWrap(bool wrap)
     RenderType();
 }
 
+float ValueCurve::GetParameter1_100() const
+{
+    float range = _max - _min;
+    return (GetParameter1() - _min) * 100 / range;
+}
+
 float ValueCurve::FindMinPointLessThan(float point)
 {
     float res = 0.0;
 
-    for (auto it = _values.begin(); it != _values.end(); it++)
+    for (auto it = _values.begin(); it != _values.end(); ++it)
     {
         if (it->x < point)
         {
@@ -1321,11 +1555,12 @@ float ValueCurve::FindMinPointLessThan(float point)
 
     return vcSortablePoint::Normalise(res);
 }
+
 float ValueCurve::FindMaxPointGreaterThan(float point)
 {
     float res = 1.0;
 
-    for (auto it = _values.begin(); it != _values.end(); it++)
+    for (auto it = _values.begin(); it != _values.end(); ++it)
     {
         if (it->x > point)
         {
@@ -1339,7 +1574,7 @@ float ValueCurve::FindMaxPointGreaterThan(float point)
 
 bool ValueCurve::NearCustomPoint(float x, float y)
 {
-    for (auto it = _values.begin(); it != _values.end(); it++)
+    for (auto it = _values.begin(); it != _values.end(); ++it)
     {
         if (it->IsNear(x, y))
         {
@@ -1352,6 +1587,9 @@ bool ValueCurve::NearCustomPoint(float x, float y)
 
 wxBitmap ValueCurve::GetImage(int w, int h, double scaleFactor)
 {
+    if (scaleFactor < 1.0) {
+        scaleFactor = 1.0;
+    }
     float width = w * scaleFactor;
     float height = h * scaleFactor;
 
@@ -1361,16 +1599,34 @@ wxBitmap ValueCurve::GetImage(int w, int h, double scaleFactor)
     dc.SetBrush(*wxLIGHT_GREY_BRUSH);
     dc.DrawRectangle(0, 0, width, height);
     dc.SetPen(*wxBLACK_PEN);
-    float lastY = height - 1 - (GetValueAt(0)) * height;
+    float lastY = height - 1 - (GetValueAt(0, 0, 1)) * height;
 
-    for (int x = 1; x < width; x++) {
-        float x1 = x;
-        x1 /= (float)width;
-        float y = (GetValueAt(x1)) * (float)width;
-        y = (float)height - 1.0f - y;
-        dc.DrawLine(x - 1, lastY, x, std::round(y));
-        lastY = y;
+    if (_type == "Music")
+    {
+        dc.DrawCircle(width / 4, height - height / 4, wxCoord(std::min(width / 5, height / 5)));
+        dc.DrawLine(width / 4 + width / 5, height - height / 4, width / 4 + width / 5, height / 5);
+        dc.DrawLine(width / 4 + width / 5, height / 5, width - width/10, height/ 4);
+        dc.DrawLine(width / 4 + width / 5, height / 4, width - width/10, height/ 3);
+        float min = (GetParameter1() - _min) / (_max - _min) * height;
+        float max = (GetParameter2() - _min) / (_max - _min) * height;
+        dc.SetPen(*wxGREEN_PEN);
+        dc.DrawLine(0, height - min, width, height - min);
+        dc.SetPen(*wxRED_PEN);
+        dc.DrawLine(0, height - max, width, height - max);
     }
+    else
+    {
+        for (int x = 1; x < width; x++) {
+            float x1 = x;
+            x1 /= (float)width;
+
+            float y = (GetValueAt(x1, 0, 1)) * (float)width;
+            y = (float)height - 1.0f - y;
+            dc.DrawLine(x - 1, lastY, x, std::round(y));
+            lastY = y;
+        }
+    }
+
     if (scaleFactor > 1.0f) {
         wxImage img = bmp.ConvertToImage();
         return wxBitmap(img, 8, scaleFactor);

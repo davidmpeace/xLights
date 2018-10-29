@@ -34,20 +34,23 @@ class Waveform : public xlGLCanvas
 		int OpenfileMedia(AudioManager* media, wxString& error);
 		void CloseMedia();
 
+        static int GetLargeSize() { return 75; };
+        static int GetSmallSize() { return 37; };
         void SetZoomLevel(int level);
-        int GetZoomLevel();
+        int GetZoomLevel() const;
+        void SetGLSize(int w, int h);
 
         int SetStartPixelOffset(int startPixel);
-        int GetStartPixelOffset();
+        int GetStartPixelOffset() const;
         void SetSelectedInterval(int startMS, int endMS);
 
         void SetTimeFrequency(int frequency);
-        int GetTimeFrequency();
+        int GetTimeFrequency() const;
 
         void SetTimeline(TimeLine* timeLine);
 
         void UpdatePlayMarker();
-        void CheckNeedToScroll();
+        void CheckNeedToScroll() const;
 
         Waveform(wxPanel* parent, wxWindowID id, const wxPoint &pos=wxDefaultPosition,
                 const wxSize &size=wxDefaultSize,long style=0, const wxString &name=wxPanelNameStr);
@@ -69,19 +72,20 @@ class Waveform : public xlGLCanvas
     private:
       	DECLARE_EVENT_TABLE()
         //void GetMinMaxSampleSet(int setSize, float*sampleData,int trackSize, MINMAX* minMax);
-        float GetSamplesPerLineFromZoomLevel(int ZoomLevel);
+        float GetSamplesPerLineFromZoomLevel(int ZoomLevel) const;
 		TimeLine* mTimeline;
         wxPanel* mParent;
-        wxWindow* mMainWindow;
+        //wxWindow* mMainWindow;
         int mStartPixelOffset;
         int mCurrentWaveView;
-        int mMediaTrackSize;
+        //int mMediaTrackSize;
         int mFrequency;
         int mZoomLevel;
-        bool mPointSize;
+        //bool mPointSize;
         bool m_dragging;
         DRAG_MODE m_drag_mode;
 		AudioManager* _media;
+        static const long ID_WAVE_MNU_RENDER;
 
         class WaveView
         {
@@ -126,7 +130,7 @@ class Waveform : public xlGLCanvas
         };
 
         void DrawWaveView(const WaveView &wv);
-        void StartDrawing(wxDouble pointSize);
+        //void StartDrawing(wxDouble pointSize);
         void renderGL( wxPaintEvent& event );
         void renderGL();
         void UpdateMousePosition(int time);
@@ -135,13 +139,13 @@ class Waveform : public xlGLCanvas
       	void mouseLeftDown(wxMouseEvent& event);
       	void mouseLeftUp( wxMouseEvent& event);
       	void OnLeftDClick(wxMouseEvent& event);
+	    void rightClick(wxMouseEvent& event);
+        void OnGridPopup(wxCommandEvent& event);
         void OnLostMouseCapture(wxMouseCaptureLostEvent& event);
         void mouseLeftWindow(wxMouseEvent& event);
-        void OutputText(GLfloat x, GLfloat y, char *text);
-        void drawString (void * font, char *s, float x, float y, float z);
+        //void OutputText(GLfloat x, GLfloat y, char *text);
+        //void drawString (void * font, char *s, float x, float y, float z);
         std::vector<WaveView> views;
-
-
 };
 
 #endif // WAVEFORM_H

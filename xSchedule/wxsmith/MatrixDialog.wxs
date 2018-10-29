@@ -51,7 +51,7 @@
 				<object class="wxSpinCtrl" name="ID_SPINCTRL2" variable="SpinCtrl_StringLength" member="yes">
 					<value>150</value>
 					<min>1</min>
-					<max>1024</max>
+					<max>65535</max>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>5</border>
@@ -68,7 +68,8 @@
 			<object class="sizeritem">
 				<object class="wxSpinCtrl" name="ID_SPINCTRL3" variable="SpinCtrl_StrandsPerString" member="yes">
 					<value>1</value>
-					<max>64</max>
+					<min>1</min>
+					<max>8192</max>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>5</border>
@@ -83,9 +84,27 @@
 				<option>1</option>
 			</object>
 			<object class="sizeritem">
-				<object class="wxSpinCtrl" name="ID_SPINCTRL4" variable="SpinCtrl_StartChannel" member="yes">
-					<value>1</value>
-					<min>1</min>
+				<object class="wxFlexGridSizer" variable="FlexGridSizer2" member="no">
+					<cols>2</cols>
+					<growablecols>0</growablecols>
+					<object class="sizeritem">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL2" variable="TextCtrl_StartChannel" member="yes">
+							<value>1</value>
+							<handler function="OnTextCtrl_StartChannelText" entry="EVT_TEXT" />
+						</object>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxStaticText" name="ID_STATICTEXT8" variable="StaticText8" member="yes">
+							<label>1</label>
+							<size>60,-1</size>
+						</object>
+						<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>5</border>

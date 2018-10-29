@@ -2,18 +2,19 @@
 #define SEQEXPORTDIALOG_H
 
 //(*Headers(SeqExportDialog)
+#include <wx/button.h>
+#include <wx/choice.h>
+#include <wx/dialog.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
-#include <wx/choice.h>
-#include <wx/button.h>
-#include <wx/dialog.h>
 //*)
 
 class SeqExportDialog: public wxDialog
 {
     std::string _model;
     void ValidateWindow();
+    void SetDefaultName();
 
 public:
 
@@ -22,13 +23,13 @@ public:
     void ModelExportTypes(bool isgroup);
 
     //(*Declarations(SeqExportDialog)
-    wxTextCtrl* TextCtrlFilename;
+    wxButton* ButtonCancel;
+    wxButton* ButtonFilePick;
+    wxButton* ButtonOk;
+    wxChoice* ChoiceFormat;
     wxStaticText* StaticText1;
     wxStaticText* StaticText3;
-    wxButton* ButtonFilePick;
-    wxChoice* ChoiceFormat;
-    wxButton* ButtonCancel;
-    wxButton* ButtonOk;
+    wxTextCtrl* TextCtrlFilename;
     //*)
 
 protected:

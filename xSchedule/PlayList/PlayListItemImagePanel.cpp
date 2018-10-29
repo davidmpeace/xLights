@@ -12,7 +12,9 @@
 const long PlayListItemImagePanel::ID_STATICTEXT1 = wxNewId();
 const long PlayListItemImagePanel::ID_FILEPICKERCTRL1 = wxNewId();
 const long PlayListItemImagePanel::ID_BUTTON1 = wxNewId();
+const long PlayListItemImagePanel::ID_STATICTEXT4 = wxNewId();
 const long PlayListItemImagePanel::ID_CHECKBOX1 = wxNewId();
+const long PlayListItemImagePanel::ID_CHECKBOX2 = wxNewId();
 const long PlayListItemImagePanel::ID_STATICTEXT3 = wxNewId();
 const long PlayListItemImagePanel::ID_TEXTCTRL2 = wxNewId();
 const long PlayListItemImagePanel::ID_STATICTEXT2 = wxNewId();
@@ -46,7 +48,7 @@ public:
 
 PlayListItemImagePanel::PlayListItemImagePanel(wxWindow* parent, PlayListItemImage* Image,wxWindowID id,const wxPoint& pos,const wxSize& size)
 {
-    _Image = Image;
+    _image = Image;
 
 	//(*Initialize(PlayListItemImagePanel)
 	wxFlexGridSizer* FlexGridSizer1;
@@ -61,10 +63,17 @@ PlayListItemImagePanel::PlayListItemImagePanel(wxWindow* parent, PlayListItemIma
 	FlexGridSizer1->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Button_PositionWindow = new wxButton(this, ID_BUTTON1, _("Position Window"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON1"));
 	FlexGridSizer1->Add(Button_PositionWindow, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer1->Add(0,0,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	StaticText_Position = new wxStaticText(this, ID_STATICTEXT4, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT4"));
+	FlexGridSizer1->Add(StaticText_Position, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer1->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	CheckBox_Topmost = new wxCheckBox(this, ID_CHECKBOX1, _("Topmost Window"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX1"));
 	CheckBox_Topmost->SetValue(true);
 	FlexGridSizer1->Add(CheckBox_Topmost, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer1->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	CheckBox_SuppressVirtualMatrix = new wxCheckBox(this, ID_CHECKBOX2, _("Suppress Virtual Matrix"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX2"));
+	CheckBox_SuppressVirtualMatrix->SetValue(false);
+	FlexGridSizer1->Add(CheckBox_SuppressVirtualMatrix, 1, wxALL|wxEXPAND, 5);
 	StaticText3 = new wxStaticText(this, ID_STATICTEXT3, _("Duration:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT3"));
 	FlexGridSizer1->Add(StaticText3, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	TextCtrl_Duration = new wxTextCtrl(this, ID_TEXTCTRL2, _("0.000"), wxDefaultPosition, wxDefaultSize, wxTE_RIGHT, wxDefaultValidator, _T("ID_TEXTCTRL2"));
@@ -87,37 +96,37 @@ PlayListItemImagePanel::PlayListItemImagePanel(wxWindow* parent, PlayListItemIma
     TextCtrl_Delay->SetValue(wxString::Format(wxT("%.3f"), (float)Image->GetDelay() / 1000.0));
     TextCtrl_Duration->SetValue(wxString::Format(wxT("%.3f"), (float)Image->GetDuration() / 1000.0));
     CheckBox_Topmost->SetValue(Image->GetTopMost());
+    CheckBox_SuppressVirtualMatrix->SetValue(Image->GetSuppressVirtualMatrix());
+
+    SetWindowPositionText();
 }
 
 PlayListItemImagePanel::~PlayListItemImagePanel()
 {
 	//(*Destroy(PlayListItemImagePanel)
 	//*)
-    _Image->SetImageFile(FilePickerCtrl_ImageFile->GetFileName().GetFullPath().ToStdString());
-    _Image->SetDelay(wxAtof(TextCtrl_Delay->GetValue()) * 1000);
-    _Image->SetDuration(wxAtof(TextCtrl_Duration->GetValue()) * 1000);
-    _Image->SetTopmost(CheckBox_Topmost->GetValue());
+    _image->SetImageFile(FilePickerCtrl_ImageFile->GetFileName().GetFullPath().ToStdString());
+    _image->SetDelay(wxAtof(TextCtrl_Delay->GetValue()) * 1000);
+    _image->SetDuration(wxAtof(TextCtrl_Duration->GetValue()) * 1000);
+    _image->SetTopmost(CheckBox_Topmost->GetValue());
+    _image->SetSuppressVirtualMatrix(CheckBox_SuppressVirtualMatrix->GetValue());
 }
 
 void PlayListItemImagePanel::OnButton_PositionWindowClick(wxCommandEvent& event)
 {
-    VideoWindowPositionDialog dlg(this, wxID_ANY, _Image->GetPosition(), _Image->GetSize());
+    VideoWindowPositionDialog dlg(this, wxID_ANY, _image->GetPosition(), _image->GetSize());
 
-    dlg.ShowModal();
+    if (dlg.ShowModal() == wxID_OK)
+    {
+        _image->SetLocation(dlg.GetDesiredPosition(), dlg.GetDesiredSize());
+    }
 
-    if (dlg.IsFullScreen())
-    {
-        _Image->SetLocation(dlg.GetClientAreaOrigin(), dlg.GetClientSize());
-    }
-    else
-    {
-        _Image->SetLocation(dlg.GetPosition(), dlg.GetSize());
-    }
+    SetWindowPositionText();
 }
 
 void PlayListItemImagePanel::OnFilePickerCtrl_ImageFileFileChanged(wxFileDirPickerEvent& event)
 {
-    _Image->SetImageFile(FilePickerCtrl_ImageFile->GetFileName().GetFullPath().ToStdString());
+    _image->SetImageFile(FilePickerCtrl_ImageFile->GetFileName().GetFullPath().ToStdString());
     ((PlayListDialog*)GetParent()->GetParent()->GetParent()->GetParent())->UpdateTree();
 }
 
@@ -133,3 +142,8 @@ void PlayListItemImagePanel::OnTextCtrl_DurationText(wxCommandEvent& event)
 
 void PlayListItemImagePanel::ValidateWindow()
 {}
+
+void PlayListItemImagePanel::SetWindowPositionText()
+{
+    StaticText_Position->SetLabel(wxString::Format("X: %d, Y: %d, W: %d, H: %d", _image->GetPosition().x, _image->GetPosition().y, _image->GetSize().GetWidth(), _image->GetSize().GetHeight()));
+}

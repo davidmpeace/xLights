@@ -15,6 +15,10 @@
 #include <wx/filepicker.h>
 #include <wx/config.h>
 #include "models/Model.h"
+#include <wx/cmndata.h>
+#include <wx/prntbase.h>
+#include <wx/msgdlg.h>
+#include <log4cpp/Category.hh>
 
 #define MINFONTSIZE 8
 #define FONTSIZEINCREMENT 4
@@ -24,6 +28,8 @@ const long WiringDialog::ID_STATICBITMAP1 = wxNewId();
 //*)
 
 const long WiringDialog::ID_MNU_EXPORT = wxNewId();
+const long WiringDialog::ID_MNU_EXPORTLARGE = wxNewId();
+const long WiringDialog::ID_MNU_PRINT = wxNewId();
 const long WiringDialog::ID_MNU_DARK = wxNewId();
 const long WiringDialog::ID_MNU_LIGHT = wxNewId();
 const long WiringDialog::ID_MNU_FRONT = wxNewId();
@@ -73,6 +79,7 @@ WiringDialog::WiringDialog(wxWindow* parent, wxString modelname, wxWindowID id,c
 
 void WiringDialog::SetData(Model* model)
 {
+    _multilight = false;
     int nodes = model->GetNodeCount();
 
     std::vector<NodeBaseClassPtr> nodeList;
@@ -128,6 +135,7 @@ void WiringDialog::SetData(Model* model)
             wxASSERT(x >= 0 && x < _cols);
             wxASSERT(y >= 0 && y <= _rows);
             data[stringnode].push_back(wxPoint(x, y));
+            if (!_multilight && data[stringnode].size() > 1) _multilight = true;
         }
         stringnode++;
     }
@@ -169,12 +177,32 @@ void RenderText(const wxString& text, wxMemoryDC& dc, int x, int y, wxColor fore
     dc.DrawText(text, x, y);
 }
 
-void WiringDialog::RenderNodes(std::map<int, std::map<int, std::list<wxPoint>>>& points, int width, int height)
+#define ADJUST_WIDTH 40.0
+#define ADJUST_HEIGHT 80.0
+#define FRONT_X_ADJUST (ADJUST_WIDTH / 2.0)
+#define SCALE_WIDTH 0.8
+#define SCALE_HEIGHT 0.8
+#define PRINTSCALE 6.0
+
+int AdjustX(int x, bool printer)
+{
+    return x + ADJUST_WIDTH / 2.0 + (printer ? 50 : 0);
+}
+
+int AdjustY(int y)
+{
+    return y + ADJUST_HEIGHT / 2.0;
+}
+
+void WiringDialog::RenderNodes(wxBitmap& bitmap, std::map<int, std::map<int, std::list<wxPoint>>>& points, int width, int height, bool printer)
 {
     wxMemoryDC dc;
-    dc.SelectObject(_bmp);
+    dc.SelectObject(bitmap);
 
-    if (_dark)
+    int pageWidth = bitmap.GetScaledWidth() * SCALE_WIDTH;
+    int pageHeight = bitmap.GetScaledHeight() * SCALE_HEIGHT;
+
+    if (_dark && !printer)
     {
         dc.SetPen(*wxBLACK_PEN);
         dc.SetBrush(*wxBLACK_BRUSH);
@@ -184,23 +212,43 @@ void WiringDialog::RenderNodes(std::map<int, std::map<int, std::list<wxPoint>>>&
         dc.SetPen(*wxWHITE_PEN);
         dc.SetBrush(*wxWHITE_BRUSH);
     }
-    dc.DrawRectangle(wxPoint(0, 0), _bmp.GetScaledSize());
+    dc.DrawRectangle(wxPoint(0, 0), bitmap.GetScaledSize());
 
-    int r = 0.6 * std::min(_bmp.GetScaledWidth() / width / 2, _bmp.GetScaledHeight() / height / 2);
+    int r = 0.6 * std::min(pageWidth / width / 2, pageHeight / height / 2);
     if (r == 0) r = 1;
-    if (r > 5) r = 5;
 
-    wxFont font(_fontSize, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, wxEmptyString, wxFONTENCODING_DEFAULT);
+    if (!printer)
+    {
+        if (r > 5) r = 5;
+        if (r < 3) r = 3;
+    }
+
+    int printScale = 1;
+    int fontSize = _fontSize;
+    if (printer)
+    {
+        fontSize *= PRINTSCALE;
+        printScale = PRINTSCALE;
+    }
+
+    wxFont font(fontSize, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, wxEmptyString, wxFONTENCODING_DEFAULT);
     dc.SetFont(font);
 
     wxPen* pen;
-    if (_dark)
+    if (_dark && !printer)
     {
         pen = new wxPen(*wxYELLOW, 2);
     }
     else
     {
-        pen = new wxPen(*wxBLACK, 2);
+        if (printer)
+        {
+            pen = new wxPen(*wxBLACK, 5);
+        }
+        else
+        {
+            pen = new wxPen(*wxBLACK, 2);
+        }
     }
 
     // draw the lines
@@ -213,23 +261,23 @@ void WiringDialog::RenderNodes(std::map<int, std::map<int, std::list<wxPoint>>>&
         {
             dc.SetBrush(*wxWHITE_BRUSH);
             dc.SetPen(*wxBLACK_PEN);
-            int x = (width - it->second.front().x) * (_bmp.GetScaledWidth() - 40) / width - 20;
+            int x = (width - it->second.front().x) * pageWidth / width;
             if (!_rear)
             {
-                x = _bmp.GetScaledWidth() - x - 40;
+                x = pageWidth - x + FRONT_X_ADJUST;
             }
-            int y = 20 + it->second.front().y * (_bmp.GetScaledHeight() - 40) / height;
+            int y = it->second.front().y * pageHeight / height;
 
             if (it->first == last + 1)
             {
                 dc.SetPen(*pen);
-                int lastx = (width - lastpt.x) * (_bmp.GetScaledWidth() - 40) / width - 20;
+                int lastx = (width - lastpt.x) * pageWidth / width;
                 if (!_rear)
                 {
-                    lastx = _bmp.GetScaledWidth() - lastx - 40;
+                    lastx = pageWidth - lastx + FRONT_X_ADJUST;
                 }
-                int lasty = 20 + lastpt.y * (_bmp.GetScaledHeight() - 40) / height;
-                dc.DrawLine(lastx, lasty, x, y);
+                int lasty = lastpt.y * pageHeight / height;
+                dc.DrawLine(AdjustX(lastx, printer), AdjustY(lasty), AdjustX(x, printer), AdjustY(y));
             }
 
             last = it->first;
@@ -242,13 +290,13 @@ void WiringDialog::RenderNodes(std::map<int, std::map<int, std::list<wxPoint>>>&
     {
         for (auto it = itp->second.begin(); it != itp->second.end(); ++it)
         {
-            int x = (width - it->second.front().x) * (_bmp.GetScaledWidth() - 40) / width - 20;
+            int x = (width - it->second.front().x) * pageWidth / width;
             if (!_rear)
             {
-                x = _bmp.GetScaledWidth() - x - 40;
+                x = pageWidth - x + FRONT_X_ADJUST;
             }
-            int y = 20 + it->second.front().y * (_bmp.GetScaledHeight() - 40) / height;
-            dc.DrawCircle(x, y, r);
+            int y = it->second.front().y * pageHeight / height;
+            dc.DrawCircle(AdjustX(x, printer), AdjustY(y), r);
         }
     }
 
@@ -258,12 +306,12 @@ void WiringDialog::RenderNodes(std::map<int, std::map<int, std::list<wxPoint>>>&
     {
         for (auto it = itp->second.begin(); it != itp->second.end(); ++it)
         {
-            int x = (width - it->second.front().x) * (_bmp.GetScaledWidth() - 40) / width - 20;
+            int x = (width - it->second.front().x) * pageWidth / width;
             if (!_rear)
             {
-                x = _bmp.GetScaledWidth() - x - 40;
+                x = pageWidth - x + FRONT_X_ADJUST;
             }
-            int y = 20 + it->second.front().y * (_bmp.GetScaledHeight() - 40) / height;
+            int y = it->second.front().y * pageHeight / height;
 
             std::string label;
             if(points.size() == 1)
@@ -275,57 +323,80 @@ void WiringDialog::RenderNodes(std::map<int, std::map<int, std::list<wxPoint>>>&
                 label = wxString::Format("%d:%d", string, it->first).ToStdString();
             }
 
-            if (_dark)
+            if (_dark && !printer)
             {
-                RenderText(label, dc, x + r + 2, y, *wxLIGHT_GREY, *wxBLACK);
+                RenderText(label, dc, AdjustX(x + r + 2, printer), AdjustY(y), *wxLIGHT_GREY, *wxBLACK);
             }
             else
             {
-                RenderText(label, dc, x + r + 2, y, *wxBLACK, *wxWHITE);
+                RenderText(label, dc, AdjustX(x + r + 2, printer), AdjustY(y), *wxBLACK, *wxWHITE);
             }
         }
         string++;
     }
 
-    if (_dark)
+    if (_dark && !printer)
     {
         if (_rear)
         {
-            RenderText("CAUTION: Reverse view", dc, 20, 20, *wxGREEN, *wxBLACK);
+            RenderText("CAUTION: Reverse view", dc, AdjustX(0, printer), 20, *wxGREEN, *wxBLACK);
         }
         else
         {
-            RenderText("CAUTION: Front view", dc, 20, 20, *wxBLUE, *wxBLACK);
+            RenderText("CAUTION: Front view", dc, AdjustX(0, printer), 20, *wxBLUE, *wxBLACK);
         }
-        RenderText("Model: " + _modelname, dc, 20, 20 + _fontSize + 4, *wxGREEN, *wxBLACK);
+        RenderText("Model: " + _modelname, dc, AdjustX(0, printer), 20 + fontSize + 4 * printScale, *wxGREEN, *wxBLACK);
     }
     else
     {
         if (_rear)
         {
-            RenderText("CAUTION: Reverse view", dc, 20, 20, *wxBLACK, *wxWHITE);
+            RenderText("CAUTION: Reverse view", dc, AdjustX(0, printer), 20, *wxBLACK, *wxWHITE);
         }
         else
         {
-            RenderText("CAUTION: Front view", dc, 20, 20, *wxBLUE, *wxWHITE);
+            RenderText("CAUTION: Front view", dc, AdjustX(0, printer), 20, *wxBLUE, *wxWHITE);
         }
-        RenderText("Model: " + _modelname, dc, 20, 20 + _fontSize + 4, *wxBLACK, *wxWHITE);
+        RenderText("Model: " + _modelname, dc, AdjustX(0, printer), 20 + fontSize + 4 * printScale, *wxBLACK, *wxWHITE);
     }
 
     dc.SetPen(*wxBLACK_PEN);
     delete pen;
 }
 
-void WiringDialog::RenderMultiLight(std::map<int, std::map<int, std::list<wxPoint>>>& points, int width, int height)
+WiringPrintout::WiringPrintout(WiringDialog* wiringDialog)
+{
+    _wiringDialog = wiringDialog;
+}
+
+bool WiringPrintout::OnPrintPage(int pageNum)
+{
+    if (pageNum != 1) return false;
+
+    wxRect rect = GetLogicalPageRect();
+    wxBitmap bmp;
+    bmp.Create(rect.GetWidth() * 0.95f, rect.GetHeight() * 0.95f);
+    _wiringDialog->DrawBitmap(bmp, true);
+
+    wxDC* dc = GetDC();
+    dc->DrawBitmap(bmp, 0, 0);
+
+    return true;
+}
+
+void WiringDialog::RenderMultiLight(wxBitmap& bitmap, std::map<int, std::map<int, std::list<wxPoint>>>& points, int width, int height, bool printer)
 {
     static wxColor magenta(255, 0, 255);
     static const wxColor* colors[] = { wxRED, wxBLUE, wxGREEN, wxYELLOW, wxLIGHT_GREY, wxCYAN, wxWHITE, &magenta };
     static const wxColor* lightColors[] = { wxRED, wxBLUE, wxGREEN, wxYELLOW, wxLIGHT_GREY, wxCYAN, wxBLACK, &magenta };
     static int colorcnt = sizeof(colors) / sizeof(wxColor*);
     wxMemoryDC dc;
-    dc.SelectObject(_bmp);
+    dc.SelectObject(bitmap);
 
-    if (_dark)
+    int pageWidth = bitmap.GetScaledWidth() * SCALE_WIDTH;
+    int pageHeight = bitmap.GetScaledHeight() * SCALE_HEIGHT;
+
+    if (_dark && !printer)
     {
         dc.SetPen(*wxBLACK_PEN);
         dc.SetBrush(*wxBLACK_BRUSH);
@@ -335,22 +406,35 @@ void WiringDialog::RenderMultiLight(std::map<int, std::map<int, std::list<wxPoin
         dc.SetPen(*wxWHITE_PEN);
         dc.SetBrush(*wxWHITE_BRUSH);
     }
-    dc.DrawRectangle(wxPoint(0, 0), _bmp.GetScaledSize());
+    dc.DrawRectangle(wxPoint(0, 0), bitmap.GetScaledSize());
 
-    wxFont font(_fontSize, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, wxEmptyString, wxFONTENCODING_DEFAULT);
+    int printScale = 1;
+    int fontSize = _fontSize;
+    if (printer)
+    {
+        fontSize *= PRINTSCALE;
+        printScale = PRINTSCALE;
+    }
+
+    wxFont font(fontSize, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, wxEmptyString, wxFONTENCODING_DEFAULT);
     dc.SetFont(font);
 
     int cindex = 0;
 
-    int r = 0.8 * std::min(_bmp.GetScaledWidth() / width / 2, _bmp.GetScaledHeight() / height / 2);
+    int r = 0.6 * std::min(pageWidth / width / 2, pageHeight / height / 2);
     if (r == 0) r = 1;
-    if (r > 5) r = 5;
+
+    if (!printer)
+    {
+        if (r > 5) r = 5;
+        if (r < 3) r = 3;
+    }
 
     for (auto itp = points.begin(); itp != points.end(); ++itp)
     {
         for (auto it = itp->second.begin(); it != itp->second.end(); ++it)
         {
-            if (_dark)
+            if (_dark && !printer)
             {
                 dc.SetBrush(wxBrush(*colors[cindex], wxBRUSHSTYLE_SOLID));
             }
@@ -361,13 +445,13 @@ void WiringDialog::RenderMultiLight(std::map<int, std::map<int, std::list<wxPoin
 
             for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2)
             {
-                int x = (width - it2->x) * (_bmp.GetScaledWidth() - 40) / width - 20;
+                int x = (width - it2->x) * pageWidth / width;
                 if (!_rear)
                 {
-                    x = _bmp.GetScaledWidth() - x - 40;
+                    x = pageWidth - x + FRONT_X_ADJUST;
                 }
-                int y = 20 + it2->y * (_bmp.GetScaledHeight() - 40) / height;
-                dc.DrawCircle(x, y, r);
+                int y = it2->y * pageHeight / height;
+                dc.DrawCircle(AdjustX(x, printer), AdjustY(y), r);
             }
 
             cindex++;
@@ -382,12 +466,12 @@ void WiringDialog::RenderMultiLight(std::map<int, std::map<int, std::list<wxPoin
         {
             for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2)
             {
-                int x = (width - it2->x) * (_bmp.GetScaledWidth() - 40) / width - 20;
+                int x = (width - it2->x) * pageWidth / width;
                 if (!_rear)
                 {
-                    x = _bmp.GetScaledWidth() - x - 40;
+                    x = pageWidth - x + FRONT_X_ADJUST;
                 }
-                int y = 20 + it2->y * (_bmp.GetScaledHeight() - 40) / height;
+                int y = it2->y * pageHeight / height;
 
                 std::string label;
                 if (points.size() == 1)
@@ -399,42 +483,42 @@ void WiringDialog::RenderMultiLight(std::map<int, std::map<int, std::list<wxPoin
                     label = wxString::Format("%d:%d", string, it->first).ToStdString();
                 }
 
-                if (_dark)
+                if (_dark && !printer)
                 {
-                    RenderText(label, dc, x + r + 2, y, *wxLIGHT_GREY, *wxBLACK);
+                    RenderText(label, dc, AdjustX(x + r + 2, printer), AdjustY(y), *wxLIGHT_GREY, *wxBLACK);
                 }
                 else
                 {
-                    RenderText(label, dc, x + r + 2, y, *wxBLACK, *wxWHITE);
+                    RenderText(label, dc, AdjustX(x + r + 2, printer), AdjustY(y), *wxBLACK, *wxWHITE);
                 }
             }
         }
         string++;
     }
 
-    if (_dark)
+    if (_dark && !printer)
     {
         if (_rear)
         {
-            RenderText("CAUTION: Reverse view", dc, 20, 20, *wxGREEN, *wxBLACK);
+            RenderText("CAUTION: Reverse view", dc, AdjustX(0, printer), 20, *wxGREEN, *wxBLACK);
         }
         else
         {
-            RenderText("CAUTION: Front view", dc, 20, 20, *wxBLUE, *wxBLACK);
+            RenderText("CAUTION: Front view", dc, AdjustX(0, printer), 20, *wxBLUE, *wxBLACK);
         }
-        RenderText("Model: " + _modelname, dc, 20, 20 + _fontSize + 4, *wxGREEN, *wxBLACK);
+        RenderText("Model: " + _modelname, dc, AdjustX(0, printer), 20 + fontSize + 4 * printScale, *wxGREEN, *wxBLACK);
     }
     else
     {
         if (_rear)
         {
-            RenderText("CAUTION: Reverse view", dc, 20, 20, *wxBLACK, *wxWHITE);
+            RenderText("CAUTION: Reverse view", dc, AdjustX(0, printer), 20, *wxBLACK, *wxWHITE);
         }
         else
         {
-            RenderText("CAUTION: Front view", dc, 20, 20, *wxBLUE, *wxWHITE);
+            RenderText("CAUTION: Front view", dc, AdjustX(0, printer), 20, *wxBLUE, *wxWHITE);
         }
-        RenderText("Model: " + _modelname, dc, 20, 20 + _fontSize + 4, *wxBLACK, *wxWHITE);
+        RenderText("Model: " + _modelname, dc, AdjustX(0, printer), 20 + fontSize + 4 * printScale, *wxBLACK, *wxWHITE);
     }
 }
 
@@ -487,6 +571,8 @@ void WiringDialog::RightClick(wxContextMenuEvent& event)
 {
     wxMenu mnuLayer;
     mnuLayer.Append(ID_MNU_EXPORT, "Export");
+    mnuLayer.Append(ID_MNU_EXPORTLARGE, "Export Large");
+    mnuLayer.Append(ID_MNU_PRINT, "Print");
     auto dark = mnuLayer.Append(ID_MNU_DARK, "Dark", "", wxITEM_RADIO);
     auto light = mnuLayer.Append(ID_MNU_LIGHT, "Light", "", wxITEM_RADIO);
     if (_dark)
@@ -516,6 +602,7 @@ void WiringDialog::RightClick(wxContextMenuEvent& event)
 
 void WiringDialog::OnPopup(wxCommandEvent& event)
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     int id = event.GetId();
     if (id == ID_MNU_EXPORT)
     {
@@ -524,6 +611,35 @@ void WiringDialog::OnPopup(wxCommandEvent& event)
         {
             wxImage img = _bmp.ConvertToImage();
             img.SaveFile(filename, wxBITMAP_TYPE_PNG);
+        }
+    }
+    else if (id == ID_MNU_EXPORTLARGE)
+    {
+        wxString filename = wxFileSelector(_("Choose output file"), wxEmptyString, _modelname, wxEmptyString, "PNG File (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        if (filename != "")
+        {
+            wxImage img = Render(4096, 2048).ConvertToImage();
+            img.SaveFile(filename, wxBITMAP_TYPE_PNG);
+        }
+    }
+    else if (id == ID_MNU_PRINT)
+    {
+        static wxPrintDialogData printDialogData;
+        wxPrinter printer(&printDialogData);
+
+        WiringPrintout printout(this);
+
+        if (!printer.Print(this, &printout, true))
+        {
+            if (wxPrinter::GetLastError() == wxPRINTER_ERROR)
+            {
+                logger_base.error("Problem printing. %d", wxPrinter::GetLastError());
+                wxMessageBox("Problem printing.");
+            }
+        }
+        else
+        {
+            printDialogData = printer.GetPrintDialogData();
         }
     }
     else if (id == ID_MNU_DARK)
@@ -563,25 +679,37 @@ void WiringDialog::OnPopup(wxCommandEvent& event)
     }
 }
 
+wxBitmap WiringDialog::Render(int w, int h)
+{
+    wxBitmap bmp;
+    bmp.CreateScaled(w, h, wxBITMAP_SCREEN_DEPTH, 1.0);
+
+    DrawBitmap(bmp);
+
+    return bmp;
+}
+
 void WiringDialog::Render()
 {
-    //wxScreenDC sdc;
-    //wxSize s = sdc.GetSize();
-    //_bmp.CreateScaled(s.GetWidth(), s.GetHeight(), wxBITMAP_SCREEN_DEPTH, GetContentScaleFactor());
-
     int w, h;
     GetClientSize(&w, &h);
-    _bmp.CreateScaled(w, h, wxBITMAP_SCREEN_DEPTH, GetContentScaleFactor());
 
-    if (_multilight)
-    {
-        RenderMultiLight(_points, _cols, _rows);
-    }
-    else
-    {
-        RenderNodes(_points, _cols, _rows);
-    }
+    _bmp.CreateScaled(w, h, wxBITMAP_SCREEN_DEPTH, 1.0);  // Using GetContentScaleFactor() was causing it to scale too much on some Windows systems.
+
+    DrawBitmap(_bmp);
 
     StaticBitmap_Wiring->SetBitmap(_bmp);
     Refresh();
+}
+
+void WiringDialog::DrawBitmap(wxBitmap& bitmap, bool printer)
+{
+    if (_multilight)
+    {
+        RenderMultiLight(bitmap, _points, _cols, _rows, printer);
+    }
+    else
+    {
+        RenderNodes(bitmap, _points, _cols, _rows, printer);
+    }
 }

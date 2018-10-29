@@ -1,7 +1,9 @@
-#include <wx/utils.h> //check keyboard state -DJ
+#include <wx/utils.h>
 #include <wx/tokenzr.h>
 #include <wx/clipbrd.h>
 #include <wx/xml/xml.h>
+#include <wx/config.h>
+
 #include "xLightsMain.h"
 #include "SeqSettingsDialog.h"
 #include "xLightsXmlFile.h"
@@ -13,11 +15,21 @@
 #include "osxMacUtils.h"
 #include "UtilFunctions.h"
 #include "BufferPanel.h"
-#include <wx/config.h>
+#include "EffectIconPanel.h"
+#include "JukeboxPanel.h"
+#include "EffectsPanel.h"
+#include "TimingPanel.h"
+#include "ColorPanel.h"
+#include "LayoutGroup.h"
+#include "ModelPreview.h"
+#include "ViewsModelsPanel.h"
+#include "PerspectivesPanel.h"
 
-void xLightsFrame::DisplayXlightsFilename(const wxString& filename)
+#include <log4cpp/Category.hh>
+
+void xLightsFrame::DisplayXlightsFilename(const wxString& filename) const
 {
-    xlightsFilename=filename;
+    xlightsFilename = filename;
     FileNameText->SetLabel(filename);
 }
 
@@ -32,8 +44,7 @@ void xLightsFrame::OnButtonNewSequenceClick(wxCommandEvent& event)
 	EnableSequenceControls(true);
 }
 
-
-// load the specified .xseq binary file
+// load the specified .?seq binary file
 void xLightsFrame::SeqLoadXlightsXSEQ(const wxString& filename)
 {
     // read xlights file
@@ -41,15 +52,15 @@ void xLightsFrame::SeqLoadXlightsXSEQ(const wxString& filename)
     if (fn.GetExt() == "xseq") {
         ReadXlightsFile(filename);
         fn.SetExt("fseq");
-    } else {
+    }
+    else {
         ReadFalconFile(filename, nullptr);
     }
     DisplayXlightsFilename(fn.GetFullPath());
-    SeqBaseChannel=1;
-    SeqChanCtrlBasic=false;
-    SeqChanCtrlColor=false;
+    SeqBaseChannel = 1;
+    SeqChanCtrlBasic = false;
+    SeqChanCtrlColor = false;
 }
-
 
 void xLightsFrame::ResetEffectsXml()
 {
@@ -86,7 +97,7 @@ wxString xLightsFrame::LoadEffectsFileNoCheck()
         xx.SetExt("xbkp");
         wxString asfile = xx.GetLongPath();
 
-        if (wxFile::Exists(asfile))
+        if (!_renderMode && wxFile::Exists(asfile))
         {
             // the autosave file exists
             wxDateTime xmltime = fn.GetModificationTime();
@@ -111,8 +122,9 @@ wxString xLightsFrame::LoadEffectsFileNoCheck()
                 {
                     if (wxFile::Exists(fn.GetFullPath()))
                     {
-                        // Touch the xml file to stop this prompt occuring again
-                        fn.Touch();
+                        //set the backup to be older than the XML files to avoid re-promting
+                        xmltime -= wxTimeSpan(0, 0, 3, 0);  //subtract 2 seconds as FAT time resulution is 2 seconds
+                        asfn.SetTimes(&xmltime, &xmltime, &xmltime);
                     }
                 }
             }
@@ -241,6 +253,27 @@ wxString xLightsFrame::LoadEffectsFileNoCheck()
     }
     SetPreviewBackgroundImage(mBackgroundImage);
 
+    //Load FSEQ and Backup directory settings
+    fseqDirectory = GetXmlSetting("fseqDir", showDirectory);
+    backupDirectory = GetXmlSetting("backupDir", showDirectory);
+    ObtainAccessToURL(fseqDirectory.ToStdString());
+    ObtainAccessToURL(backupDirectory.ToStdString());
+    if (!wxDir::Exists(fseqDirectory))
+    {
+        logger_base.warn("FSEQ Directory not Found ... switching to Show Directory.");
+        fseqDirectory = showDirectory;
+        SetXmlSetting("fseqDir", showDirectory);
+        UnsavedRgbEffectsChanges = true;
+    }
+    FseqDir = fseqDirectory;
+    if (!wxDir::Exists(backupDirectory))
+    {
+        logger_base.warn("Backup Directory not Found ... switching to Show Directory.");
+        backupDirectory = showDirectory;
+        SetXmlSetting("backupDir", showDirectory);
+        UnsavedRgbEffectsChanges = true;
+    }
+
     mStoredLayoutGroup = GetXmlSetting("storedLayoutGroup","Default");
 
     // validate stored preview exists
@@ -303,8 +336,6 @@ wxString xLightsFrame::LoadEffectsFileNoCheck()
 
 void xLightsFrame::LoadEffectsFile()
 {
-    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
-
     wxStopWatch sw; // start a stopwatch timer
     wxString filename=LoadEffectsFileNoCheck();
     // check version, do we need to convert?
@@ -406,25 +437,15 @@ void xLightsFrame::LoadEffectsFile()
     EffectsNode->AddAttribute("version", XLIGHTS_RGBEFFECTS_VERSION);
 
     displayElementsPanel->SetSequenceElementsModelsViews(&SeqData, &mSequenceElements, ModelsNode, ModelGroupsNode, &_sequenceViewManager);
-    UpdateModelsList();
+    layoutPanel->RefreshLayout();
+    // the call to RefreshLayout will call UpdateModelsList, avoid doing it twice
+    //UpdateModelsList();
     mSequencerInitialize = false;
 
     // load the perspectives
     CheckForAndCreateDefaultPerpective();
     perspectivePanel->SetPerspectives(PerspectivesNode);
     LoadPerspectivesMenu(PerspectivesNode);
-
-    if (_autoSavePerspecive)
-    {
-        // if we have a saved perspective on this machine then make that the current one
-        wxConfigBase* config = wxConfigBase::Get();
-        wxString machinePerspective = config->Read("xLightsMachinePerspective", "");
-        if (machinePerspective != "")
-        {
-            m_mgr->LoadPerspective(machinePerspective);
-            logger_base.debug("Loaded machine perspective.");
-        }
-    }
 
     float elapsedTime = sw.Time()/1000.0; //msec => sec
     SetStatusText(wxString::Format(_("'%s' loaded in %4.3f sec."), filename, elapsedTime));
@@ -480,6 +501,7 @@ void xLightsFrame::LoadPerspectivesMenu(wxXmlNode* perspectivesNode)
 
 void xLightsFrame::OnMenuItemLoadPerspectiveSelected(wxCommandEvent& event)
 {
+    Notebook1->SetSelection(Notebook1->GetPageIndex(PanelSequencer));
     for (int i=0;i<10;i++) {
         if (perspectives[i].id == event.GetId()) {
             DoLoadPerspective(perspectives[i].p);
@@ -497,9 +519,12 @@ void xLightsFrame::SaveModelsFile()
 
     if (!wxDir::Exists(CurrentDir + "/xScheduleData"))
     {
+        logger_base.debug("Creating xScheduleData folder.");
         wxDir sd(CurrentDir);
         sd.Make(CurrentDir + "/xScheduleData");
     }
+
+    logger_base.debug("Creating models JSON file: %s.", (const char *)filename.c_str());
 
     wxFile modelsJSON;
     if (!modelsJSON.Create(filename, true) || !modelsJSON.IsOpened())
@@ -513,16 +538,16 @@ void xLightsFrame::SaveModelsFile()
     bool first = true;
     for (auto m = AllModels.begin(); m != AllModels.end(); ++m)
     {
-        if (!first)
-        {
-            modelsJSON.Write(",");
-            first = false;
-        }
-
         Model* model = m->second;
         if (model->GetDisplayAs() == "ModelGroup")
         {
             // Dont export model groups ... they arent useful
+
+            //if (!first)
+            //{
+            //    modelsJSON.Write(",");
+            //}
+            //first = false;
 
             //ModelGroup* mg = static_cast<ModelGroup*>(model);
             //modelsJSON.Write("{\"name\":\"" + mg->name +
@@ -531,8 +556,32 @@ void xLightsFrame::SaveModelsFile()
             //    "\",\"channels\":\"" + wxString::Format("%i", mg->GetChanCount()) +
             //    "\",\"stringtype\":\"\"}");
         }
+        else if (model->GetDisplayAs() == "SubModel")
+        {
+            // Dont export sub models ... they arent useful
+
+            //if (!first)
+            //{
+            //    modelsJSON.Write(",");
+            //}
+            //first = false;
+
+            //SubModel* sm = static_cast<SubModel*>(model);
+            //int ch = sm->GetNumberFromChannelString(sm->ModelStartChannel);
+            //modelsJSON.Write("{\"name\":\"" + sm->name +
+            //    "\",\"type\":\"" + sm->GetDisplayAs() +
+            //    "\",\"startchannel\":\"" + wxString::Format("%i", ch) +
+            //    "\",\"channels\":\"" + wxString::Format("%i", sm->GetChanCount()) +
+            //    "\",\"stringtype\":\"" + sm->GetStringType() + "\"}");
+        }
         else
         {
+            if (!first)
+            {
+                modelsJSON.Write(",");
+            }
+            first = false;
+
             int ch = model->GetNumberFromChannelString(model->ModelStartChannel);
             modelsJSON.Write("{\"name\":\""+model->name+
                               "\",\"type\":\""+model->GetDisplayAs()+
@@ -543,11 +592,15 @@ void xLightsFrame::SaveModelsFile()
     }
 
     modelsJSON.Write("]}");
+
+    logger_base.debug("     models JSON file done.");
 }
 
 // returns true on success
 bool xLightsFrame::SaveEffectsFile(bool backup)
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
     // dont save if currently saving
     std::unique_lock<std::mutex> lock(saveLock, std::try_to_lock);
     if (!lock.owns_lock()) return false;
@@ -572,11 +625,11 @@ bool xLightsFrame::SaveEffectsFile(bool backup)
     {
         if (backup)
         {
-            static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
             logger_base.warn("Unable to save backup of RGB effects file");
         }
         else
         {
+            logger_base.warn("Unable to save RGB effects file");
             wxMessageBox(_("Unable to save RGB effects file"), _("Error"));
         }
         return false;
@@ -597,19 +650,112 @@ void xLightsFrame::CreateDefaultEffectsXml()
     EffectsXml.SetRoot( root );
     UnsavedRgbEffectsChanges = true;
 }
+
+// This ensures submodels are in the right order in the sequence elements after the user
+// reorders them in the ssubmodel dialog
+bool xLightsFrame::EnsureSequenceElementsAreOrderedCorrectly(const std::string ModelName, std::vector<std::string>& submodelOrder)
+{
+    ModelElement* elementToCheck = dynamic_cast<ModelElement*>(mSequenceElements.GetElement(ModelName));
+
+    if (elementToCheck != nullptr)
+    {
+        // Check if they are already right and in the right order
+        bool identical = true;
+        if (elementToCheck->GetSubModelCount() == submodelOrder.size())
+        {
+            for (int  i = 0; i < elementToCheck->GetSubModelCount(); i++)
+            {
+                if (elementToCheck->GetSubModel(i)->GetName() != submodelOrder[i])
+                {
+                    identical = false;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            identical = false;
+        }
+
+        if (identical)
+        {
+            // no changes we can exit
+            return false;
+        }
+
+        // Grab the existing elements
+        std::list<SubModelElement*> oldList;
+        for (int i = 0; i < elementToCheck->GetSubModelCount(); i++)
+        {
+            oldList.push_back(elementToCheck->GetSubModel(i));
+        }
+
+        // remove but dont delete all submodels
+        elementToCheck->RemoveAllSubModels();
+
+        // Now add them back in the right order
+        for (auto msm = submodelOrder.begin(); msm != submodelOrder.end(); ++msm)
+        {
+            bool found = false;
+            for (auto it = oldList.begin(); it != oldList.end(); ++it)
+            {
+                if ((*it)->GetName() == *msm)
+                {
+                    elementToCheck->AddSubModel(*it);
+                    oldList.erase(it);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                // add the submodel as it didnt previously exist
+                elementToCheck->GetSubModel(*msm, true);
+            }
+        }
+
+        // delete any that are no longer there
+        for (auto it = oldList.begin(); it != oldList.end(); ++it)
+        {
+            delete *it;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 bool xLightsFrame::RenameModel(const std::string OldName, const std::string& NewName)
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    bool internalsChanged = false;
+
     if (OldName == NewName) {
         return false;
     }
+
+    logger_base.debug("Renaming model '%s' to '%s'.", (const char*)OldName.c_str(), (const char *)NewName.c_str());
+
     Element* elem_to_rename = mSequenceElements.GetElement(OldName);
-    if( elem_to_rename != nullptr )
+    if (elem_to_rename != nullptr)
     {
         elem_to_rename->SetName(NewName);
     }
-    bool internalsChanged = AllModels.Rename(OldName, NewName);
+
+    if (std::find(OldName.begin(), OldName.end(), '/') != OldName.end())
+    {
+        internalsChanged = AllModels.RenameSubModel(OldName, NewName);
+    }
+    else
+    {
+        internalsChanged = AllModels.Rename(OldName, NewName);
+    }
+
     RenameModelInViews(OldName, NewName);
     mSequenceElements.RenameModelInViews(OldName, NewName);
+
     UnsavedRgbEffectsChanges = true;
     return internalsChanged;
 }
@@ -639,19 +785,15 @@ void xLightsFrame::OnBitmapButtonSaveSeqClick(wxCommandEvent& event)
     SaveSequence();
 }
 
-
-
-
 static std::string chooseNewName(xLightsFrame *parent, std::vector<std::string> &names,
                                  const std::string &msg, const std::string curval) {
     wxTextEntryDialog dialog(parent, _("Enter new name"), msg, curval);
     int DlgResult;
-    std::string NewName;
     do {
         DlgResult=dialog.ShowModal();
         if (DlgResult == wxID_OK) {
             // validate inputs
-            NewName = dialog.GetValue().Trim();
+            std::string NewName = dialog.GetValue().Trim();
             if (std::find(names.begin(), names.end(), NewName) == names.end()) {
                 return NewName;
             }
@@ -662,11 +804,11 @@ static std::string chooseNewName(xLightsFrame *parent, std::vector<std::string> 
 }
 
 static void AddModelsToPreview(ModelGroup *grp, std::vector<Model *> &PreviewModels) {
-    for (auto it2 = grp->Models().begin(); it2 != grp->Models().end(); it2++) {
+    for (auto it2 = grp->Models().begin(); it2 != grp->Models().end(); ++it2) {
         Model *model = dynamic_cast<Model*>(*it2);
         ModelGroup *g2 = dynamic_cast<ModelGroup*>(*it2);
         SubModel *sm = dynamic_cast<SubModel*>(*it2);
-        
+
         if (sm != nullptr) {
             model = sm->GetParent();
         }
@@ -688,21 +830,22 @@ void xLightsFrame::UpdateModelsList()
     PreviewModels.clear();
     layoutPanel->GetMainPreview()->GetModels().clear();
 
+    modelsChangeCount++;
     AllModels.LoadModels(ModelsNode,
                          modelPreview->GetVirtualCanvasWidth(),
                          modelPreview->GetVirtualCanvasHeight());
 
     std::vector<std::string> current;
-    for (auto it = AllModels.begin(); it != AllModels.end(); it++) {
+    for (auto it = AllModels.begin(); it != AllModels.end(); ++it) {
         current.push_back(it->first);
     }
-    for (wxXmlNode* e=ModelGroupsNode->GetChildren(); e != NULL; e = e->GetNext()) {
+    for (wxXmlNode* e=ModelGroupsNode->GetChildren(); e != nullptr; e = e->GetNext()) {
         if (e->GetName() == "modelGroup") {
             std::string name = e->GetAttribute("name").ToStdString();
             current.push_back(name);
         }
     }
-    for (wxXmlNode* e=ModelGroupsNode->GetChildren(); e != NULL; e = e->GetNext()) {
+    for (wxXmlNode* e=ModelGroupsNode->GetChildren(); e != nullptr; e = e->GetNext()) {
         if (e->GetName() == "modelGroup") {
             std::string name = e->GetAttribute("name").ToStdString();
             Model *model = AllModels[name];
@@ -723,7 +866,7 @@ void xLightsFrame::UpdateModelsList()
                     switch (sel) {
                         case 0:
                         case 1:
-                            for (wxXmlNode* e2=ModelsNode->GetChildren(); e2!=NULL; e2=e2->GetNext()) {
+                            for (wxXmlNode* e2=ModelsNode->GetChildren(); e2!=nullptr; e2=e2->GetNext()) {
                                 if (e2->GetName() == "model") {
                                     std::string mname = e2->GetAttribute("name").ToStdString();
                                     if (mname == name) {
@@ -767,6 +910,8 @@ void xLightsFrame::UpdateModelsList()
                                 break;
                             }
                             break;
+                        default:
+                            break;
                     }
                 } while (!done);
             }
@@ -779,7 +924,7 @@ void xLightsFrame::UpdateModelsList()
     wxString msg;
 
     // Add all models to default House Preview that are set to Default or All Previews
-    for (auto it = AllModels.begin(); it != AllModels.end(); it++) {
+    for (auto it = AllModels.begin(); it != AllModels.end(); ++it) {
         Model *model = it->second;
         if (model->GetDisplayAs() != "ModelGroup") {
             if (model->GetLayoutGroup() == "Default" || model->GetLayoutGroup() == "All Previews") {
@@ -789,7 +934,7 @@ void xLightsFrame::UpdateModelsList()
     }
 
     // Now add all models to default House Preview that are in groups set to Default or All Previews
-    for (auto it = AllModels.begin(); it != AllModels.end(); it++) {
+    for (auto it = AllModels.begin(); it != AllModels.end(); ++it) {
         Model *model = it->second;
         if (model->GetDisplayAs() == "ModelGroup") {
             ModelGroup *grp = (ModelGroup*)model;
@@ -803,12 +948,16 @@ void xLightsFrame::UpdateModelsList()
     displayElementsPanel->UpdateModelsForSelectedView();
 }
 
-void xLightsFrame::OpenRenderAndSaveSequences(const wxArrayString &origFilenames) {
+void xLightsFrame::OpenRenderAndSaveSequences(const wxArrayString &origFilenames, bool exitOnDone) {
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     if (origFilenames.IsEmpty()) {
         EnableSequenceControls(true);
         printf("Done All Files\n");
-        Destroy();
+        if (exitOnDone) {
+            Destroy();
+        } else {
+            CloseSequence();
+        }
         return;
     }
     EnableSequenceControls(false);
@@ -818,9 +967,17 @@ void xLightsFrame::OpenRenderAndSaveSequences(const wxArrayString &origFilenames
     fileNames.RemoveAt(0);
     wxStopWatch sw; // start a stopwatch timer
 
-    printf("Processing file %s\n", seq.ToStdString().c_str());
+    printf("Processing file %s\n", (const char *)seq.c_str());
     OpenSequence(seq, nullptr);
     EnableSequenceControls(false);
+
+    // if the fseq directory is not the show directory then ensure the fseq folder is set right
+    if (fseqDirectory != showDirectory)
+    {
+        wxFileName fn(xlightsFilename);
+        fn.SetPath(fseqDirectory);
+        xlightsFilename = fn.GetFullPath();
+    }
 
     SetStatusText(_("Saving ") + xlightsFilename + _(" ... Rendering."));
     ProgressBar->Show();
@@ -829,7 +986,7 @@ void xLightsFrame::OpenRenderAndSaveSequences(const wxArrayString &origFilenames
     RenderIseqData(true, nullptr); // render ISEQ layers below the Nutcracker layer
     logger_base.info("   iseq below effects done.");
     ProgressBar->SetValue(10);
-    RenderGridToSeqData([this, sw, fileNames] {
+    RenderGridToSeqData([this, sw, fileNames, exitOnDone] {
         static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
         logger_base.info("   Effects done.");
         ProgressBar->SetValue(90);
@@ -851,9 +1008,10 @@ void xLightsFrame::OpenRenderAndSaveSequences(const wxArrayString &origFilenames
         mSavedChangeCount = mSequenceElements.GetChangeCount();
         mLastAutosaveCount = mSavedChangeCount;
 
-        CallAfter(&xLightsFrame::OpenRenderAndSaveSequences, fileNames);
+        CallAfter(&xLightsFrame::OpenRenderAndSaveSequences, fileNames, exitOnDone);
     } );
 }
+
 void xLightsFrame::SaveSequence()
 {
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
@@ -898,19 +1056,31 @@ void xLightsFrame::SaveSequence()
             }
         }
         while (!ok);
-        wxFileName oName(NewFilename);
-        oName.SetExt("fseq");
-        DisplayXlightsFilename(oName.GetFullPath());
+        wxFileName xmlFileName(NewFilename);//set XML Path based on user input
+        _renderCache.SetSequence(fseqDirectory.ToStdString(), xmlFileName.GetName());
+        xmlFileName.SetExt("xml");
+        CurrentSeqXmlFile->SetPath(xmlFileName.GetPath());
+        CurrentSeqXmlFile->SetFullName(xmlFileName.GetFullName());
 
-        oName.SetExt("xml");
-        CurrentSeqXmlFile->SetPath(oName.GetPath());
-        CurrentSeqXmlFile->SetFullName(oName.GetFullName());
+        wxFileName fseqFileName(NewFilename);//create FSEQ file name in seq folder
+        fseqFileName.SetExt("fseq");
+        DisplayXlightsFilename(fseqFileName.GetFullPath());
+    }
+
+    // if the fseq directory is not the show directory then ensure the fseq folder is set right
+	// Only Change FSEQ save folder if the FSEQ Folder Setting is NOT the Show Dir
+    if (fseqDirectory != showDirectory)
+    {
+        wxFileName fn(xlightsFilename);
+        fn.SetPath(fseqDirectory);
+        xlightsFilename = fn.GetFullPath();
     }
 
     EnableSequenceControls(false);
     wxStopWatch sw; // start a stopwatch timer
-    SetStatusText(_("Saving ")+xlightsFilename+_(" ... Saving xml."));
+    SetStatusText(_("Saving ") + CurrentSeqXmlFile->GetFullPath() + _(" ... Saving xml."));
     logger_base.info("Saving XML file.");
+    CurrentSeqXmlFile->AddJukebox(jukeboxPanel->Save());
     CurrentSeqXmlFile->Save(mSequenceElements);
     logger_base.info("XML file done.");
 
@@ -921,10 +1091,23 @@ void xLightsFrame::SaveSequence()
 
     if (mRenderOnSave) {
         SetStatusText(_("Saving ") + xlightsFilename + _(" ... Rendering."));
+
+        // If number of channels is wrong then lets just dump and reallocate before render
+        if ((SeqData.NumChannels() != roundTo4(GetMaxNumChannels())) ||
+            (SeqData.FrameTime() != CurrentSeqXmlFile->GetFrameMS()) )
+        {
+            logger_base.info("Render on Save: Number of channels was wrong ... reallocating sequence data memory before rendering and saving.");
+
+            wxString mss = CurrentSeqXmlFile->GetSequenceTiming();
+            int ms = wxAtoi(mss);
+
+            SeqData.init(GetMaxNumChannels(), CurrentSeqXmlFile->GetSequenceDurationMS() / ms, ms);
+        }
+
         ProgressBar->Show();
         GaugeSizer->Layout();
         logger_base.info("Rendering on save.");
-        RenderIseqData(true, NULL); // render ISEQ layers below the Nutcracker layer
+        RenderIseqData(true, nullptr); // render ISEQ layers below the Nutcracker layer
         logger_base.info("   iseq below effects done.");
         ProgressBar->SetValue(10);
         RenderGridToSeqData([this, sw] {
@@ -938,6 +1121,7 @@ void xLightsFrame::SaveSequence()
             GaugeSizer->Layout();
 
             logger_base.info("Saving fseq file.");
+
             SetStatusText(_("Saving ") + xlightsFilename + _(" ... Writing fseq."));
             WriteFalconPiFile(xlightsFilename);
             logger_base.info("fseq file done.");
@@ -952,12 +1136,21 @@ void xLightsFrame::SaveSequence()
         } );
         return;
     }
-    SetStatusText(_("Saving ") + xlightsFilename + _(" ... Writing fseq."));
-    WriteFalconPiFile(xlightsFilename);
-    logger_base.info("fseq file done.");
-    DisplayXlightsFilename(xlightsFilename);
-    float elapsedTime = sw.Time()/1000.0; // now stop stopwatch timer and get elapsed time. change into seconds from ms
-    wxString displayBuff = wxString::Format(_("%s     Updated in %7.3f seconds"),xlightsFilename,elapsedTime);
+    wxString display_name;
+    if (mSaveFseqOnSave)
+    {
+        SetStatusText(_("Saving ") + xlightsFilename + _(" ... Writing fseq."));
+        WriteFalconPiFile(xlightsFilename);
+        logger_base.info("fseq file done.");
+        DisplayXlightsFilename(xlightsFilename);
+        display_name = xlightsFilename;
+    }
+    else
+    {
+        display_name = CurrentSeqXmlFile->GetFullPath();
+    }
+    float elapsedTime = sw.Time() / 1000.0; // now stop stopwatch timer and get elapsed time. change into seconds from ms
+    wxString displayBuff = wxString::Format(_("%s     Updated in %7.3f seconds"), display_name, elapsedTime);
     logger_base.info("%s", (const char *)displayBuff.c_str());
     CallAfter(&xLightsFrame::SetStatusText, displayBuff, 0);
     EnableSequenceControls(true);
@@ -1002,9 +1195,12 @@ void xLightsFrame::SaveAsSequence()
     oName.SetExt("fseq");
     DisplayXlightsFilename(oName.GetFullPath());
 
+    SetPanelSequencerLabel(oName.GetName().ToStdString());
+
     oName.SetExt("xml");
     CurrentSeqXmlFile->SetPath(oName.GetPath());
     CurrentSeqXmlFile->SetFullName(oName.GetFullName());
+    _renderCache.SetSequence(fseqDirectory.ToStdString(), oName.GetName());
     SaveSequence();
     SetTitle(xlights_base_name + " - " + NewFilename);
 }
@@ -1064,6 +1260,7 @@ static void enableAllToolbarControls(wxAuiToolBar *parent, bool enable) {
     }
     parent->Refresh();
 }
+
 static void enableAllMenubarControls(wxMenuBar *parent, bool enable) {
     for (int x = 0; x < parent->GetMenuCount(); x++) {
         wxMenu * menu = parent->GetMenu(x);
@@ -1093,6 +1290,7 @@ void xLightsFrame::EnableSequenceControls(bool enable)
     enableAllChildControls(perspectivePanel, enable && SeqData.NumFrames() > 0);
     enableAllChildControls(colorPanel, enable && SeqData.NumFrames() > 0 && !IsACActive());
     enableAllChildControls(effectPalettePanel, enable && SeqData.NumFrames() > 0 && !IsACActive());
+    enableAllChildControls(jukeboxPanel, enable && SeqData.NumFrames() > 0 && !IsACActive());
     UpdateACToolbar(enable);
 
     enableAllMenubarControls(MenuBar, enable);
@@ -1103,11 +1301,14 @@ void xLightsFrame::EnableSequenceControls(bool enable)
         EnableToolbarButton(MainToolBar,ID_AUITOOLBAR_SAVEAS,false);
         EnableToolbarButton(MainToolBar,ID_AUITOOLBAR_RENDERALL,false);
         Menu_Settings_Sequence->Enable(false);
-        MenuItem_File_Save_Sequence->Enable(false);
+        MenuItem_File_Save->Enable(false);
+        MenuItem_File_SaveAs_Sequence->Enable(false);
         MenuItem_File_Close_Sequence->Enable(false);
+		  MenuItem_File_Export_Video->Enable(false);
         MenuItem_PackageSequence->Enable(false);
         MenuItem_GenerateLyrics->Enable(false);
         MenuItem_ExportEffects->Enable(false);
+        MenuItem_PurgeRenderCache->Enable(false);
         MenuItem_ImportEffects->Enable(false);
         MenuSettings->Enable(ID_MENUITEM_RENDER_MODE, false);
     }
@@ -1123,39 +1324,37 @@ void xLightsFrame::EnableSequenceControls(bool enable)
     {
         MenuItem_CrashXLights->Enable();
     }
+    if (MenuItem_LogRenderState != nullptr)
+    {
+        MenuItem_LogRenderState->Enable();
+    }
+
+    if (!mSaveFseqOnSave)
+    {
+        mRenderOnSaveMenuItem->Enable(false);
+    }
 }
 
 //modifed for partially random -DJ
 //void djdebug(const char* fmt, ...); //_DJ
 std::string xLightsFrame::CreateEffectStringRandom(std::string &settings, std::string &palette)
 {
-    int eff1;
-    if (EffectsPanel1->isRandom_()) { //avoid a few types of random effects
-        eff1 = ChooseRandomEffect();
-    } else {
-        eff1 = EffectsPanel1->EffectChoicebook->GetSelection();
-    }
-
+    int eff1 = ChooseRandomEffect();
     settings = EffectsPanel1->GetRandomEffectString(eff1);
-
-
     palette = colorPanel->GetRandomColorString();
     return effectManager[eff1]->Name();
 }
 
 int xLightsFrame::ChooseRandomEffect()
 {
-    int eff,count=0;
-    const static int MAX_TRIES=10;
+    int eff, count = 0;
+    const static int MAX_TRIES = 10;
 
     do {
         count++;
-        eff=rand() % effectManager.size();
+        eff = rand() % effectManager.size();
     } while (!effectManager[eff]->CanBeRandom() && count < MAX_TRIES);
 
-    if(count==MAX_TRIES) eff = 0; // we failed to find a good effect after MAX_TRIES attempts
+    if (count == MAX_TRIES) eff = 0; // we failed to find a good effect after MAX_TRIES attempts
     return eff;
 }
-
-
-

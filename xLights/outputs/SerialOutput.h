@@ -28,6 +28,7 @@ public:
     #pragma region Static Functions
     static std::list<std::string> GetAvailableSerialPorts();
     static std::list<std::string> GetPossibleSerialPorts();
+    static std::list<std::string> GetPossibleBaudRates();
     #pragma endregion Static Functions
 
     virtual wxXmlNode* Save() override;
@@ -37,12 +38,15 @@ public:
     virtual bool IsSerialOutput() const override { return true; }
     virtual std::string GetChannelMapping(long ch) const override;
     virtual std::string GetLongDescription() const override;
+    virtual std::string GetPingDescription() const override;
     virtual int GetMaxChannels() const override { return 0; }
     virtual std::string GetBaudRateString() const override;
     virtual std::string GetSetupHelp() const = 0;
     virtual bool AllowsBaudRateSetting() const { return true; }
     virtual size_t TxNonEmptyCount() const override;
     virtual bool TxEmpty() const override;
+    int GetId() const { return _universe; }
+    void SetId(int id) { _universe = id; _dirty = true; }
     #pragma endregion Getters and Setters
 
     #pragma region Operators
@@ -56,6 +60,9 @@ public:
 
     // Create a new serial type of the specified type but copy across this objects settings
     SerialOutput* Mutate(const std::string& newtype);
+
+    PINGSTATE Ping() const override;
+    bool CanPing() const override { return true; }
 
     #pragma region UI
 #ifndef EXCLUDENETWORKUI

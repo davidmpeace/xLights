@@ -26,6 +26,7 @@ protected:
     wxFont* _font;
     int _x;
     int _y;
+    bool _renderWhenBlank;
     wxSize _maxSize;
     MatrixMapper* _matrixMapper;
     #pragma endregion Member Variables
@@ -45,7 +46,7 @@ public:
 
     #pragma region Getters and Setters
     static std::string GetTooltip(const std::string& type);
-    std::string GetRawName() const { return _name; }
+
     void SetSpeed(int speed) { if (_speed != speed) { _speed = speed; _changeCount++; } }
     int GetSpeed() const { return _speed; }
     void SetBlendMode(const std::string& blendMode) { if (_blendMode != EncodeBlendMode(blendMode)) { _blendMode = EncodeBlendMode(blendMode); _changeCount++; } }
@@ -66,6 +67,8 @@ public:
     std::string GetOrientation() const { return _orientation; }
     void SetMovement(const std::string& movement) { if (_movement != movement) { _movement = movement; _changeCount++; } }
     std::string GetMovement() const { return _movement; }
+    void SetRenderWhenBlank(bool renderWhenBlank) { if (_renderWhenBlank != renderWhenBlank) { _renderWhenBlank = renderWhenBlank; _changeCount++; } }
+    bool GetRenderWhenBlank() const { return _renderWhenBlank; }
     void SetFont(wxFont* font);
     wxFont* GetFont() const { return _font; }
     void SetX(int x) { if (_x != x) { _x = x; _changeCount++; } }
@@ -82,7 +85,7 @@ public:
     void Load(wxXmlNode* node) override;
 
     #pragma region Playing
-    virtual void Start() override;
+    virtual void Start(long stepLengthMS) override;
     virtual void Stop() override;
     virtual void Frame(wxByte* buffer, size_t size, size_t ms, size_t framems, bool outputframe) override;
     #pragma endregion Playing

@@ -25,7 +25,7 @@ FSEQFile::FSEQFile(const std::string& filename)
 {
     _audiofilename = "";
     _channelsPerFrame = 0;
-    _filename = filename;
+    _filename = FixFile("", filename);
     _frameMS = 0;
     _frames = 0;
     _fh = nullptr;
@@ -99,29 +99,28 @@ void FSEQFile::Load(const std::string& filename)
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     Close();
 
-    _filename = filename;
-    _fh = new wxFile(filename);
+    _filename = FixFile("", filename);
+    _fh = new wxFile(FixFile("", _filename));
 
     if (_fh->IsOpened())
     {
-        int offset = 0;
         char tag[5];
         memset(tag, 0x00, sizeof(tag));
         _fh->Read(tag, sizeof(tag)-1);
-        if (std::string(tag) == "PSEQ")
+        if (std::string(tag) == "PSEQ" || std::string(tag) == "FSEQ")
         {
             _frame0Offset = ReadInt16(_fh);
             _fh->Read(&_minorVersion, sizeof(_minorVersion));
             _fh->Read(&_majorVersion, sizeof(_majorVersion));
-            int fixedheader = ReadInt16(_fh); // fixed header length
+            ReadInt16(_fh); // fixed header length - read and ignore
             _channelsPerFrame = ReadInt32(_fh);
             _frames = ReadInt32(_fh);
             _frameMS = ReadInt16(_fh);
-            int universes = ReadInt16(_fh); // universes
-            int usize  = ReadInt16(_fh); // universe size
+            ReadInt16(_fh); // universes - read and ignore
+            ReadInt16(_fh); // universe size - read and ignore
             _gamma = _fh->Read(&_gamma, sizeof(_gamma));
             _fh->Read(&_colourEncoding, sizeof(_colourEncoding));
-            int fill = ReadInt16(_fh); // fill
+            ReadInt16(_fh); // fill - read and ignore
             if (_frame0Offset > 28)
             {
                 int mediafilenamelength = ReadInt16(_fh);
@@ -138,18 +137,18 @@ void FSEQFile::Load(const std::string& filename)
             }
             _frameBuffer = (wxByte*)malloc(_channelsPerFrame);
 
-            logger_base.info("FSEQ file %s opened.", (const char *)filename.c_str());
+            logger_base.info("FSEQ file %s opened.", (const char *)_filename.c_str());
             _ok = true;
         }
         else
         {
-            logger_base.error("FSEQ file %s format does not look valid.", (const char *)filename.c_str());
+            logger_base.error("FSEQ file %s format does not look valid.", (const char *)_filename.c_str());
             Close();
         }
     }
     else
     {
-        logger_base.error("FSEQ file %s could not be opened.", (const char *)filename.c_str());
+        logger_base.error("FSEQ file %s could not be opened.", (const char *)_filename.c_str());
         Close();
     }
 }
@@ -169,7 +168,7 @@ void FSEQFile::ReadData(wxByte* buffer, size_t buffersize, size_t frame, APPLYME
 
     if (channels > 0)
     {
-        Blend(buffer, buffersize, _frameBuffer, std::min(_channelsPerFrame, channels), applyMethod, offset);
+        Blend(buffer, buffersize, _frameBuffer + offset, std::min(_channelsPerFrame, channels), applyMethod, offset);
     }
     else
     {

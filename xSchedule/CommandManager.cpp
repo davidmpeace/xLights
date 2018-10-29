@@ -8,7 +8,7 @@
 
 Command::Command(const std::string& name, int parms, const PARMTYPE* parmtypes, bool reqSelPL, bool reqSelSch, bool reqPlayPL, bool reqPlaySch, bool worksinslavemode, bool worksInQueuedMode, bool userSelectable, bool uiOnly)
 {
-    _command = name;
+    SetCommand(name);
     _parms = parms;
     for (int i = 0; i < parms; i++)
     {
@@ -24,13 +24,58 @@ Command::Command(const std::string& name, int parms, const PARMTYPE* parmtypes, 
     _uiOnly = uiOnly;
 }
 
-bool Command::IsValid(std::string parms, PlayList* selectedPlayList, Schedule* selectedSchedule, ScheduleManager* scheduleManager, std::string& msg, bool queuedMode)
+std::string Command::GetParametersTip() const
+{
+    if (_parms <= 0) return "";
+
+    std::string tip = "";
+
+    for (int i = 0; i < _parms; i++)
+    {
+        if (tip != "")
+        {
+            tip += ",";
+        }
+
+        switch (_parmtype[i])
+        {
+        case PARMTYPE::INTEGER:
+            tip += "<number>";
+            break;
+        case PARMTYPE::PLAYLIST:
+            tip += "<playlist name>";
+            break;
+        case PARMTYPE::STEP:
+            tip += "<playlist step name>";
+            break;
+        case PARMTYPE::SCHEDULE:
+            tip += "<schedule name>";
+            break;
+        case PARMTYPE::STRING:
+            tip += "<text>";
+            break;
+        case PARMTYPE::COMMAND:
+            tip += "<command>";
+            break;
+        case PARMTYPE::ANY:
+            tip += "<?>";
+            break;
+        case PARMTYPE::ITEM:
+            tip += "<playlist item name>";
+            break;
+        }
+    }
+
+    return tip;
+}
+
+bool Command::IsValid(std::string parms, PlayList* selectedPlayList, Schedule* selectedSchedule, ScheduleManager* scheduleManager, std::string& msg, bool queuedMode) const
 {
     auto components = wxSplit(parms, ',');
 
     if (_parms != -1 && components.Count() != _parms)
     {
-        msg = wxString::Format("Invalid number of parameters. Found %d when there should be %d.", components.Count(), _parms).ToStdString();
+        msg = wxString::Format("Invalid number of parameters. Found %d when there should be %d.", (int)components.Count(), _parms).ToStdString();
         return false;
     }
 
@@ -40,7 +85,7 @@ bool Command::IsValid(std::string parms, PlayList* selectedPlayList, Schedule* s
         return false;
     }
 
-    if (!_worksInSlaveMode && scheduleManager->GetMode() == SYNCMODE::FPPSLAVE)
+    if (!_worksInSlaveMode && (scheduleManager->GetMode() == SYNCMODE::FPPSLAVE || scheduleManager->GetMode() == SYNCMODE::FPPUNICASTSLAVE))
     {
         msg = "Command not valid when running in FPP Remote mode.";
         return false;
@@ -59,14 +104,14 @@ bool Command::IsValid(std::string parms, PlayList* selectedPlayList, Schedule* s
     }
 
     PlayList* pl = scheduleManager->GetRunningPlayList();
-    if (_requiresPlayingPlaylist && pl == nullptr)
+    if (_requiresPlayingPlaylist && pl == nullptr && scheduleManager->GetEventPlayLists().size() == 0 && scheduleManager->GetNonStoppedCount() == 0)
     {
         msg = "Playlist not playing.";
         return false;
     }
 
     RunningSchedule* sch = scheduleManager->GetRunningSchedule();
-    if (_requiresPlayingSchedule && sch == nullptr)
+    if (_requiresPlayingSchedule && sch == nullptr && scheduleManager->GetNonStoppedCount() == 0)
     {
         msg = "Schedule not playing.";
         return false;
@@ -174,15 +219,28 @@ bool Command::IsValid(std::string parms, PlayList* selectedPlayList, Schedule* s
 
 Command* CommandManager::GetCommand(std::string name) const
 {
+    auto n = wxString(name).Lower();
     for (auto it = _commands.begin(); it != _commands.end(); ++it)
     {
-        if (wxString((*it)->_command).Lower() == wxString(name).Lower())
+        if ((*it)->_commandLower == n)
         {
             return *it;
         }
     }
 
     return nullptr;
+}
+
+std::string CommandManager::GetCommandParametersTip(const std::string command) const
+{
+    Command* c = GetCommand(command);
+
+    if (c != nullptr)
+    {
+        return c->GetParametersTip();
+    }
+
+    return "";
 }
 
 CommandManager::~CommandManager()
@@ -204,11 +262,11 @@ CommandManager::CommandManager()
     PARMTYPE plsti[] = { PARMTYPE::PLAYLIST, PARMTYPE::STEP, PARMTYPE::INTEGER };
     PARMTYPE i[] = { PARMTYPE::INTEGER };
     PARMTYPE s[] = { PARMTYPE::STRING };
-    PARMTYPE ss[] = { PARMTYPE::STRING, PARMTYPE::STRING };
+    // PARMTYPE ss[] = { PARMTYPE::STRING, PARMTYPE::STRING };
     PARMTYPE sss[] = { PARMTYPE::STRING, PARMTYPE::STRING, PARMTYPE::STRING };
     PARMTYPE iiss[] = { PARMTYPE::INTEGER, PARMTYPE::INTEGER, PARMTYPE::STRING, PARMTYPE::STRING };
     PARMTYPE sch[] = { PARMTYPE::SCHEDULE };
-    PARMTYPE c[] = { PARMTYPE::COMMAND };
+    // PARMTYPE c[] = { PARMTYPE::COMMAND };
     PARMTYPE plstit[] = { PARMTYPE::PLAYLIST, PARMTYPE::STEP, PARMTYPE::ITEM };
 
     _commands.push_back(new Command("Stop all now", 0, {}, false, false, true, false, false, true, true, false));
@@ -216,6 +274,8 @@ CommandManager::CommandManager()
     _commands.push_back(new Command("Play selected playlist", 0, {}, true, false, false, false, false, true, true, true));
     _commands.push_back(new Command("Play selected playlist looped", 0, {}, true, false, false, false, false, true, true, true));
     _commands.push_back(new Command("Play specified playlist", 1, pl, false, false, false, false, false, true, true, false));
+    _commands.push_back(new Command("Play specified playlist if not running", 1, pl, false, false, false, false, false, true, true, false));
+    _commands.push_back(new Command("Play specified playlist if nothing running", 1, pl, false, false, false, false, false, true, true, false));
     _commands.push_back(new Command("Play specified playlist looped", 1, pl, false, false, false, false, false, true, true, false));
     _commands.push_back(new Command("Stop specified playlist", 1, pl, false, false, true, false, false, false, true, false));
     _commands.push_back(new Command("Stop specified playlist at end of current step", 1, pl, false, false, true, false, false, false, true, false));
@@ -249,7 +309,8 @@ CommandManager::CommandManager()
     _commands.push_back(new Command("Increase brightness by n%", 1, i, false, false, false, false, true, true, true, false));
     _commands.push_back(new Command("Set brightness to n%", 1, i, false, false, false, false, true, true, true, false));
     _commands.push_back(new Command("PressButton", 1, s, false, false, false, false, true, true, false, true));
-    _commands.push_back(new Command("Restart selected schedule", 0, {}, false, true, false, true, false, true, true, true));
+    _commands.push_back(new Command("Restart selected schedule", 0, {}, false, true, false, false, false, true, true, true));
+    _commands.push_back(new Command("Restart all schedules", 0, {}, false, false, false, false, false, true, true, false));
     _commands.push_back(new Command("Restart playlist schedules", 1, pl, false, false, false, false, false, true, true, false));
     _commands.push_back(new Command("Restart named schedule", 1, sch, false, false, false, true, false, true, true, false));
     _commands.push_back(new Command("Toggle mute", 0, {}, false, false, false, false, true, true, true, false));
@@ -262,5 +323,17 @@ CommandManager::CommandManager()
     _commands.push_back(new Command("Set pixels", 3, sss, false, false, true, false, true, true, false, true)); // <set channels name>,<base64 encoded data>, <properties>
     _commands.push_back(new Command("Set pixel range", 4, iiss, false, false, true, false, true, true, false, true)); // <startchannel>,<channels>,<color>,<blendmode>
     _commands.push_back(new Command("Run process", 3, plstit, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Run event playlist step", 2, plst, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Run event playlist step unique", 2, plst, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Run event playlist step if idle", 2, plst, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Run event playlist step looped", 2, plst, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Run event playlist step unique looped", 2, plst, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Run event playlist step if idle looped", 2, plst, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Stop event playlist", 1, pl, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Stop event playlist if playing step", 2, plst, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Activate specified schedule", 1, sch, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Deactivate specified schedule", 1, sch, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Set playlist as background", 1, pl, false, false, false, false, true, true, true, false));
+    _commands.push_back(new Command("Clear background playlist", 0, {}, false, false, false, false, true, true, true, false));
 }
 

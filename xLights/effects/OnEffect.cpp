@@ -1,21 +1,18 @@
+#include <sstream>
+
+#include "../../include/On.xpm"
+
 #include "OnEffect.h"
 #include "OnPanel.h"
-
 #include "../sequencer/Effect.h"
 #include "../RenderBuffer.h"
 #include "../UtilClasses.h"
-#include "../xLightsMain.h" //xLightsFrame
 #include "../models/DmxModel.h"
 
 static const std::string TEXTCTRL_Eff_On_Start("TEXTCTRL_Eff_On_Start");
 static const std::string TEXTCTRL_Eff_On_End("TEXTCTRL_Eff_On_End");
 static const std::string CHECKBOX_On_Shimmer("CHECKBOX_On_Shimmer");
 static const std::string TEXTCTRL_On_Cycles("TEXTCTRL_On_Cycles");
-
-#include "../../include/On.xpm"
-
-#include <sstream>
-
 
 OnEffect::OnEffect(int i) : RenderableEffect(i, "On", On, On, On, On, On)
 {
@@ -31,7 +28,7 @@ wxPanel *OnEffect::CreatePanel(wxWindow *parent) {
     return new OnPanel(parent);
 }
 
-void OnEffect::SetDefaultParameters(Model *cls) {
+void OnEffect::SetDefaultParameters() {
     OnPanel *p = (OnPanel*)panel;
     p->CheckBoxShimmer->SetValue(false);
     p->TextCtrlStart->SetValue("100");
@@ -77,8 +74,7 @@ std::string OnEffect::GetEffectString() {
 void GetOnEffectColors(const Effect *e, xlColor &start, xlColor &end) {
     int starti = e->GetSettings().GetInt("E_TEXTCTRL_Eff_On_Start", 100);
     int endi = e->GetSettings().GetInt("E_TEXTCTRL_Eff_On_End", 100);
-    xlColor newcolor;
-    newcolor = e->GetPalette()[0];
+    xlColor newcolor = e->GetPalette()[0];
     if (starti == 100 && endi == 100) {
         start = end = newcolor;
     } else {
@@ -173,7 +169,6 @@ void OnEffect::RemoveDefaults(const std::string &version, Effect *effect) {
     RenderableEffect::RemoveDefaults(version, effect);
 }
 
-
 void OnEffect::Render(Effect *eff, SettingsMap &SettingsMap, RenderBuffer &buffer) {
     
     int start = SettingsMap.GetInt(TEXTCTRL_Eff_On_Start, 100);
@@ -208,7 +203,7 @@ void OnEffect::Render(Effect *eff, SettingsMap &SettingsMap, RenderBuffer &buffe
         color = hsv;
     }
     
-    int transparency = GetValueCurveInt("On_Transparency", 0, SettingsMap, adjust, ON_TRANSPARENCY_MIN, ON_TRANSPARENCY_MAX);
+    int transparency = GetValueCurveInt("On_Transparency", 0, SettingsMap, adjust, ON_TRANSPARENCY_MIN, ON_TRANSPARENCY_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     if (transparency) {
         transparency *= 255;
         transparency /= 100;
@@ -220,31 +215,43 @@ void OnEffect::Render(Effect *eff, SettingsMap &SettingsMap, RenderBuffer &buffe
     // the proper red, green, and blue channels.
     //////////////////////////////////////////////////////////////
     if (buffer.cur_model != "") {
-        Model* model_info = buffer.frame->AllModels[buffer.cur_model];
+        Model* model_info = buffer.GetModel();
         if (model_info != nullptr) {
             if( model_info->GetDisplayAs() == "DMX" ) {
                 xlColor c;
                 DmxModel* dmx = (DmxModel*)model_info;
-                int red_channel = dmx->GetRedChannel();
-                int grn_channel = dmx->GetGreenChannel();
-                int blu_channel = dmx->GetBlueChannel();
-                if( red_channel != 0 ) {
+
+                int white_channel = dmx->GetWhiteChannel();
+                if (white_channel > 0 && color.red == color.green && color.red == color.blue)
+                {
                     c.red = color.red;
                     c.green = color.red;
                     c.blue = color.red;
-                    buffer.SetPixel(red_channel-1, 0, c);
+                    buffer.SetPixel(white_channel - 1, 0, c);
                 }
-                if( grn_channel != 0 ) {
-                    c.red = color.green;
-                    c.green = color.green;
-                    c.blue = color.green;
-                    buffer.SetPixel(grn_channel-1, 0, c);
-                }
-                if( blu_channel != 0 ) {
-                    c.red = color.blue;
-                    c.green = color.blue;
-                    c.blue = color.blue;
-                    buffer.SetPixel(blu_channel-1, 0, c);
+                else
+                {
+                    int red_channel = dmx->GetRedChannel();
+                    int grn_channel = dmx->GetGreenChannel();
+                    int blu_channel = dmx->GetBlueChannel();
+                    if (red_channel != 0) {
+                        c.red = color.red;
+                        c.green = color.red;
+                        c.blue = color.red;
+                        buffer.SetPixel(red_channel - 1, 0, c);
+                    }
+                    if (grn_channel != 0) {
+                        c.red = color.green;
+                        c.green = color.green;
+                        c.blue = color.green;
+                        buffer.SetPixel(grn_channel - 1, 0, c);
+                    }
+                    if (blu_channel != 0) {
+                        c.red = color.blue;
+                        c.green = color.blue;
+                        c.blue = color.blue;
+                        buffer.SetPixel(blu_channel - 1, 0, c);
+                    }
                 }
                 return;
             }

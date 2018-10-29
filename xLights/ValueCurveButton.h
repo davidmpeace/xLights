@@ -3,7 +3,6 @@
 
 #include <wx/bmpbuttn.h>
 #include "ValueCurve.h"
-#include "../include/valuecurvenotselected.xpm"
 
 wxDECLARE_EVENT(EVT_VC_CHANGED, wxCommandEvent);
 
@@ -32,7 +31,6 @@ public:
     void UpdateState();
     void UpdateBitmap();
 
-    
     static wxBitmap disabledBitmap;
 };
 

@@ -6,14 +6,16 @@
 #include "ColorCurveDialog.h"
 
 #include <wx/colour.h>
-#include <wx/colourdata.h>
 #include <wx/colordlg.h>
 #include <wx/graphics.h>
 #include "UtilFunctions.h"
+#include "ColorPanel.h"
 #if wxUSE_GRAPHICS_CONTEXT == 0
 #error Please refer to README.windows to make necessary changes to wxWidgets setup.h file.
 #error You will also need to rebuild wxWidgets once the change is made.
 #endif
+
+wxColourData ColorCurveButton::_colorData;
 
 ColorCurve::ColorCurve(const std::string& id, const std::string type, xlColor c)
 {
@@ -81,6 +83,7 @@ void ColorCurve::Deserialise(const std::string& s)
         _values.push_back(ccSortableColorPoint(0.5, *wxBLACK));
     }
 }
+
 std::string ColorCurve::Serialise()
 {
     std::string res = "";
@@ -154,7 +157,6 @@ void ColorCurve::SetSerialisedValue(std::string k, std::string s)
         }
 
     _values.sort();
-    //_active = true;
 }
 
 void ColorCurve::SetType(std::string type)
@@ -279,9 +281,8 @@ xlColor ColorCurve::GetValueAt(float offset) const
             if (offset == pt->x) return c1;
         }
 
-        xlColor c2 = xlBLACK;
+        xlColor c2;
         pt = GetNextActivePoint(offset, d);
-
         if (pt == nullptr)
         {
             const ccSortableColorPoint* ptp = GetActivePoint(offset, d);
@@ -338,7 +339,7 @@ void ColorCurve::DeletePoint(float offset)
                 _values.remove(*it);
                 break;
             }
-            it++;
+            ++it;
         }
     }
     else
@@ -377,7 +378,7 @@ void ColorCurve::SetValueAt(float offset, xlColor c)
             _values.remove(*it);
             break;
         }
-        it++;
+        ++it;
     }
 
     _values.push_back(ccSortableColorPoint(offset, c));
@@ -496,6 +497,7 @@ ColorCurveButton::ColorCurveButton(wxWindow *parent,
     const wxValidator& validator,
     const wxString& name) : wxBitmapButton(parent, id, bitmap, pos, size, style, validator, name)
 {
+    _color = "#FFFFFF";
     _cc = new ColorCurve(name.ToStdString());
     Connect(id, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&ColorCurveButton::LeftClick);
     Connect(id, wxEVT_CONTEXT_MENU, (wxObjectEventFunction)&ColorCurveButton::RightClick);
@@ -505,14 +507,13 @@ void ColorCurveButton::LeftClick(wxCommandEvent& event)
 {
     ColorCurveButton* w = static_cast<ColorCurveButton*>(event.GetEventObject());
     wxColour color = w->GetBackgroundColour();
-    wxColourData colorData;
-    colorData.SetColour(color);
-    wxColourDialog dialog(this, &colorData);
+    _colorData.SetColour(color);
+    wxColourDialog dialog(this, &_colorData);
     if (dialog.ShowModal() == wxID_OK)
     {
         _cc->SetActive(false);
-        wxColourData retData = dialog.GetColourData();
-        color = retData.GetColour();
+        _colorData = dialog.GetColourData();
+        color = _colorData.GetColour();
         _color = color.GetAsString();
         _cc->SetDefault(color);
         UpdateBitmap();
@@ -524,7 +525,7 @@ void ColorCurveButton::RightClick(wxContextMenuEvent& event)
 {
     ColorCurveButton* w = static_cast<ColorCurveButton*>(event.GetEventObject());
 
-    ColorCurveDialog ccd(this, w->GetValue());
+    ColorCurveDialog ccd(this, w->GetValue(), _colorData);
     if (ccd.ShowModal() == wxID_OK)
     {
         w->SetActive(true);

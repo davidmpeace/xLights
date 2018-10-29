@@ -240,16 +240,15 @@ void BoxedScreenLocation::SetPreviewSize(int w, int h, const std::vector<NodeBas
     }
     PrepareToDraw();
 
-    float sx,sy;
     mMinScreenX = w;
     mMinScreenY = h;
     mMaxScreenX = 0;
     mMaxScreenY = 0;
-    for (auto it = Nodes.begin(); it != Nodes.end(); it++) {
-        for (auto coord = it->get()->Coords.begin(); coord != it->get()->Coords.end(); coord++) {
+    for (auto it = Nodes.begin(); it != Nodes.end(); ++it) {
+        for (auto coord = it->get()->Coords.begin(); coord != it->get()->Coords.end(); ++coord) {
             // draw node on screen
-            sx=coord->screenX;
-            sy=coord->screenY;
+            float sx = coord->screenX;
+            float sy = coord->screenY;
 
             TranslatePoint(sx, sy);
 
@@ -430,9 +429,8 @@ int BoxedScreenLocation::MoveHandle(ModelPreview* preview, int handle, bool Shif
     if (_locked) return 0;
 
     if (handle == OVER_ROTATE_HANDLE) {
-        int sx,sy;
-        sx = mouseX-centerx;
-        sy = mouseY-centery;
+        int sx = mouseX-centerx;
+        int sy = mouseY-centery;
         //Calculate angle of mouse from center.
         float tan = (float)sx/(float)sy;
         int angle = -toDegrees((float)atan(tan));
@@ -447,10 +445,8 @@ int BoxedScreenLocation::MoveHandle(ModelPreview* preview, int handle, bool Shif
             PreviewRotation = (int)(PreviewRotation/5) * 5;
         }
     } else {
-        // Get mouse point in model space/ not screen space
-        float sx,sy;
-        sx = float(mouseX)-centerx;
-        sy = float(mouseY)-centery;
+        float sx = float(mouseX)-centerx;
+        float sy = float(mouseY)-centery;
         float radians=-toRadians(PreviewRotation); // negative angle to reverse translation
         TranslatePointDoubles(radians,sx,sy,sx,sy);
         sx = fabs(sx) - RECT_HANDLE_WIDTH;
@@ -561,16 +557,22 @@ void TwoPointScreenLocation::PrepareToDraw() const {
     if (x2 != x1) {
         float slope = (y2p - y1p)/(x2p - x1p);
         angle = std::atan(slope);
-        if (x1 > x2) {
-            angle += (float)M_PI;
-        }
-    } else if (y2 < y1) {
-        angle += (float)M_PI;
     }
     float scale = std::sqrt((y2p - y1p)*(y2p - y1p) + (x2p - x1p)*(x2p - x1p));
     scale /= RenderWi;
 
-    glm::mat3 scalingMatrix = glm::scale(glm::mat3(1.0f), glm::vec2(scale, scale * GetVScaleFactor()));
+    // see if we need to flip the model
+    float scalex = scale;
+    if (x2 != x1) {
+        if (x1 > x2) {
+            scalex *= -1.0f;
+        }
+    }
+    else if (y2 < y1) {
+        scalex *= -1.0f;
+    }
+
+    glm::mat3 scalingMatrix = glm::scale(glm::mat3(1.0f), glm::vec2(scalex, scale * GetVScaleFactor()));
     glm::mat3 rotationMatrix = glm::rotate(glm::mat3(1.0f), (float)angle);
     glm::mat3 shearMatrix = glm::shearY(glm::mat3(1.0f), GetYShear());
     glm::mat3 translateMatrix = glm::translate(glm::mat3(1.0f), glm::vec2(x1*previewW, y1*previewH));
@@ -794,7 +796,7 @@ int TwoPointScreenLocation::OnPropertyGridChange(wxPropertyGridInterface *grid, 
     else if (!_locked && "ModelX2" == name) {
         x2 = event.GetValue().GetDouble() / 100.0;
         return 3;
-    } 
+    }
     else if (_locked && "ModelX2" == name) {
         event.Veto();
         return 0;

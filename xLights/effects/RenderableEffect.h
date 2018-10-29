@@ -41,16 +41,19 @@ class RenderableEffect
         virtual bool SupportsLinearColorCurves(const SettingsMap &SettingsMap) { return false; }
         virtual bool SupportsRadialColorCurves(const SettingsMap &SettingsMap) { return false; }
         virtual std::list<std::string> GetFileReferences(const SettingsMap &SettingsMap) { return std::list<std::string>(); }
+        virtual bool AppropriateOnNodes() const { return true; }
+        virtual bool CanRenderPartialTimeInterval() const { return false; }
 
         virtual void SetSequenceElements(SequenceElements *els) {mSequenceElements = els;}
 
         wxPanel *GetPanel(wxWindow *parent);
-		virtual void SetDefaultParameters(Model *cls) {}
+		virtual void SetDefaultParameters() {}
 		virtual void SetPanelStatus(Model *cls) {}
 		virtual std::string GetEffectString();
 
         //Methods for rendering the effect
         virtual bool CanRenderOnBackgroundThread(Effect *effect, const SettingsMap &settings, RenderBuffer &buffer) { return true; }
+        virtual bool SupportsRenderCache() const { return false; }
         virtual void Render(Effect *effect, SettingsMap &settings, RenderBuffer &buffer) = 0;
         virtual void RenameTimingTrack(std::string oldname, std::string newname, Effect *effect) { }
         virtual std::list<std::string> CheckEffectSettings(const SettingsMap& settings, AudioManager* media, Model* model, Effect* eff) { std::list<std::string> res; return res; };
@@ -77,8 +80,8 @@ class RenderableEffect
         static void SetTextValue(wxTextCtrl* choice, std::string value);
         static void SetCheckBoxValue(wxCheckBox *w, bool b);
 
-        double GetValueCurveDouble(const std::string & name, double def, SettingsMap &SettingsMap, float offset, double min, double max, int divisor = 1);
-        int GetValueCurveInt(const std::string &name, int def, SettingsMap &SettingsMap, float offset, int min, int max, int divisor = 1);
+        double GetValueCurveDouble(const std::string & name, double def, SettingsMap &SettingsMap, float offset, double min, double max, long startMS, long endMS, int divisor = 1);
+        int GetValueCurveInt(const std::string &name, int def, SettingsMap &SettingsMap, float offset, int min, int max, long startMS, long endMS, int divisor = 1);
         bool IsVersionOlder(const std::string& compare, const std::string& version);
         void AdjustSettingsToBeFitToTime(int effectIdx, SettingsMap &settings, int startMS, int endMS, xlColorVector &colors);
         virtual void RemoveDefaults(const std::string &version, Effect *effect);
@@ -101,12 +104,11 @@ class RenderableEffect
         wxBitmap icon32;
         wxBitmap icon48;
         wxBitmap icon64;
-
-#ifdef __WXOSX__
         wxBitmap icon16e;
         wxBitmap icon24e;
         wxBitmap icon32e;
-#endif
+        wxBitmap icon48e;
+        wxBitmap icon64e;
     private:
 };
 

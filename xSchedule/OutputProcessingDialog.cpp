@@ -1,16 +1,24 @@
 #include "OutputProcessingDialog.h"
 #include "OutputProcessDimWhite.h"
+#include "OutputProcessThreeToFour.h"
 #include "OutputProcessColourOrder.h"
 #include "OutputProcessReverse.h"
 #include "OutputProcessDim.h"
 #include "OutputProcessSet.h"
 #include "OutputProcessRemap.h"
+#include "OutputProcessDeadChannel.h"
+#include "OutputProcessSustain.h"
 #include "DimDialog.h"
 #include "DimWhiteDialog.h"
+#include "ThreeToFourDialog.h"
 #include "SetDialog.h"
 #include "RemapDialog.h"
 #include "ColourOrderDialog.h"
 #include "AddReverseDialog.h"
+#include "GammaDialog.h"
+#include "OutputProcessGamma.h"
+#include "DeadChannelDialog.h"
+#include "SustainDialog.h"
 
 //(*InternalHeaders(OutputProcessingDialog)
 #include <wx/intl.h>
@@ -23,10 +31,14 @@ const long OutputProcessingDialog::ID_BUTTON1 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON2 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON3 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON6 = wxNewId();
+const long OutputProcessingDialog::ID_BUTTON12 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON7 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON8 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON9 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON10 = wxNewId();
+const long OutputProcessingDialog::ID_BUTTON11 = wxNewId();
+const long OutputProcessingDialog::ID_BUTTON13 = wxNewId();
+const long OutputProcessingDialog::ID_BUTTON14 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON5 = wxNewId();
 const long OutputProcessingDialog::ID_BUTTON4 = wxNewId();
 //*)
@@ -36,16 +48,17 @@ BEGIN_EVENT_TABLE(OutputProcessingDialog,wxDialog)
 	//*)
 END_EVENT_TABLE()
 
-OutputProcessingDialog::OutputProcessingDialog(wxWindow* parent, std::list<OutputProcess*>* op,wxWindowID id,const wxPoint& pos,const wxSize& size) : _op(op)
+OutputProcessingDialog::OutputProcessingDialog(wxWindow* parent, OutputManager* outputManager, std::list<OutputProcess*>* op,wxWindowID id,const wxPoint& pos,const wxSize& size) : _op(op)
 {
+    _outputManager = outputManager;
     _dragging = false;
 
 	//(*Initialize(OutputProcessingDialog)
-	wxFlexGridSizer* FlexGridSizer3;
-	wxFlexGridSizer* FlexGridSizer2;
-	wxBoxSizer* BoxSizer2;
 	wxBoxSizer* BoxSizer1;
 	wxFlexGridSizer* FlexGridSizer1;
+	wxFlexGridSizer* FlexGridSizer2;
+	wxFlexGridSizer* FlexGridSizer3;
+	wxFlexGridSizer* FlexGridSizer4;
 
 	Create(parent, id, _("Output Processing"), wxDefaultPosition, wxDefaultSize, wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX, _T("id"));
 	SetClientSize(wxDefaultSize);
@@ -65,20 +78,28 @@ OutputProcessingDialog::OutputProcessingDialog(wxWindow* parent, std::list<Outpu
 	FlexGridSizer3->Add(Button_Delete, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer2->Add(FlexGridSizer3, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer1->Add(FlexGridSizer2, 1, wxALL|wxEXPAND, 5);
-	BoxSizer2 = new wxBoxSizer(wxHORIZONTAL);
+	FlexGridSizer4 = new wxFlexGridSizer(0, 5, 0, 0);
 	Button_AddRemap = new wxButton(this, ID_BUTTON3, _("Add Remap"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON3"));
-	BoxSizer2->Add(Button_AddRemap, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer4->Add(Button_AddRemap, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Button_AddSet = new wxButton(this, ID_BUTTON6, _("Add Set"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON6"));
-	BoxSizer2->Add(Button_AddSet, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer4->Add(Button_AddSet, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	Button_AddDeadChannel = new wxButton(this, ID_BUTTON12, _("Add Dead Channel"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON12"));
+	FlexGridSizer4->Add(Button_AddDeadChannel, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Button_Dim = new wxButton(this, ID_BUTTON7, _("Add Dim"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON7"));
-	BoxSizer2->Add(Button_Dim, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer4->Add(Button_Dim, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Button_DimWhite = new wxButton(this, ID_BUTTON8, _("Add Dim White"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON8"));
-	BoxSizer2->Add(Button_DimWhite, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer4->Add(Button_DimWhite, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Button_ColourOrder = new wxButton(this, ID_BUTTON9, _("Add Color Order"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON9"));
-	BoxSizer2->Add(Button_ColourOrder, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer4->Add(Button_ColourOrder, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Button_Reverse = new wxButton(this, ID_BUTTON10, _("Add Reverse"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON10"));
-	BoxSizer2->Add(Button_Reverse, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer1->Add(BoxSizer2, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer4->Add(Button_Reverse, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	Button_Gamma = new wxButton(this, ID_BUTTON11, _("Add Gamma"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON11"));
+	FlexGridSizer4->Add(Button_Gamma, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	Button_3to4 = new wxButton(this, ID_BUTTON13, _("Add 3 to 4 Channel Map"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON13"));
+	FlexGridSizer4->Add(Button_3to4, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	Button_Sustain = new wxButton(this, ID_BUTTON14, _("Add Sustain"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON14"));
+	FlexGridSizer4->Add(Button_Sustain, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(FlexGridSizer4, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	BoxSizer1 = new wxBoxSizer(wxHORIZONTAL);
 	Button_Ok = new wxButton(this, ID_BUTTON5, _("Ok"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON5"));
 	Button_Ok->SetDefault();
@@ -93,15 +114,20 @@ OutputProcessingDialog::OutputProcessingDialog(wxWindow* parent, std::list<Outpu
 	Connect(ID_LISTVIEW1,wxEVT_COMMAND_LIST_BEGIN_DRAG,(wxObjectEventFunction)&OutputProcessingDialog::OnListView_ProcessesBeginDrag);
 	Connect(ID_LISTVIEW1,wxEVT_COMMAND_LIST_ITEM_SELECTED,(wxObjectEventFunction)&OutputProcessingDialog::OnListView_ProcessesItemSelect);
 	Connect(ID_LISTVIEW1,wxEVT_COMMAND_LIST_ITEM_ACTIVATED,(wxObjectEventFunction)&OutputProcessingDialog::OnListView_ProcessesItemActivated);
+	Connect(ID_LISTVIEW1,wxEVT_COMMAND_LIST_ITEM_RIGHT_CLICK,(wxObjectEventFunction)&OutputProcessingDialog::OnListView_ProcessesItemRClick);
 	Connect(ID_LISTVIEW1,wxEVT_COMMAND_LIST_KEY_DOWN,(wxObjectEventFunction)&OutputProcessingDialog::OnListView_ProcessesKeyDown);
 	Connect(ID_BUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_EditClick);
 	Connect(ID_BUTTON2,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_DeleteClick);
 	Connect(ID_BUTTON3,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_AddRemapClick);
 	Connect(ID_BUTTON6,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_AddSetClick);
+	Connect(ID_BUTTON12,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_AddDeadChannelClick);
 	Connect(ID_BUTTON7,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_AddDimClick);
 	Connect(ID_BUTTON8,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_AddDimWhiteClick);
 	Connect(ID_BUTTON9,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_ColourOrderClick);
 	Connect(ID_BUTTON10,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_ReverseClick);
+	Connect(ID_BUTTON11,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_GammaClick);
+	Connect(ID_BUTTON13,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_3to4Click);
+	Connect(ID_BUTTON14,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_SustainClick);
 	Connect(ID_BUTTON5,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_OkClick);
 	Connect(ID_BUTTON4,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&OutputProcessingDialog::OnButton_CancelClick);
 	//*)
@@ -120,10 +146,25 @@ OutputProcessingDialog::OutputProcessingDialog(wxWindow* parent, std::list<Outpu
     for (auto it = op->begin(); it != op->end(); ++it)
     {
         ListView_Processes->InsertItem(i, (*it)->GetType());
-        ListView_Processes->SetItem(i, 1, wxString::Format(wxT("%i"), (long)(*it)->GetStartChannel()));
-        ListView_Processes->SetItem(i, 2, wxString::Format(wxT("%i"), (*it)->GetP1()));
-        ListView_Processes->SetItem(i, 3, wxString::Format(wxT("%i"), (*it)->GetP2()));
+        ListView_Processes->SetItem(i, 1, (*it)->GetStartChannel());
+        ListView_Processes->SetItem(i, 2, wxString::Format(wxT("%ld"), (long)(*it)->GetP1()));
+        if ((*it)->GetType() == "Gamma")
+        {
+            ListView_Processes->SetItem(i, 3, ((OutputProcessGamma*)(*it))->GetGammaSettings());
+        }
+        else if ((*it)->GetType() == "Three To Four")
+        {
+            ListView_Processes->SetItem(i, 3, ((OutputProcessThreeToFour*)(*it))->GetColourOrder());
+        }
+        else
+        {
+            ListView_Processes->SetItem(i, 3, wxString::Format(wxT("%ld"), (long)(*it)->GetP2()));
+        }
         ListView_Processes->SetItem(i, 4, (*it)->GetDescription());
+        if (!(*it)->IsEnabled())
+        {
+            ListView_Processes->SetItemTextColour(i, *wxLIGHT_GREY);
+        }
         i++;
     }
 
@@ -208,20 +249,29 @@ void OutputProcessingDialog::OnDragEnd(wxMouseEvent& event)
                 std::string p1 = ListView_Processes->GetItemText(dragitem, 2).ToStdString();
                 std::string p2 = ListView_Processes->GetItemText(dragitem, 3).ToStdString();
                 std::string d = ListView_Processes->GetItemText(dragitem, 4).ToStdString();
+                bool e = ListView_Processes->GetItemTextColour(dragitem) != *wxLIGHT_GREY;
 
                 ListView_Processes->DeleteItem(dragitem);
 
-                if (dropitem > dragitem) dropitem--;
+                if (dropitem < 0) dropitem = 0;
 
-                ListView_Processes->InsertItem(dropitem + 1, type);
-                ListView_Processes->SetItem(dropitem + 1, 1, sc);
-                ListView_Processes->SetItem(dropitem + 1, 2, p1);
-                ListView_Processes->SetItem(dropitem + 1, 3, p1);
-                ListView_Processes->SetItem(dropitem + 1, 4, d);
+                ListView_Processes->InsertItem(dropitem, type);
+                ListView_Processes->SetItem(dropitem, 1, sc);
+                ListView_Processes->SetItem(dropitem, 2, p1);
+                ListView_Processes->SetItem(dropitem, 3, p1);
+                ListView_Processes->SetItem(dropitem, 4, d);
+                if (!e)
+                {
+                    ListView_Processes->SetItemTextColour(dropitem, *wxLIGHT_GREY);
+                }
+                else
+                {
+                    ListView_Processes->SetItemTextColour(dropitem, *wxBLACK);
+                }
 
-                ListView_Processes->EnsureVisible(dropitem + 1);
+                ListView_Processes->EnsureVisible(dropitem);
 
-                if (dropitem + 1 == ListView_Processes->GetItemCount() - 1)
+                if (dropitem == ListView_Processes->GetItemCount() - 1)
                 {
                     ListView_Processes->ScrollLines(1);
                 }
@@ -309,31 +359,61 @@ void OutputProcessingDialog::OnButton_OkClick(wxCommandEvent& event)
         OutputProcess* op = nullptr;
         if (type == "Dim")
         {
-            op = new OutputProcessDim(wxAtol(ListView_Processes->GetItemText(i, 1)), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i,4).ToStdString());
+            op = new OutputProcessDim(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i,4).ToStdString());
         }
         else if (type == "Dim White")
         {
-            op = new OutputProcessDimWhite(wxAtol(ListView_Processes->GetItemText(i, 1)), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
+            op = new OutputProcessDimWhite(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
+        }
+        else if (type == "Three To Four")
+        {
+            op = new OutputProcessThreeToFour(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), ListView_Processes->GetItemText(i, 3).ToStdString(), ListView_Processes->GetItemText(i, 4).ToStdString());
         }
         else if (type == "Set")
         {
-            op = new OutputProcessSet(wxAtol(ListView_Processes->GetItemText(i, 1)), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
+            op = new OutputProcessSet(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
+        }
+        else if (type == "Sustain")
+        {
+            op = new OutputProcessSustain(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), ListView_Processes->GetItemText(i, 4).ToStdString());
+        }
+        else if (type == "Dead Channel")
+        {
+            op = new OutputProcessDeadChannel(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), ListView_Processes->GetItemText(i, 4).ToStdString());
         }
         else if (type == "Remap")
         {
-            op = new OutputProcessRemap(wxAtol(ListView_Processes->GetItemText(i, 1)), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
+            op = new OutputProcessRemap(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
         }
         else if (type == "Color Order")
         {
-            op = new OutputProcessColourOrder(wxAtol(ListView_Processes->GetItemText(i, 1)), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
+            op = new OutputProcessColourOrder(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
         }
         else if (type == "Reverse")
         {
-            op = new OutputProcessReverse(wxAtol(ListView_Processes->GetItemText(i, 1)), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
+            op = new OutputProcessReverse(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), wxAtol(ListView_Processes->GetItemText(i, 3)), ListView_Processes->GetItemText(i, 4).ToStdString());
+        }
+        else if (type == "Gamma")
+        {
+            float g = 1.0;
+            float gR = 1.0;
+            float gG = 1.0;
+            float gB = 1.0;
+
+            wxArrayString floats = wxSplit(ListView_Processes->GetItemText(i, 3), ',');
+            if (floats.size() == 4)
+            {
+                g = wxAtof(floats[0]);
+                gR = wxAtof(floats[1]);
+                gG = wxAtof(floats[2]);
+                gB = wxAtof(floats[3]);
+            }
+            op = new OutputProcessGamma(_outputManager, ListView_Processes->GetItemText(i, 1).ToStdString(), wxAtol(ListView_Processes->GetItemText(i, 2)), g, gR, gG, gB, ListView_Processes->GetItemText(i, 4).ToStdString());
         }
 
         if (op != nullptr)
         {
+            op->Enable(ListView_Processes->GetItemTextColour(i) != *wxLIGHT_GREY);
             _op->push_back(op);
         }
     }
@@ -382,18 +462,39 @@ bool OutputProcessingDialog::EditSelectedItem()
         int row = ListView_Processes->GetFirstSelected();
 
         std::string type = ListView_Processes->GetItemText(row, 0).ToStdString();
-        size_t sc = wxAtol(ListView_Processes->GetItemText(row, 1));
+        std::string sc = ListView_Processes->GetItemText(row, 1).ToStdString();
         size_t p1 = wxAtol(ListView_Processes->GetItemText(row, 2));
+        std::string p1s = ListView_Processes->GetItemText(row, 2).ToStdString();
         size_t p2 = wxAtol(ListView_Processes->GetItemText(row, 3));
+        std::string p2s = ListView_Processes->GetItemText(row, 3).ToStdString();
         std::string d = ListView_Processes->GetItemText(row, 4).ToStdString();
+        bool e = ListView_Processes->GetItemTextColour(row) != *wxLIGHT_GREY;
+
+        float gamma = 1.0;
+        float gammaR = 1.0;
+        float gammaG = 1.0;
+        float gammaB = 1.0;
+
+        wxArrayString floats = wxSplit(ListView_Processes->GetItemText(row, 3), ',');
+        if (floats.size() == 4)
+        {
+            gamma = wxAtof(floats[0]);
+            gammaR = wxAtof(floats[1]);
+            gammaG = wxAtof(floats[2]);
+            gammaB = wxAtof(floats[3]);
+        }
 
         // this is wasteful ... but whatever
-        DimDialog dlgd(this, sc, p1, p2, d);
-        DimWhiteDialog dlgdw(this, sc, p1, p2, d);
-        SetDialog dlgs(this, sc, p1, p2, d);
-        RemapDialog dlgr(this, sc, p1, p2, d);
-        AddReverseDialog dlgrv(this, sc, p1, p2, d);
-        ColourOrderDialog dlgc(this, sc, p1, p2, d);
+        DimDialog dlgd(this, _outputManager, sc, p1, p2, d, e);
+        DimWhiteDialog dlgdw(this, _outputManager, sc, p1, p2, d, e);
+        ThreeToFourDialog dlgt2f(this, _outputManager, sc, p1, p2s, d, e);
+        SetDialog dlgs(this, _outputManager, sc, p1, p2, d, e);
+        SustainDialog dlgsus(this, _outputManager, sc, p1, d, e);
+        DeadChannelDialog dlgdc(this, _outputManager, sc, p1, d, e);
+        RemapDialog dlgr(this, _outputManager, sc, p1s, p2, d, e);
+        AddReverseDialog dlgrv(this, _outputManager, sc, p1, p2, d, e);
+        GammaDialog dlgg(this, _outputManager, sc, p1, gamma, gammaR, gammaG, gammaB, d, e);
+        ColourOrderDialog dlgc(this, _outputManager, sc, p1, p2, d, e);
         int res = wxID_CANCEL;
 
         if (type == "Dim")
@@ -404,9 +505,17 @@ bool OutputProcessingDialog::EditSelectedItem()
         {
             res = dlgdw.ShowModal();
         }
+        else if (type == "Three To Four")
+        {
+            res = dlgt2f.ShowModal();
+        }
         else if (type == "Set")
         {
             res = dlgs.ShowModal();
+        }
+        else if (type == "Sustain")
+        {
+            res = dlgsus.ShowModal();
         }
         else if (type == "Remap")
         {
@@ -420,13 +529,52 @@ bool OutputProcessingDialog::EditSelectedItem()
         {
             res = dlgrv.ShowModal();
         }
+        else if (type == "Gamma")
+        {
+            res = dlgg.ShowModal();
+        }
+        else if (type == "Dead Channel")
+        {
+            res = dlgdc.ShowModal();
+            p2 = 0;
+        }
+        else
+        {
+            wxASSERT(false);
+        }
 
         if (res == wxID_OK)
         {
-            ListView_Processes->SetItem(row, 1, wxString::Format(wxT("%i"), sc));
-            ListView_Processes->SetItem(row, 2, wxString::Format(wxT("%i"), p1));
-            ListView_Processes->SetItem(row, 3, wxString::Format(wxT("%i"), p2));
+            ListView_Processes->SetItem(row, 1, sc);
+            if (type == "Remap")
+            {
+                ListView_Processes->SetItem(row, 2, p1s);
+            }
+            else
+            {
+                ListView_Processes->SetItem(row, 2, wxString::Format(wxT("%ld"), (long)p1));
+            }
+            if (type == "Gamma")
+            {
+                ListView_Processes->SetItem(row, 3, wxString::Format(wxT("%.2f,%.2f,%.2f,%.2f"), gamma, gammaR, gammaG, gammaB));
+            }
+            else if (type == "Three To Four")
+            {
+                ListView_Processes->SetItem(row, 3, p2s);
+            }
+            else
+            {
+                ListView_Processes->SetItem(row, 3, wxString::Format(wxT("%ld"), (long)p2));
+            }
             ListView_Processes->SetItem(row, 4, d);
+            if (!e)
+            {
+                ListView_Processes->SetItemTextColour(row, *wxLIGHT_GREY);
+            }
+	    else
+	    {
+                ListView_Processes->SetItemTextColour(row, *wxBLACK);
+	    }
             result = true;
         }
     }
@@ -472,6 +620,54 @@ void OutputProcessingDialog::OnButton_ColourOrderClick(wxCommandEvent& event)
 void OutputProcessingDialog::OnButton_ReverseClick(wxCommandEvent& event)
 {
     ListView_Processes->InsertItem(ListView_Processes->GetItemCount(), "Reverse");
+    ListView_Processes->Select(ListView_Processes->GetItemCount() - 1);
+    if (!EditSelectedItem())
+    {
+        ListView_Processes->DeleteItem(ListView_Processes->GetItemCount() - 1);
+    }
+    ValidateWindow();
+}
+
+void OutputProcessingDialog::OnButton_GammaClick(wxCommandEvent& event)
+{
+    ListView_Processes->InsertItem(ListView_Processes->GetItemCount(), "Gamma");
+    ListView_Processes->Select(ListView_Processes->GetItemCount() - 1);
+    if (!EditSelectedItem())
+    {
+        ListView_Processes->DeleteItem(ListView_Processes->GetItemCount() - 1);
+    }
+    ValidateWindow();
+}
+
+void OutputProcessingDialog::OnButton_AddDeadChannelClick(wxCommandEvent& event)
+{
+    ListView_Processes->InsertItem(ListView_Processes->GetItemCount(), "Dead Channel");
+    ListView_Processes->Select(ListView_Processes->GetItemCount() - 1);
+    if (!EditSelectedItem())
+    {
+        ListView_Processes->DeleteItem(ListView_Processes->GetItemCount() - 1);
+    }
+    ValidateWindow();
+}
+
+void OutputProcessingDialog::OnListView_ProcessesItemRClick(wxListEvent& event)
+{
+}
+
+void OutputProcessingDialog::OnButton_3to4Click(wxCommandEvent& event)
+{
+    ListView_Processes->InsertItem(ListView_Processes->GetItemCount(), "Three To Four");
+    ListView_Processes->Select(ListView_Processes->GetItemCount() - 1);
+    if (!EditSelectedItem())
+    {
+        ListView_Processes->DeleteItem(ListView_Processes->GetItemCount() - 1);
+    }
+    ValidateWindow();
+}
+
+void OutputProcessingDialog::OnButton_SustainClick(wxCommandEvent& event)
+{
+    ListView_Processes->InsertItem(ListView_Processes->GetItemCount(), "Sustain");
     ListView_Processes->Select(ListView_Processes->GetItemCount() - 1);
     if (!EditSelectedItem())
     {

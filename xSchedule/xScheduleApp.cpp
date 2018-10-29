@@ -94,7 +94,7 @@ void DumpConfig()
     int verMaj = -1;
     int verMin = -1;
     wxOperatingSystemId o = wxGetOsVersion(&verMaj, &verMin);
-    logger_base.info("  OS: %s %d.%d.%d", (const char *)DecodeOS(o).c_str(), verMaj, verMin);
+    logger_base.info("  OS: %s %d.%d", (const char *)DecodeOS(o).c_str(), verMaj, verMin);
     if (wxIsPlatform64Bit())
     {
         logger_base.info("      64 bit");
@@ -144,7 +144,10 @@ void InitialiseLogging(bool fromMain)
 
 #endif
 #ifdef __LINUX__
-        std::string initFileName = "/usr/share/xLights/xschedule.linux.properties";
+        std::string initFileName = wxStandardPaths::Get().GetInstallPrefix() + "/bin/xschedule.linux.properties";
+        if (!wxFile::Exists(initFileName)) {
+            initFileName = wxStandardPaths::Get().GetInstallPrefix() + "/share/xLights/xschedule.linux.properties";
+        }
 #endif
 
         if (!wxFile::Exists(initFileName))
@@ -188,12 +191,14 @@ void handleCrash(void *data) {
         report->SetCompressedFileDirectory(xScheduleFrame::GetScheduleManager()->GetShowDir());
     }
 
+#ifndef __WXMSW__
+    // dont call these for windows as they dont seem to do anything.
     report->AddAll(wxDebugReport::Context_Exception);
-    report->AddAll(wxDebugReport::Context_Current);
+    //report->AddAll(wxDebugReport::Context_Current);
+#endif
 
     if (xScheduleFrame::GetScheduleManager() != nullptr)
     {
-        xScheduleFrame::GetScheduleManager()->CheckScheduleIntegrity(false);
         wxFileName fn(xScheduleFrame::GetScheduleManager()->GetShowDir(), OutputManager::GetNetworksFileName());
         if (fn.Exists()) {
             report->AddFile(fn.GetFullPath(), OutputManager::GetNetworksFileName());
@@ -203,6 +208,28 @@ void handleCrash(void *data) {
             report->AddFile(wxFileName(xScheduleFrame::GetScheduleManager()->GetShowDir(), ScheduleManager::GetScheduleFile()).GetFullPath(), ScheduleManager::GetScheduleFile());
         }
     }
+
+    wxString trace = wxString::Format("xSchedule version %s %s\n\n", xlights_version_string, GetBitness());
+
+#ifndef __WXMSW__
+    void* callstack[128];
+    int i, frames = backtrace(callstack, 128);
+    char** strs = backtrace_symbols(callstack, frames);
+    for (i = 0; i < frames; ++i) {
+        trace += strs[i];
+        trace += "\n";
+    }
+    free(strs);
+#else
+    trace += windows_get_stacktrace(data);
+#endif
+
+    int id = (int)wxThread::GetCurrentId();
+    trace += wxString::Format("\nCrashed thread id: 0x%X or %d\n", id, id);
+
+    logger_base.crit(trace);
+
+    report->AddText("backtrace.txt", trace, "Backtrace");
 
     wxString dir;
 #ifdef __WXMSW__
@@ -232,27 +259,11 @@ void handleCrash(void *data) {
         report->AddFile(wxFileName(wxGetCwd(), "xSchedule_l4cpp.log").GetFullPath(), "xSchedule_l4cpp.log");
     }
 
-    wxString trace = wxString::Format("xSchedule version %s %s\n\n", xlights_version_string, GetBitness());
-
-#ifndef __WXMSW__
-    void* callstack[128];
-    int i, frames = backtrace(callstack, 128);
-    char** strs = backtrace_symbols(callstack, frames);
-    for (i = 0; i < frames; ++i) {
-        trace += strs[i];
-        trace += "\n";
+    if (xScheduleFrame::GetScheduleManager() != nullptr)
+    {
+        xScheduleFrame::GetScheduleManager()->CheckScheduleIntegrity(false);
     }
-    free(strs);
-#else
-    trace += windows_get_stacktrace(data);
-#endif
 
-    int id = (int)wxThread::GetCurrentId();
-    trace += wxString::Format("\nCrashed thread id: %X\n", id);
-
-    logger_base.crit(trace);
-
-    report->AddText("backtrace.txt", trace, "Backtrace");
     if (!wxThread::IsMain() && topFrame != nullptr) {
         topFrame->CallAfter(&xScheduleFrame::CreateDebugReport, report);
         wxSleep(600000);
@@ -304,7 +315,9 @@ bool xScheduleApp::OnInit()
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
     _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
     _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
+#ifdef VISUALSTUDIO_MEMORYLEAKDETECTION
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 #endif
 
 #if wxUSE_ON_FATAL_EXCEPTION
@@ -365,7 +378,6 @@ bool xScheduleApp::OnInit()
     _checker = new wxSingleInstanceChecker();
     if (showDir == "")
     {
-        _checker->CreateDefault();
         if (_checker->IsAnotherRunning())
         {
             logger_base.info("Another instance of xSchedule is running.");
@@ -390,8 +402,7 @@ bool xScheduleApp::OnInit()
     wxInitAllImageHandlers();
     if ( wxsOK )
     {
-    	xScheduleFrame* Frame = new xScheduleFrame(0, showDir.ToStdString(), playlist.ToStdString());
-        topFrame = Frame;
+    	xScheduleFrame* Frame = new xScheduleFrame(0);
     	Frame->Show();
     	SetTopWindow(Frame);
     }

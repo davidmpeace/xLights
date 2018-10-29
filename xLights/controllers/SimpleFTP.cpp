@@ -16,16 +16,16 @@ public:
 
 SimpleFTP::SimpleFTP()
 {
-    ftp.SetFlags(wxSOCKET_NOWAIT_WRITE);
+    _ftp.SetFlags(wxSOCKET_NOWAIT_WRITE);
 }
 
 bool SimpleFTP::Connect(std::string ip, std::string user, std::string password)
 {
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
-    ftp.SetUser(user);
-    ftp.SetPassword(password);
-    ftp.SetTimeout(5);
-    if (!ftp.Connect(ip))
+    _ftp.SetUser(user);
+    _ftp.SetPassword(password);
+    _ftp.SetTimeout(5);
+    if (!_ftp.Connect(ip))
     {
         logger_base.warn("Could not connect using address '%s'.", (const char *)ip.c_str());
         wxString wxip = wxString(ip.c_str());
@@ -39,10 +39,10 @@ bool SimpleFTP::Connect(std::string ip, std::string user, std::string password)
 SimpleFTP::SimpleFTP(std::string ip, std::string user, std::string password)
 {
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
-    ftp.SetFlags(wxSOCKET_NOWAIT_WRITE);
-    ftp.SetUser(user);
-    ftp.SetPassword(password);
-    if (!ftp.Connect(ip))
+    _ftp.SetFlags(wxSOCKET_NOWAIT_WRITE);
+    _ftp.SetUser(user);
+    _ftp.SetPassword(password);
+    if (!_ftp.Connect(ip))
     {
         logger_base.warn("Could not connect using address '%s'.", (const char *)ip.c_str());
         wxString wxip = wxString(ip.c_str());
@@ -50,9 +50,65 @@ SimpleFTP::SimpleFTP(std::string ip, std::string user, std::string password)
     }
 }
 
-bool SimpleFTP::IsConnected()
+bool SimpleFTP::IsConnected() const
 {
-    return (ftp.IsConnected() && ftp.IsOk() && !ftp.IsClosed());
+    return (_ftp.IsConnected() && _ftp.IsOk() && !_ftp.IsClosed());
+}
+
+bool SimpleFTP::GetFile(std::string targetfile, std::string folder, std::string file, bool binary, wxWindow* parent) {
+    if (!IsConnected()) return false;
+    
+    _ftp.ChDir(folder);
+    
+    if (binary) {
+        _ftp.SetBinary();
+    } else {
+        _ftp.SetAscii();
+    }
+    
+    bool cancelled = false;
+    
+    wxLogNull logNo; //kludge: avoid "error 0" message from wxWidgets
+    int length = _ftp.GetFileSize(folder + "/" + file);
+    wxInputStream* in = _ftp.GetInputStream(folder + "/" + file);
+    if (in == nullptr) {
+        return true;
+    }
+
+    wxProgressDialog progress("FTP Download", wxString(file.c_str()), 100, parent, wxPD_CAN_ABORT | wxPD_APP_MODAL | wxPD_AUTO_HIDE);
+    progress.Show();
+    progress.Update(0, wxEmptyString, &cancelled);
+    
+    wxFile out;
+    out.Open(targetfile, wxFile::write);
+    
+    uint8_t buffer[8192]; // 8KB at a time
+    int lastDone = 0;
+    int done = 0;
+    while (!in->Eof() && !cancelled) {
+        ssize_t read = in->Read(&buffer[0], sizeof(buffer)).LastRead();
+        done += read;
+        
+        int bufPos = 0;
+        while (read) {
+            size_t written = out.Write(&buffer[bufPos], read);
+            bufPos += written;
+            read -= written;
+        }
+        
+        int donePct = (int)(done * 100 / length);
+        if (donePct != lastDone) {
+            wxASSERT(donePct > lastDone);
+            lastDone = donePct;
+            cancelled = !progress.Update(donePct, wxEmptyString, &cancelled);
+            wxYield();
+        }
+    }
+    progress.Update(100, wxEmptyString, &cancelled);
+    
+    out.Close();
+    delete in;
+    return cancelled;
 }
 
 bool SimpleFTP::UploadFile(std::string file, std::string folder, std::string newfilename, bool backup, bool binary, wxWindow* parent)
@@ -62,15 +118,15 @@ bool SimpleFTP::UploadFile(std::string file, std::string folder, std::string new
 
     if (newfilename == "") newfilename = file;
 
-    ftp.ChDir(folder);
+    _ftp.ChDir(folder);
 
     if (binary)
     {
-        ftp.SetBinary();
+        _ftp.SetBinary();
     }
     else
     {
-        ftp.SetAscii();
+        _ftp.SetAscii();
     }
 
     wxProgressDialog progress("FTP Upload", wxString(file.c_str()), 100, parent, wxPD_CAN_ABORT | wxPD_APP_MODAL | wxPD_AUTO_HIDE);
@@ -93,9 +149,9 @@ bool SimpleFTP::UploadFile(std::string file, std::string folder, std::string new
 
     //logger_base.info("FTP current directory %s.", (const char *)ftp.Pwd().c_str());
 
+    int size = _ftp.GetFileSize((folder + "/" + basefile).c_str());
     if (backup)
     {
-        int size = ftp.GetFileSize((folder + "/" + basefile).c_str());
         if (size == -1)
         {
             // file not there so no need to backup
@@ -105,11 +161,27 @@ bool SimpleFTP::UploadFile(std::string file, std::string folder, std::string new
             wxDateTime dt = wxDateTime::Now();
             wxString tgtfile = wxString((folder + "/" + basefilenew).c_str()) + "_" + dt.Format("%Y%m%d_%H%M%S");
             logger_base.info("FTP Backing up file %s to %s.", (const char *)(folder + "/" + basefilenew).c_str(), (const char *)tgtfile.c_str());
-            ftp.Rename((folder + "/" + basefilenew).c_str(), tgtfile);
+            if (!_ftp.Rename((folder + "/" + basefilenew).c_str(), tgtfile))
+            {
+                logger_base.error("    Rename failed : %s", (const char*)_ftp.GetLastResult().c_str());
+            }
             if (!cancelled)
             {
                 cancelled = progress.WasCancelled();
             }
+        }
+    }
+    else
+    {
+        // delete the file before uploading ... hopefully this will help remove some creation errors.
+        logger_base.info("FTP Deleting file %s.", (const char *)(folder + "/" + basefilenew).c_str());
+        if (!_ftp.RmFile((folder + "/" + basefilenew).c_str()))
+        {
+            logger_base.error("    Deletion failed : %s", (const char*)_ftp.GetLastResult().c_str());
+        }
+        if (!cancelled)
+        {
+            cancelled = progress.WasCancelled();
         }
     }
 
@@ -121,9 +193,15 @@ bool SimpleFTP::UploadFile(std::string file, std::string folder, std::string new
         wxFileOffset length = in.Length();
         wxFileOffset done = 0;
         
-        wxSocketOutputStream *out = dynamic_cast<wxSocketOutputStream*>(ftp.GetOutputStream((folder + "/" + basefilenew).c_str()));
+        wxSocketOutputStream *out = dynamic_cast<wxSocketOutputStream*>(_ftp.GetOutputStream((folder + "/" + basefilenew).c_str()));
 
-        if (out != nullptr && length > 0)
+        if (length <= 0)
+        {
+            wxMessageBox("FTP Upload of file failed as file size zero.");
+            progress.Update(100, wxEmptyString, &cancelled);
+            logger_base.error("   FTP Upload of file %s failed as file size is zero.", (const char *)file.c_str());
+        }
+        else if (out != nullptr)
         {
             logger_base.info("    Remote file created. Uploading content ...");
 
@@ -143,9 +221,9 @@ bool SimpleFTP::UploadFile(std::string file, std::string folder, std::string new
                 while (read) {
                     out->Write(&buffer[bufPos], read);
                     size_t written = out->LastWrite();
+                    // logger_base.error("   FTP Upload wrote %lu -> left %lu.", (unsigned long)written, (unsigned long)read);
                     bufPos += written;
                     read -= written;
-                    //logger_base.debug("   FTP Upload wrote %lu left %lu.", (unsigned long)written, (unsigned long)read);
                 }
 
                 int donePct = (int)(done * 100 / length);
@@ -178,9 +256,9 @@ bool SimpleFTP::UploadFile(std::string file, std::string folder, std::string new
             delete out;
             out = nullptr;
 
-            if (ftp.GetFileSize((folder + "/" + basefilenew).c_str()) != length)
+            if (_ftp.GetFileSize((folder + "/" + basefilenew).c_str()) != length)
             {
-                logger_base.warn("   FTP Upload of file %s failed. Source size (%d) != Destination Size (%d)", (const char *)file.c_str(), length, ftp.GetFileSize((folder + "/" + basefile).c_str()));
+                logger_base.warn("   FTP Upload of file %s failed. Source size (%d) != Destination Size (%d)", (const char *)file.c_str(), length, _ftp.GetFileSize((folder + "/" + basefile).c_str()));
             }
         }
         else
@@ -207,5 +285,5 @@ bool SimpleFTP::UploadFile(std::string file, std::string folder, std::string new
 
 SimpleFTP::~SimpleFTP()
 {
-    ftp.Close();
+    _ftp.Close();
 }

@@ -2,37 +2,28 @@
 #define BUFFERPANEL_H
 
 //(*Headers(BufferPanel)
-#include <wx/scrolwin.h>
+#include <wx/bmpbuttn.h>
+#include <wx/checkbox.h>
+#include <wx/choice.h>
 #include <wx/notebook.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
+#include <wx/slider.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
-#include <wx/checkbox.h>
-#include <wx/slider.h>
-#include <wx/panel.h>
-#include <wx/choice.h>
-#include <wx/bmpbuttn.h>
 //*)
 
-#include "ValueCurve.h"
-#include "ValueCurveButton.h"
 #include <string>
+
+#include "BulkEditControls.h"
 
 class Model;
 class SubBufferPanel;
 
 class BufferPanel: public wxPanel
 {
-    void ValidateWindow();
     void OnVCChanged(wxCommandEvent& event);
-
-    int __blur;
-    int __rotation;
-    float __rotations;
-    float __zoom;
-    int __zoomquality;
-    int __pivotpointx;
-    int __pivotpointy;
 
 public:
 
@@ -41,50 +32,77 @@ public:
 
         wxString GetBufferString();
         void SetDefaultControls(const Model *model, bool optionbased = false);
+        void UpdateBufferStyles(const Model* model);
+        void ValidateWindow();
 
-    
 		//(*Declarations(BufferPanel)
-		wxBitmapButton* BitmapButton_EffectBlur;
-		wxBitmapButton* BitmapButton_Zoom;
-		wxNotebook* Notebook1;
-		wxSlider* Slider_Zoom;
-		wxBitmapButton* BitmapButton_Rotation;
-		wxTextCtrl* TextCtrl_Rotation;
-		wxScrolledWindow* ScrolledWindow1;
-		wxSlider* Slider_PivotPointY;
-		wxChoice* BufferStyleChoice;
-		wxTextCtrl* TextCtrl_Rotations;
-		wxFlexGridSizer* SubBufferPanelSizer;
-		wxFlexGridSizer* BufferSizer;
-		wxBitmapButton* BitmapButton_OverlayBkg;
-		wxSlider* Slider_PivotPointX;
-		wxTextCtrl* TextCtrl_PivotPointX;
-		wxChoice* BufferTransform;
-		wxBitmapButton* BitmapButton_Rotations;
-		wxTextCtrl* TextCtrl_ZoomQuality;
-		wxSlider* Slider_ZoomQuality;
-		wxStaticText* StaticText5;
-		ValueCurveButton* BitmapButton_VCPivotPointY;
-		wxTextCtrl* TextCtrl_Zoom;
-		wxTextCtrl* TextCtrl_EffectBlur;
-		ValueCurveButton* BitmapButton_VCRotation;
-		wxScrolledWindow* ScrolledWindow2;
-		wxChoice* Choice_Preset;
-		wxSlider* Slider_Rotation;
-		ValueCurveButton* BitmapButton_VCZoom;
-		ValueCurveButton* BitmapButton_Blur;
-		wxTextCtrl* TextCtrl_PivotPointY;
+		BulkEditCheckBox* CheckBox_OverlayBkg;
+		BulkEditChoice* BufferStyleChoice;
+		BulkEditChoice* BufferTransform;
+		BulkEditChoice* ChoiceRotateOrder;
+		BulkEditSlider* Slider_EffectBlur;
+		BulkEditSlider* Slider_PivotPointX;
+		BulkEditSlider* Slider_PivotPointY;
+		BulkEditSlider* Slider_Rotation;
+		BulkEditSlider* Slider_XPivot;
+		BulkEditSlider* Slider_XRotation;
+		BulkEditSlider* Slider_YPivot;
+		BulkEditSlider* Slider_YRotation;
+		BulkEditSlider* Slider_ZoomQuality;
+		BulkEditSliderF1* Slider_Rotations;
+		BulkEditSliderF1* Slider_Zoom;
+		BulkEditTextCtrl* TextCtrl_EffectBlur;
+		BulkEditTextCtrl* TextCtrl_PivotPointX;
+		BulkEditTextCtrl* TextCtrl_PivotPointY;
+		BulkEditTextCtrl* TextCtrl_Rotation;
+		BulkEditTextCtrl* TextCtrl_XPivot;
+		BulkEditTextCtrl* TextCtrl_XRotation;
+		BulkEditTextCtrl* TextCtrl_YPivot;
+		BulkEditTextCtrl* TextCtrl_YRotation;
+		BulkEditTextCtrl* TextCtrl_ZoomQuality;
+		BulkEditTextCtrlF1* TextCtrl_Rotations;
+		BulkEditTextCtrlF1* TextCtrl_Zoom;
+		BulkEditValueCurveButton* BitmapButton_Blur;
+		BulkEditValueCurveButton* BitmapButton_VCPivotPointX;
+		BulkEditValueCurveButton* BitmapButton_VCPivotPointY;
+		BulkEditValueCurveButton* BitmapButton_VCRotation;
+		BulkEditValueCurveButton* BitmapButton_VCRotations;
+		BulkEditValueCurveButton* BitmapButton_VCZoom;
+		BulkEditValueCurveButton* BitmapButton_XPivot;
+		BulkEditValueCurveButton* BitmapButton_XRotation;
+		BulkEditValueCurveButton* BitmapButton_YPivot;
+		BulkEditValueCurveButton* BitmapButton_YRotation;
 		wxCheckBox* CheckBox_ResetBufferPanel;
-		wxSlider* Slider_Rotations;
-		wxCheckBox* CheckBox_OverlayBkg;
-		wxFlexGridSizer* RotoZoomSizer;
-		ValueCurveButton* BitmapButton_VCPivotPointX;
-		wxBitmapButton* BitmapButton_PivotPointX;
-		wxBitmapButton* BitmapButton_ZoomQuality;
-		ValueCurveButton* BitmapButton_VCRotations;
+		wxChoice* Choice_Preset;
+		wxFlexGridSizer* BufferSizer;
 		wxFlexGridSizer* FullBufferSizer;
-		wxBitmapButton* BitmapButton_PivotPointY;
-		wxSlider* Slider_EffectBlur;
+		wxFlexGridSizer* RotoZoomSizer;
+		wxFlexGridSizer* SubBufferPanelSizer;
+		wxNotebook* Notebook1;
+		wxScrolledWindow* ScrolledWindow1;
+		wxScrolledWindow* ScrolledWindow2;
+		wxStaticText* StaticText10;
+		wxStaticText* StaticText12;
+		wxStaticText* StaticText13;
+		wxStaticText* StaticText14;
+		wxStaticText* StaticText15;
+		wxStaticText* StaticText1;
+		wxStaticText* StaticText2;
+		wxStaticText* StaticText3;
+		wxStaticText* StaticText4;
+		wxStaticText* StaticText5;
+		wxStaticText* StaticText6;
+		wxStaticText* StaticText7;
+		wxStaticText* StaticText8;
+		wxStaticText* StaticText9;
+		xlLockButton* BitmapButton_EffectBlur;
+		xlLockButton* BitmapButton_OverlayBkg;
+		xlLockButton* BitmapButton_PivotPointX;
+		xlLockButton* BitmapButton_PivotPointY;
+		xlLockButton* BitmapButton_Rotation;
+		xlLockButton* BitmapButton_Rotations;
+		xlLockButton* BitmapButton_Zoom;
+		xlLockButton* BitmapButton_ZoomQuality;
 		//*)
 
         SubBufferPanel *subBufferPanel;
@@ -92,11 +110,13 @@ public:
 
 		//(*Identifiers(BufferPanel)
 		static const long ID_CHECKBOX_ResetBufferPanel;
+		static const long ID_STATICTEXT_BufferStyle;
 		static const long ID_CHOICE_BufferStyle;
 		static const long ID_BITMAPBUTTON_CHOICE_BufferStyle;
+		static const long ID_STATICTEXT_BufferTransform;
 		static const long ID_CHOICE_BufferTransform;
 		static const long ID_BITMAPBUTTON_CHOICE_BufferTransform;
-		static const long ID_STATICTEXT2;
+		static const long ID_STATICTEXT_Blur;
 		static const long ID_SLIDER_Blur;
 		static const long ID_VALUECURVE_Blur;
 		static const long IDD_TEXTCTRL_Blur;
@@ -106,29 +126,53 @@ public:
 		static const long ID_SCROLLEDWINDOW1;
 		static const long ID_PANEL1;
 		static const long ID_CHOICE_Preset;
+		static const long ID_STATICTEXT_Rotation;
 		static const long ID_SLIDER_Rotation;
 		static const long ID_VALUECURVE_Rotation;
 		static const long IDD_TEXTCTRL_Rotation;
 		static const long ID_BITMAPBUTTON_Rotation;
+		static const long ID_STATICTEXT_Rotations;
 		static const long ID_SLIDER_Rotations;
 		static const long ID_VALUECURVE_Rotations;
 		static const long IDD_TEXTCTRL_Rotations;
 		static const long ID_BITMAPBUTTON_Rotations;
+		static const long ID_STATICTEXT_PivotPointX;
 		static const long ID_SLIDER_PivotPointX;
 		static const long ID_VALUECURVE_PivotPointX;
 		static const long IDD_TEXTCTRL_PivotPointX;
 		static const long ID_BITMAPBUTTON_PivotPointX;
+		static const long ID_STATICTEXT_PivotPointY;
 		static const long ID_SLIDER_PivotPointY;
 		static const long ID_VALUECURVE_PivotPointY;
 		static const long IDD_TEXTCTRL_PivotPointY;
 		static const long ID_BITMAPBUTTON_PivotPointY;
+		static const long ID_STATICTEXT_Zoom;
 		static const long ID_SLIDER_Zoom;
 		static const long ID_VALUECURVE_Zoom;
 		static const long IDD_TEXTCTRL_Zoom;
 		static const long ID_BITMAPBUTTON_Zoom;
+		static const long ID_STATICTEXT_ZoomQuality;
 		static const long ID_SLIDER_ZoomQuality;
 		static const long IDD_TEXTCTRL_ZoomQuality;
 		static const long ID_BITMAPBUTTON_ZoomQuality;
+		static const long ID_STATICTEXT_XRotation;
+		static const long ID_SLIDER_XRotation;
+		static const long ID_VALUECURVE_XRotation;
+		static const long IDD_TEXTCTRL_XRotation;
+		static const long ID_STATICTEXT_XPivot;
+		static const long ID_SLIDER_XPivot;
+		static const long ID_VALUECURVE_XPivot;
+		static const long IDD_TEXTCTRL_XPivot;
+		static const long ID_STATICTEXT_YRotation;
+		static const long ID_SLIDER_YRotation;
+		static const long ID_VALUECURVE_YRotation;
+		static const long IDD_TEXTCTRL_YRotation;
+		static const long ID_STATICTEXT_YPivot;
+		static const long ID_SLIDER_YPivot;
+		static const long ID_VALUECURVE_YPivot;
+		static const long IDD_TEXTCTRL_YPivot;
+		static const long ID_STATICTEXT1;
+		static const long ID_CHOICE_RZ_RotationOrder;
 		static const long ID_SCROLLEDWINDOW2;
 		static const long ID_PANEL4;
 		static const long ID_NOTEBOOK1;
@@ -137,36 +181,11 @@ public:
 	private:
 
 		//(*Handlers(BufferPanel)
-		void UpdateLinkedSliderFloat(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-		void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-		void UpdateLinkedSlider360(wxCommandEvent& event);
-		void UpdateLinkedTextCtrl(wxScrollEvent& event);
-		void UpdateLinkedSlider(wxCommandEvent& event);
 		void OnLockButtonClick(wxCommandEvent& event);
-		void OnResize(wxSizeEvent& event);
-		void OnBitmapButton_BlurClick(wxCommandEvent& event);
-		void OnBitmapButton_RotationClick(wxCommandEvent& event);
-		void OnBitmapButton_ZoomClick(wxCommandEvent& event);
-		void OnSlider_EffectBlurCmdSliderUpdated(wxScrollEvent& event);
-		void OnSlider_ZoomCmdSliderUpdated(wxScrollEvent& event);
-		void OnSlider_RotationCmdSliderUpdated(wxScrollEvent& event);
 		void OnBufferTransformSelect(wxCommandEvent& event);
-		void OnSlider_RotationsCmdSliderUpdated(wxScrollEvent& event);
-		void OnTextCtrl_RotationsText(wxCommandEvent& event);
-		void OnTextCtrl_ZoomText(wxCommandEvent& event);
-		void OnSlider_PivotPointXCmdSliderUpdated(wxScrollEvent& event);
-		void OnSlider_PivotPointYCmdSliderUpdated(wxScrollEvent& event);
-		void OnBitmapButton_VCRotationsClick(wxCommandEvent& event);
-		void OnBitmapButton_VCPivotPointXClick(wxCommandEvent& event);
-		void OnBitmapButton_VCPivotPointYClick(wxCommandEvent& event);
 		void OnChoice_PresetSelect(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-		void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
 		void OnVCButtonClick(wxCommandEvent& event);
 		void OnButton_ResetClick(wxCommandEvent& event);
-		void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
 		void OnCheckBox_ResetBufferPanelClick(wxCommandEvent& event);
 		//*)
 

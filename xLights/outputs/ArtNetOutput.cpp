@@ -4,6 +4,7 @@
 #include <log4cpp/Category.hh>
 #include "ArtNetDialog.h"
 #include "OutputManager.h"
+#include "../UtilFunctions.h"
 
 #pragma region Static Variables
 int ArtNetOutput::__ip1 = -1;
@@ -98,11 +99,16 @@ void ArtNetOutput::SendSync()
         {
             logger_base.error("Error initialising Artnet sync datagram.");
             return;
-        }
-
-        if (!syncdatagram->IsOk())
+        } else if (!syncdatagram->IsOk())
         {
-            logger_base.error("Error initialising Artnet sync datagram ... is network connected: %s", (const char *)IPOutput::DecodeError(syncdatagram->LastError()).c_str());
+            logger_base.error("Error initialising Artnet sync datagram ... is network connected? OK : FALSE");
+            delete syncdatagram;
+            syncdatagram = nullptr;
+            return;
+        }
+        else if (syncdatagram->Error())
+        {
+            logger_base.error("Error creating Artnet sync datagram => %d : %s.", syncdatagram->LastError(), (const char *)DecodeIPError(syncdatagram->LastError()).c_str());
             delete syncdatagram;
             syncdatagram = nullptr;
             return;
@@ -166,11 +172,17 @@ bool ArtNetOutput::Open()
         logger_base.error("Error initialising Artnet datagram for %s %d:%d:%d.", (const char *)_ip.c_str(), GetArtNetNet(), GetArtNetSubnet(), GetArtNetUniverse());
         _ok = false;
         return _ok;
-    }
-
-    if (!_datagram->IsOk())
+    } else if (!_datagram->IsOk())
     {
-        logger_base.error("Error initialising Artnet datagram for %s %d:%d:%d. %s", (const char *)_ip.c_str(), GetArtNetNet(), GetArtNetSubnet(), GetArtNetUniverse(), (const char *)IPOutput::DecodeError(_datagram->LastError()).c_str());
+        logger_base.error("Error initialising Artnet datagram for %s %d:%d:%d. OK : FALSE", (const char *)_ip.c_str(), GetArtNetNet(), GetArtNetSubnet(), GetArtNetUniverse());
+        delete _datagram;
+        _datagram = nullptr;
+        _ok = false;
+        return _ok;
+    }
+    else if (_datagram->Error())
+    {
+        logger_base.error("Error creating Artnet datagram => %d : %s.", _datagram->LastError(), (const char *)DecodeIPError(_datagram->LastError()).c_str());
         delete _datagram;
         _datagram = nullptr;
         _ok = false;
@@ -223,7 +235,7 @@ bool ArtNetOutput::Open()
 #pragma region Frame Handling
 void ArtNetOutput::EndFrame(int suppressFrames)
 {
-    if (!_enabled || _datagram == nullptr) return;
+    if (!_enabled || _suspend || _datagram == nullptr) return;
 
     if (_changed || NeedToOutput(suppressFrames))
     {
@@ -253,7 +265,7 @@ void ArtNetOutput::SetOneChannel(long channel, unsigned char data)
 
 void ArtNetOutput::SetManyChannels(long channel, unsigned char data[], long size)
 {
-    wxASSERT(channel + size < _channels);
+    wxASSERT(channel + size <= _channels);
 
 #ifdef _MSC_VER
     long chs = min(size, _channels - channel);
@@ -282,7 +294,7 @@ void ArtNetOutput::AllOff()
 #pragma region Getters and Setters
 std::string ArtNetOutput::GetUniverseString() const
 {
-    return wxString::Format(wxT("%i:%i:%i"), GetArtNetNet(), GetArtNetSubnet(), GetArtNetUniverse()).ToStdString();
+    return wxString::Format(wxT("%i:%i:%i or %d"), GetArtNetNet(), GetArtNetSubnet(), GetArtNetUniverse(), GetUniverse()).ToStdString();
 }
 
 std::string ArtNetOutput::GetLongDescription() const

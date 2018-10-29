@@ -1,10 +1,12 @@
 #include "E131Output.h"
 
 #include <wx/xml/xml.h>
+#include <wx/process.h>
 
 #include <log4cpp/Category.hh>
 #include "E131Dialog.h"
 #include "OutputManager.h"
+#include "../UtilFunctions.h"
 
 #pragma region Constructors and Destructors
 E131Output::E131Output(wxXmlNode* node) : IPOutput(node)
@@ -29,6 +31,9 @@ E131Output::E131Output() : IPOutput()
 E131Output::~E131Output()
 {
     if (_datagram != nullptr) delete _datagram;
+    for (auto i : _outputs) {
+        delete i;
+    }
 }
 #pragma endregion Constructors and Destructors
 
@@ -48,6 +53,11 @@ wxXmlNode* E131Output::Save()
 void E131Output::CreateMultiUniverses(int num)
 {
     _numUniverses = num;
+    
+    for (auto i : _outputs) {
+        delete i;
+    }
+    
     _outputs.clear();
 
     for (int i = 0; i < _numUniverses; i++)
@@ -95,16 +105,14 @@ void E131Output::SendSync(int syncUniverse)
         syncdata[17] = 0x21;  // 0x021 = 49 - 16
         syncdata[21] = 0x08;
 
-        // CID/UUID
-        wxChar msb, lsb;
         wxString id = XLIGHTS_UUID;
         id.Replace("-", "");
         id.MakeLower();
         if (id.Len() != 32) throw "invalid CID";
         for (int i = 0, j = 22; i < 32; i += 2)
         {
-            msb = id.GetChar(i);
-            lsb = id.GetChar(i + 1);
+            wxChar msb = id.GetChar(i);
+            wxChar lsb = id.GetChar(i + 1);
             msb -= isdigit(msb) ? 0x30 : 0x57;
             lsb -= isdigit(lsb) ? 0x30 : 0x57;
             syncdata[j++] = (wxByte)((msb << 4) | lsb);
@@ -147,7 +155,13 @@ void E131Output::SendSync(int syncUniverse)
             }
             else if (!syncdatagram->IsOk())
             {
-                logger_base.error("Error initialising E131 sync datagram ... is network connected: %s", (const char *)IPOutput::DecodeError(syncdatagram->LastError()).c_str());
+                logger_base.error("Error initialising E131 sync datagram ... is network connected? OK : FALSE");
+                delete syncdatagram;
+                syncdatagram = nullptr;
+            }
+            else if (syncdatagram->Error() != wxSOCKET_NOERROR)
+            {
+                logger_base.error("Error creating E131 sync datagram => %d : %s.", syncdatagram->LastError(), (const char *)DecodeIPError(syncdatagram->LastError()).c_str());
                 delete syncdatagram;
                 syncdatagram = nullptr;
             }
@@ -170,6 +184,12 @@ void E131Output::SendSync(int syncUniverse)
             syncdatagram->SendTo(syncremoteAddr, syncdata, E131_SYNCPACKET_LEN);
         }
     }
+}
+
+std::string E131Output::GetTag()
+{
+    // creates a unique tag per running instance of xLights on this machine
+    return "xLights " + wxString::Format("%ld", wxGetProcessId());
 }
 #pragma endregion Static Functions
 
@@ -215,15 +235,14 @@ bool E131Output::Open()
 
         // CID/UUID
 
-        wxChar msb, lsb;
         wxString id = XLIGHTS_UUID;
         id.Replace("-", "");
         id.MakeLower();
         if (id.Len() != 32) throw "invalid CID";
         for (int i = 0, j = 22; i < 32; i += 2)
         {
-            msb = id.GetChar(i);
-            lsb = id.GetChar(i + 1);
+            wxChar msb = id.GetChar(i);
+            wxChar lsb = id.GetChar(i + 1);
             msb -= isdigit(msb) ? 0x30 : 0x57;
             lsb -= isdigit(lsb) ? 0x30 : 0x57;
             _data[j++] = (wxByte)((msb << 4) | lsb);
@@ -232,13 +251,8 @@ bool E131Output::Open()
         _data[38] = 0x72;  // Framing Protocol flags and length (high)
         _data[39] = 0x58;  // 0x258 = 638 - 38
         _data[43] = 0x02;
-        _data[44] = 'x';   // Source Name (64 bytes)
-        _data[45] = 'L';
-        _data[46] = 'i';
-        _data[47] = 'g';
-        _data[48] = 'h';
-        _data[49] = 't';
-        _data[50] = 's';
+        // Source Name (64 bytes)
+        strcpy((char*)&_data[44], GetTag().c_str());
         _data[108] = 100;  // Priority
         _data[113] = UnivHi;  // Universe Number (high)
         _data[114] = UnivLo;  // Universe Number (low)
@@ -267,7 +281,13 @@ bool E131Output::Open()
         }
         else if (!_datagram->IsOk())
         {
-            logger_base.error("E131Output: Error opening datagram ... network may not be connected: %s", (const char *)IPOutput::DecodeError(_datagram->LastError()).c_str());
+            logger_base.error("E131Output: Error opening datagram. Network may not be connected? OK : FALSE");
+            delete _datagram;
+            _datagram = nullptr;
+        }
+        else if (_datagram->Error() != wxSOCKET_NOERROR)
+        {
+            logger_base.error("Error creating E131 datagram => %d : %s.", _datagram->LastError(), (const char *)DecodeIPError(_datagram->LastError()).c_str());
             delete _datagram;
             _datagram = nullptr;
         }
@@ -368,7 +388,7 @@ void E131Output::StartFrame(long msec)
 
 void E131Output::EndFrame(int suppressFrames)
 {
-    if (!_enabled) return;
+    if (!_enabled || _suspend) return;
 
     if (IsOutputCollection())
     {
@@ -544,8 +564,8 @@ std::string E131Output::GetLongDescription() const
     {
         if (!_enabled) res += "INACTIVE ";
         res += "E1.31 " + _ip + " {" + wxString::Format(wxT("%i"), _universe).ToStdString() + "} ";
-        res += "[1-" + std::string(wxString::Format(wxT("%i"), (long)_channels)) + "] ";
-        res += "(" + std::string(wxString::Format(wxT("%i"), (long)GetStartChannel())) + "-" + std::string(wxString::Format(wxT("%i"), (long)GetActualEndChannel())) + ") ";
+        res += "[1-" + std::string(wxString::Format(wxT("%li"), (long)_channels)) + "] ";
+        res += "(" + std::string(wxString::Format(wxT("%li"), (long)GetStartChannel())) + "-" + std::string(wxString::Format(wxT("%li"), (long)GetActualEndChannel())) + ") ";
         res += _description;
     }
 
@@ -570,19 +590,19 @@ std::string E131Output::GetChannelMapping(long ch) const
     }
     else
     {
-        res = "Channel " + std::string(wxString::Format(wxT("%i"), ch)) + " maps to ...\n";
+        res = "Channel " + std::string(wxString::Format(wxT("%li"), ch)) + " maps to ...\n";
 
         res += "Type: E1.31\n";
-        int u = _universe;
+        // int u = _universe;
         long channeloffset = ch - GetStartChannel() + 1;
         if (_numUniverses > 1)
         {
-            u += (ch - GetStartChannel()) / _channels;
+            // u += (ch - GetStartChannel()) / _channels;
             channeloffset -= (ch - GetStartChannel()) / _channels * _channels;
         }
         res += "IP: " + _ip + "\n";
         res += "Universe: " + GetUniverseString() + "\n";
-        res += "Channel: " + std::string(wxString::Format(wxT("%i"), channeloffset)) + "\n";
+        res += "Channel: " + std::string(wxString::Format(wxT("%li"), channeloffset)) + "\n";
 
         if (!_enabled) res += " INACTIVE";
     }

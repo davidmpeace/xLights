@@ -13,7 +13,7 @@
 								<cols>4</cols>
 								<growablecols>1</growablecols>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX1" variable="Label_DMX1" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX1" variable="Label_DMX1" member="yes">
 										<label>Channel 1:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -21,37 +21,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX1" variable="Slider_DMX1" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX1" subclass="BulkEditSlider" variable="Slider_DMX1" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX1" subclass="ValueCurveButton" variable="ValueCurve_DMX1" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX1" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX1" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX1" variable="TextCtrl1_DMX1" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX1" subclass="BulkEditTextCtrl" variable="TextCtrl1_DMX1" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX2" variable="Label_DMX2" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX2" variable="Label_DMX2" member="yes">
 										<label>Channel 2:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -59,37 +57,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX2" variable="Slider_DMX2" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX2" subclass="BulkEditSlider" variable="Slider_DMX2" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX2" subclass="ValueCurveButton" variable="ValueCurve_DMX2" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX2" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX2" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX2" variable="TextCtrl1_DMX2" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX2" subclass="BulkEditTextCtrl" variable="TextCtrl1_DMX2" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX3" variable="Label_DMX3" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX3" variable="Label_DMX3" member="yes">
 										<label>Channel 3:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -97,37 +93,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX3" variable="Slider_DMX3" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX3" subclass="BulkEditSlider" variable="Slider_DMX3" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX3" subclass="ValueCurveButton" variable="ValueCurve_DMX3" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX3" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX3" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX3" variable="TextCtrl1_DMX3" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX3" subclass="BulkEditTextCtrl" variable="TextCtrl1_DMX3" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX4" variable="Label_DMX4" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX4" variable="Label_DMX4" member="yes">
 										<label>Channel 4:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -135,37 +129,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX4" variable="Slider_DMX4" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX4" subclass="BulkEditSlider" variable="Slider_DMX4" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX4" subclass="ValueCurveButton" variable="ValueCurve_DMX4" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX4" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX4" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX4" variable="TextCtrl_DMX4" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX4" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX4" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX5" variable="Label_DMX5" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX5" variable="Label_DMX5" member="yes">
 										<label>Channel 5:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -173,37 +165,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX5" variable="Slider_DMX5" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX5" subclass="BulkEditSlider" variable="Slider_DMX5" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX5" subclass="ValueCurveButton" variable="ValueCurve_DMX5" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX5" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX5" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX5" variable="TextCtrl1_DMX5" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX5" subclass="BulkEditTextCtrl" variable="TextCtrl1_DMX5" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX6" variable="Label_DMX6" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX6" variable="Label_DMX6" member="yes">
 										<label>Channel 6:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -211,37 +201,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX6" variable="Slider_DMX6" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX6" subclass="BulkEditSlider" variable="Slider_DMX6" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX6" subclass="ValueCurveButton" variable="ValueCurve_DMX6" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX6" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX6" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX6" variable="TextCtrl1_DMX6" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX6" subclass="BulkEditTextCtrl" variable="TextCtrl1_DMX6" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX7" variable="Label_DMX7" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX7" variable="Label_DMX7" member="yes">
 										<label>Channel 7:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -249,37 +237,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX7" variable="Slider_DMX7" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX7" subclass="BulkEditSlider" variable="Slider_DMX7" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX7" subclass="ValueCurveButton" variable="ValueCurve_DMX7" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX7" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX7" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX7" variable="TextCtrl1_DMX7" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX7" subclass="BulkEditTextCtrl" variable="TextCtrl1_DMX7" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX8" variable="Label_DMX8" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX8" variable="Label_DMX8" member="yes">
 										<label>Channel 8:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -287,37 +273,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX8" variable="Slider_DMX8" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX8" subclass="BulkEditSlider" variable="Slider_DMX8" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX8" subclass="ValueCurveButton" variable="ValueCurve_DMX8" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX8" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX8" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX8" variable="TextCtrl1_DMX8" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX8" subclass="BulkEditTextCtrl" variable="TextCtrl1_DMX8" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX9" variable="Label_DMX9" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX9" variable="Label_DMX9" member="yes">
 										<label>Channel 9:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -325,46 +309,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX9" variable="Slider_DMX9" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX9" subclass="BulkEditSlider" variable="Slider_DMX9" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX9" subclass="ValueCurveButton" variable="ValueCurve_DMX9" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX9" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX9" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX9" variable="TextCtrl_DMX9" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX9" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX9" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
-							</object>
-						</object>
-						<label>Channels 1-9</label>
-					</object>
-					<object class="notebookpage">
-						<object class="wxPanel" name="ID_PANEL28" variable="ChannelPanel2" member="yes">
-							<object class="wxFlexGridSizer" variable="FlexGridSizer_Panel2" member="yes">
-								<cols>4</cols>
-								<growablecols>1</growablecols>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX10" variable="Label_DMX10" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX10" variable="Label_DMX10" member="yes">
 										<label>Channel 10:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -372,37 +345,44 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX10" variable="Slider_DMX10" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX10" subclass="BulkEditSlider" variable="Slider_DMX10" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX10" subclass="ValueCurveButton" variable="ValueCurve_DMX10" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX10" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX10" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX10" variable="TextCtrl_DMX10" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX10" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX10" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
+							</object>
+						</object>
+						<label>Channels 1-10</label>
+					</object>
+					<object class="notebookpage">
+						<object class="wxPanel" name="ID_PANEL28" variable="ChannelPanel2" member="yes">
+							<object class="wxFlexGridSizer" variable="FlexGridSizer_Panel2" member="yes">
+								<cols>4</cols>
+								<growablecols>1</growablecols>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX11" variable="Label_DMX11" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX11" variable="Label_DMX11" member="yes">
 										<label>Channel 11:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -410,37 +390,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX11" variable="Slider_DMX11" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX11" subclass="BulkEditSlider" variable="Slider_DMX11" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX11" subclass="ValueCurveButton" variable="ValueCurve_DMX11" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX11" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX11" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX11" variable="TextCtrl_DMX11" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX11" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX11" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX12" variable="Label_DMX12" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX12" variable="Label_DMX12" member="yes">
 										<label>Channel 12:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -448,37 +426,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX12" variable="Slider_DMX12" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX12" subclass="BulkEditSlider" variable="Slider_DMX12" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX12" subclass="ValueCurveButton" variable="ValueCurve_DMX12" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX12" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX12" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX12" variable="TextCtrl_DMX12" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX12" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX12" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX13" variable="Label_DMX13" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX13" variable="Label_DMX13" member="yes">
 										<label>Channel 13:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -486,37 +462,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX13" variable="Slider_DMX13" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX13" subclass="BulkEditSlider" variable="Slider_DMX13" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX13" subclass="ValueCurveButton" variable="ValueCurve_DMX13" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX13" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX13" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX13" variable="TextCtrl_DMX13" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX13" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX13" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX14" variable="Label_DMX14" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX14" variable="Label_DMX14" member="yes">
 										<label>Channel 14:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -524,37 +498,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX14" variable="Slider_DMX14" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX14" subclass="BulkEditSlider" variable="Slider_DMX14" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX14" subclass="ValueCurveButton" variable="ValueCurve_DMX14" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX14" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX14" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX14" variable="TextCtrl_DMX14" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX14" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX14" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX15" variable="Label_DMX15" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX15" variable="Label_DMX15" member="yes">
 										<label>Channel 15:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -562,37 +534,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX15" variable="Slider_DMX15" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX15" subclass="BulkEditSlider" variable="Slider_DMX15" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX15" subclass="ValueCurveButton" variable="ValueCurve_DMX15" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX15" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX15" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX15" variable="TextCtrl_DMX15" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX15" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX15" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
 									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX16" variable="Label_DMX16" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX16" variable="Label_DMX16" member="yes">
 										<label>Channel 16:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -600,37 +570,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX16" variable="Slider_DMX16" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX16" subclass="BulkEditSlider" variable="Slider_DMX16" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX16" subclass="ValueCurveButton" variable="ValueCurve_DMX16" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX16" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX16" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX16" variable="TextCtrl_DMX16" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX16" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX16" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
-									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX17" variable="Label_DMX17" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX17" variable="Label_DMX17" member="yes">
 										<label>Channel 17:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -638,37 +606,35 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX17" variable="Slider_DMX17" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX17" subclass="BulkEditSlider" variable="Slider_DMX17" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX17" subclass="ValueCurveButton" variable="ValueCurve_DMX17" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX17" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX17" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX17" variable="TextCtrl_DMX17" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX17" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX17" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 									</object>
-									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxStaticText" name="ID_LABEL_DMX18" variable="Label_DMX18" member="no">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX18" variable="Label_DMX18" member="yes">
 										<label>Channel 18:</label>
 									</object>
 									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
@@ -676,38 +642,846 @@
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxSlider" name="ID_SLIDER_DMX18" variable="Slider_DMX18" member="yes">
+									<object class="wxSlider" name="ID_SLIDER_DMX18" subclass="BulkEditSlider" variable="Slider_DMX18" member="yes">
 										<max>255</max>
-										<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 									</object>
 									<flag>wxALL|wxEXPAND</flag>
 									<border>2</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX18" subclass="ValueCurveButton" variable="ValueCurve_DMX18" member="yes">
-										<bitmap code="valuecurvenotselected_24" />
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX18" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX18" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
 									<option>1</option>
 								</object>
 								<object class="sizeritem">
-									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX18" variable="TextCtrl_DMX18" member="no">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX18" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX18" member="no">
 										<value>0</value>
 										<size>20,-1d</size>
 										<style>wxTE_PROCESS_ENTER</style>
-										<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX19" variable="Label_DMX19" member="yes">
+										<label>Channel 19:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX19" subclass="BulkEditSlider" variable="Slider_DMX19" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX19" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX19" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 									</object>
 									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX19" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX19" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX20" variable="Label_DMX20" member="yes">
+										<label>Channel 20:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX20" subclass="BulkEditSlider" variable="Slider_DMX20" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX20" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX20" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX20" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX20" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
 									<option>1</option>
 								</object>
 							</object>
 						</object>
-						<label>Channels 10-18</label>
+						<label>Channels 11-20</label>
+					</object>
+					<object class="notebookpage">
+						<object class="wxPanel" name="ID_PANEL1" variable="ChannelPanel3" member="yes">
+							<object class="wxFlexGridSizer" variable="FlexGridSizer1" member="yes">
+								<cols>4</cols>
+								<growablecols>1</growablecols>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX21" variable="Label_DMX21" member="yes">
+										<label>Channel 21:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX21" subclass="BulkEditSlider" variable="Slider_DMX21" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX21" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX21" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX21" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX21" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX22" variable="Label_DMX22" member="yes">
+										<label>Channel 22:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX22" subclass="BulkEditSlider" variable="Slider_DMX22" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX22" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX22" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX22" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX22" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX23" variable="Label_DMX23" member="yes">
+										<label>Channel 23:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX23" subclass="BulkEditSlider" variable="Slider_DMX23" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX23" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX23" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX23" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX23" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX24" variable="Label_DMX24" member="yes">
+										<label>Channel 24:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX24" subclass="BulkEditSlider" variable="Slider_DMX24" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX24" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX24" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX24" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX24" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX25" variable="Label_DMX25" member="yes">
+										<label>Channel 25:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX25" subclass="BulkEditSlider" variable="Slider_DMX25" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX25" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX25" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX25" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX25" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX26" variable="Label_DMX26" member="yes">
+										<label>Channel 26:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX26" subclass="BulkEditSlider" variable="Slider_DMX26" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX26" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX26" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX26" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX26" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX27" variable="Label_DMX27" member="yes">
+										<label>Channel 27:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX27" subclass="BulkEditSlider" variable="Slider_DMX27" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX27" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX27" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX27" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX27" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX28" variable="Label_DMX28" member="yes">
+										<label>Channel 28:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX28" subclass="BulkEditSlider" variable="Slider_DMX28" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX28" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX28" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX28" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX28" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX29" variable="Label_DMX29" member="yes">
+										<label>Channel 29:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX29" subclass="BulkEditSlider" variable="Slider_DMX29" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX29" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX29" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX29" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX29" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX30" variable="Label_DMX30" member="yes">
+										<label>Channel 30:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX30" subclass="BulkEditSlider" variable="Slider_DMX30" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX30" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX30" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX30" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX30" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+							</object>
+						</object>
+						<label>Channels 21-30</label>
+					</object>
+					<object class="notebookpage">
+						<object class="wxPanel" name="ID_PANEL3" variable="ChannelPanel4" member="yes">
+							<object class="wxFlexGridSizer" variable="FlexGridSizer2" member="yes">
+								<cols>4</cols>
+								<growablecols>1</growablecols>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX31" variable="Label_DMX31" member="yes">
+										<label>Channel 31:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX31" subclass="BulkEditSlider" variable="Slider_DMX31" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX31" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX31" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX31" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX31" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX32" variable="Label_DMX32" member="yes">
+										<label>Channel 32:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX32" subclass="BulkEditSlider" variable="Slider_DMX32" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX32" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX32" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX32" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX32" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX33" variable="Label_DMX33" member="yes">
+										<label>Channel 33:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX33" subclass="BulkEditSlider" variable="Slider_DMX33" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX33" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX33" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX33" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX33" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX34" variable="Label_DMX34" member="yes">
+										<label>Channel 34:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX34" subclass="BulkEditSlider" variable="Slider_DMX34" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX34" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX34" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX34" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX34" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX35" variable="Label_DMX35" member="yes">
+										<label>Channel 35:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX35" subclass="BulkEditSlider" variable="Slider_DMX35" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX35" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX35" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX35" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX35" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX36" variable="Label_DMX36" member="yes">
+										<label>Channel 36:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX36" subclass="BulkEditSlider" variable="Slider_DMX36" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX36" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX36" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX36" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX36" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX37" variable="Label_DMX37" member="yes">
+										<label>Channel 37:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX37" subclass="BulkEditSlider" variable="Slider_DMX37" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX37" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX37" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX37" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX37" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX38" variable="Label_DMX38" member="yes">
+										<label>Channel 38:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX38" subclass="BulkEditSlider" variable="Slider_DMX38" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX38" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX38" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX38" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX38" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX39" variable="Label_DMX39" member="yes">
+										<label>Channel 39:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX39" subclass="BulkEditSlider" variable="Slider_DMX39" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX39" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX39" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX39" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX39" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxStaticText" name="ID_STATICTEXT_DMX40" variable="Label_DMX40" member="yes">
+										<label>Channel 40:</label>
+									</object>
+									<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxSlider" name="ID_SLIDER_DMX40" subclass="BulkEditSlider" variable="Slider_DMX40" member="yes">
+										<max>255</max>
+									</object>
+									<flag>wxALL|wxEXPAND</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxBitmapButton" name="ID_VALUECURVE_DMX40" subclass="BulkEditValueCurveButton" variable="ValueCurve_DMX40" member="yes">
+										<bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
+										<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+										<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
+									</object>
+									<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+									<border>1</border>
+									<option>1</option>
+								</object>
+								<object class="sizeritem">
+									<object class="wxTextCtrl" name="IDD_TEXTCTRL_DMX40" subclass="BulkEditTextCtrl" variable="TextCtrl_DMX40" member="no">
+										<value>0</value>
+										<size>20,-1d</size>
+										<style>wxTE_PROCESS_ENTER</style>
+									</object>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+									<border>2</border>
+									<option>1</option>
+								</object>
+							</object>
+						</object>
+						<label>Channels 31-40</label>
 					</object>
 				</object>
 				<flag>wxALL|wxEXPAND</flag>

@@ -4,6 +4,13 @@
 #include <wx/regex.h>
 #include <wx/socket.h>
 #include <log4cpp/Category.hh>
+#include <wx/protocol/http.h>
+
+#ifdef __WXMSW__
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <icmpapi.h>
+#endif
 
 std::string IPOutput::__localIP = "";
 
@@ -22,55 +29,6 @@ IPOutput::IPOutput() : Output()
 #pragma endregion Constructors and Destructors
 
 #pragma region Static Functions
-bool IPOutput::IsIPValidOrHostname(const std::string &ip, bool iponly) {
-    if (IsIPValid(ip)) {
-        return true;
-    }
-
-    bool hasChar = false;
-    bool hasDot = false;
-    //hostnames need at least one char in it if fully qualified
-    //if not fully qualified (no .), then the hostname only COULD be just numeric
-    for (int y = 0; y < ip.length(); y++) {
-        char x = ip[y];
-        if ((x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z') || x == '-') {
-            hasChar = true;
-        }
-        if (x == '.') {
-            hasDot = true;
-        }
-    }
-    if (hasChar || (!hasDot && !hasChar)) {
-        if (iponly) return true;
-        wxIPV4address addr;
-        addr.Hostname(ip);
-        wxString ipAddr = addr.IPAddress();
-        if (ipAddr != "0.0.0.0") {
-            return true;
-        }
-    }
-    return false;
-}
-bool IPOutput::IsIPValid(const std::string &ip)
-{
-    wxString ips = wxString(ip).Trim(false).Trim(true);
-    if (ips == "")
-    {
-        return false;
-    }
-    else
-    {
-        static wxRegEx regxIPAddr("^(([0-9]{1}|[0-9]{2}|[0-1][0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]{1}|[0-9]{2}|[0-1][0-9]{2}|2[0-4][0-9]|25[0-5])$");
-
-        if (regxIPAddr.Matches(ips))
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 std::string IPOutput::CleanupIP(const std::string &ip)
 {
     bool hasChar = false;
@@ -117,6 +75,67 @@ wxXmlNode* IPOutput::Save()
     return node;
 }
 
+PINGSTATE IPOutput::Ping() const
+{
+    return IPOutput::Ping(GetIP());
+}
+
+PINGSTATE IPOutput::Ping(const std::string ip)
+{
+#ifdef __WXMSW__
+    unsigned long ipaddr = inet_addr(ip.c_str());
+    if (ipaddr == INADDR_NONE) {
+        return PINGSTATE::PING_ALLFAILED;
+    }
+
+    HANDLE hIcmpFile = IcmpCreateFile();
+    if (hIcmpFile == INVALID_HANDLE_VALUE) {
+        return PINGSTATE::PING_ALLFAILED;
+    }
+
+    char SendData[32] = "Data Buffer";
+    uint32_t ReplySize = sizeof(ICMP_ECHO_REPLY) + sizeof(SendData);
+    void* ReplyBuffer = malloc(ReplySize);
+    if (ReplyBuffer == nullptr) {
+        IcmpCloseHandle(hIcmpFile);
+        return PINGSTATE::PING_ALLFAILED;
+    }
+
+    uint32_t dwRetVal = IcmpSendEcho(hIcmpFile, ipaddr, SendData, sizeof(SendData), nullptr, ReplyBuffer, ReplySize, 1000);
+    if (dwRetVal != 0) {
+        IcmpCloseHandle(hIcmpFile);
+        free(ReplyBuffer);
+        return PINGSTATE::PING_OK;
+    }
+    else
+    {
+        IcmpCloseHandle(hIcmpFile);
+        free(ReplyBuffer);
+        return PINGSTATE::PING_ALLFAILED;
+    }
+#else
+
+    wxHTTP http;
+    http.SetMethod("GET");
+    http.SetTimeout(2);
+    bool connected = false;
+    connected = http.Connect(ip, false);
+
+    if (connected)
+    {
+        wxInputStream *httpStream = http.GetInputStream("/");
+        if (http.GetError() == wxPROTO_NOERR)
+        {
+            return PINGSTATE::PING_WEBOK;
+        }
+        wxDELETE(httpStream);
+        http.Close();
+    }
+
+    return PINGSTATE::PING_UNAVAILABLE;
+#endif
+}
+
 void IPOutput::Save(wxXmlNode* node)
 {
     if (_ip != "")
@@ -129,35 +148,9 @@ void IPOutput::Save(wxXmlNode* node)
     Output::Save(node);
 }
 
-std::string IPOutput::DecodeError(wxSocketError err)
+std::string IPOutput::GetPingDescription() const
 {
-    switch (err)
-    {
-    case wxSOCKET_NOERROR:
-        return "No Error";
-    case wxSOCKET_INVOP:
-        return "Invalid Operation";
-    case wxSOCKET_IOERR:
-        return "IO Error";
-    case wxSOCKET_INVADDR:
-        return "Invalid Address";
-    case wxSOCKET_INVSOCK:
-        return "Invalid Socket";
-    case wxSOCKET_NOHOST:
-        return "No Host";
-    case wxSOCKET_INVPORT:
-        return "Invalid Port";
-    case wxSOCKET_WOULDBLOCK:
-        return "Would Block";
-    case wxSOCKET_TIMEDOUT:
-        return "Timeout";
-    case wxSOCKET_MEMERR:
-        return "Memory Error";
-    case wxSOCKET_OPTERR:
-        return "Option Error";
-    default:
-        return "God knows what happened";
-    }
+    return GetIP() + " " + GetDescription();
 }
 
 #pragma region Operators

@@ -43,6 +43,8 @@
 									<content>
 										<item>Grid as per preview</item>
 										<item>Minimal Grid</item>
+										<item>Horizontal Stack</item>
+										<item>Vertical Stack</item>
 										<item>Horizontal Per Model</item>
 										<item>Vertical Per Model</item>
 										<item>Horizontal Per Model/Strand</item>
@@ -50,6 +52,8 @@
 										<item>Single Line</item>
 										<item>Overlay - Centered</item>
 										<item>Overlay - Scaled</item>
+										<item>Single Line Model As A Pixel</item>
+										<item>Default Model As A Pixel</item>
 									</content>
 									<selection>0</selection>
 									<handler function="OnChoiceModelLayoutTypeSelect" entry="EVT_CHOICE" />
@@ -93,6 +97,21 @@
 								<border>2</border>
 								<option>1</option>
 							</object>
+							<object class="spacer">
+								<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<option>1</option>
+							</object>
+							<object class="sizeritem">
+								<object class="wxCheckBox" name="ID_CHECKBOX1" variable="CheckBox_ShowSubmodels" member="yes">
+									<label>Show submodels to add</label>
+									<checked>1</checked>
+									<handler function="OnCheckBox_ShowSubmodelsClick" entry="EVT_CHECKBOX" />
+								</object>
+								<flag>wxALL|wxEXPAND</flag>
+								<border>5</border>
+								<option>1</option>
+							</object>
 						</object>
 						<flag>wxALL|wxEXPAND</flag>
 						<option>1</option>
@@ -125,14 +144,13 @@
 							</object>
 							<object class="sizeritem">
 								<object class="wxListCtrl" name="ID_LISTCTRL1" variable="ListBoxAddToModelGroup" member="yes">
-									<size>65,-1</size>
+									<size>65,-1d</size>
 									<minsize>65,-1</minsize>
 									<style>wxLC_REPORT|wxLC_NO_HEADER|wxLC_SORT_ASCENDING</style>
 									<handler function="OnListBoxAddToModelGroupBeginDrag" entry="EVT_LIST_BEGIN_DRAG" />
 									<handler function="OnListBoxAddToModelGroupItemSelect" entry="EVT_LIST_ITEM_SELECTED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
-								<minsize>65,-1</minsize>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
@@ -195,14 +213,13 @@
 							</object>
 							<object class="sizeritem">
 								<object class="wxListCtrl" name="ID_LISTCTRL2" variable="ListBoxModelsInGroup" member="yes">
-									<size>65,-1</size>
+									<size>65,-1d</size>
 									<minsize>65,-1</minsize>
 									<style>wxLC_REPORT|wxLC_NO_HEADER</style>
 									<handler function="OnListBoxModelsInGroupBeginDrag" entry="EVT_LIST_BEGIN_DRAG" />
 									<handler function="OnListBoxModelsInGroupItemSelect" entry="EVT_LIST_ITEM_SELECTED" />
 								</object>
 								<flag>wxALL|wxEXPAND|wxFIXED_MINSIZE</flag>
-								<minsize>65,-1</minsize>
 								<option>1</option>
 							</object>
 						</object>

@@ -5,9 +5,12 @@
 #include <wx/string.h>
 #include <wx/wx.h>
 #include <wx/colour.h>
+#include <wx/colourdata.h>
 #include <list>
 
 #include "Color.h"
+
+#define CC_X_POINTS 100.0
 
 class ccSortableColorPoint
 {
@@ -18,7 +21,7 @@ public:
         if (v < 0) v = 0;
         if (v > 1) v = 1;
 
-        return std::round(v * 40.0) / 40.0;
+        return std::round(v * CC_X_POINTS) / CC_X_POINTS;
     }
 
 	float x; // 0-1 ... the start point of this point
@@ -34,8 +37,7 @@ public:
     {
         std::string res = "";
         res += "x=" + wxString::Format("%.3f", x).ToStdString();
-        wxString c;
-        c = color;
+        wxString c = color;
         c.Replace(",", "@", true);
         res += "^c=" + c.ToStdString();
 
@@ -65,6 +67,7 @@ public:
             }
         }
     }
+
     void SetSerialisedValue(std::string k, std::string v)
     {
         if (k == "x")
@@ -78,46 +81,54 @@ public:
             color = xlColor(c);
         }
     }
+
     ccSortableColorPoint(std::string& s)
     {
         Deserialise(s);
     }
+
     ccSortableColorPoint(float xx, xlColor c, bool dn = false)
     {
         x = Normalise(xx);
 		color = c;
         donext = dn;
     }
+
     bool IsNear(float xx) const
     {
         return (x == Normalise(xx));
     }
+
     bool operator==(const ccSortableColorPoint& r) const
     {
         return x == r.x;
     }
+
     bool operator==(const float r) const
     {
         return x == Normalise(r);
     }
+
     bool operator<(const ccSortableColorPoint& r) const
     {
         return x < r.x;
     }
+
     bool operator<(const float r) const
     {
         return x < r;
-        //return x < Normalise(r);
     }
+
     bool operator<=(const ccSortableColorPoint& r) const
     {
         return x <= r.x;
     }
+
     bool operator<=(const float r) const
     {
         return x <= r;
-        //return x <= Normalise(r);
     }
+
     bool operator>(const ccSortableColorPoint& r) const
     {
         return x > r.x;
@@ -191,12 +202,13 @@ class ColorCurveButton :
 {
     ColorCurve* _cc;
     std::string _color;
+    static wxColourData _colorData;
     void NotifyChange();
     void LeftClick(wxCommandEvent& event);
     void RightClick(wxContextMenuEvent& event);
 
 public:
-    ColorCurveButton(wxWindow *parent,
+    ColorCurveButton(wxWindow *parent, 
         wxWindowID id,
         const wxBitmap& bitmap,
         const wxPoint& pos = wxDefaultPosition,

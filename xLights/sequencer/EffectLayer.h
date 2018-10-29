@@ -3,6 +3,7 @@
 #include "wx/wx.h"
 #include <atomic>
 #include <string>
+#include <list>
 #include <mutex>
 #include "Effect.h"
 #include "UndoManager.h"
@@ -14,7 +15,8 @@
 
 class Element;
 class Model;
-
+class ValueCurve;
+class EffectsGrid;
 
 class EffectLayer
 {
@@ -28,9 +30,16 @@ class EffectLayer
         Effect* GetEffectByTime(int ms);
         Effect* GetEffectFromID(int id);
         void RemoveEffect(int index);
-        void RemoveAllEffects();
+        void RemoveAllEffects(UndoManager *undo_mgr);
         std::list<std::string> GetFileReferences(EffectManager& em) const;
 
+        int SelectEffectByTypeInTimeRange(const std::string &type, int startTimeMS, int endTimeMS);
+        std::vector<Effect*> GetEffectsByTypeAndTime(const std::string &type, int startTimeMS, int endTimeMS);
+        std::vector<Effect*> GetAllEffectsByTime(int startTimeMS, int endTimeMS);
+        bool SelectEffectUsingDescription(std::string description);
+        bool SelectEffectUsingTime(int time);
+
+        int GetLayerNumber();
         int GetIndex();
         int GetEffectCount() const;
 
@@ -50,20 +59,30 @@ class EffectLayer
         Effect* GetEffectAfterTime(int ms);
         Effect* GetEffectBeforeEmptyTime(int ms);
         Effect* GetEffectAfterEmptyTime(int ms);
+        std::list<Effect*> GetAllEffects();
 
         bool GetRangeIsClearMS(int startTimeMS, int endTimeMS, bool ignore_selected = false);
 
         void GetMaximumRangeOfMovementForSelectedEffects(int &toLeft,int &toRight);
         int SelectEffectsInTimeRange(int startTimeMS, int endTimeMS);
         bool HasEffectsInTimeRange(int startTimeMS, int endTimeMS);
+        bool HasEffects();
+
+        int SelectEffectsByType(const std::string & type);
         void UnSelectAllEffects();
+        void SelectAllEffects();
 
         Element* GetParentElement();
         void SetParentElement(Element* parent);
         int GetSelectedEffectCount();
         int GetTaggedEffectCount();
         void MoveAllSelectedEffects(int deltaMS, UndoManager& undo_mgr);
+        void StretchAllSelectedEffects(int deltaMS, UndoManager& undo_mgr);
+        void ButtUpMoveAllSelectedEffects(bool right, int lengthMS, UndoManager& undo_mgr);
+        void ButtUpStretchAllSelectedEffects(bool right, int lengthMS, UndoManager& undo_mgr);
         void TagAllSelectedEffects();
+        int GetSelectedEffectCount(const std::string effectName);
+        void ApplyEffectSettingToSelected(EffectsGrid* grid, UndoManager& undo_manager, const std::string effectName, const std::string id, const std::string value, ValueCurve* vc, const std::string& vcid, EffectManager& effectManager, RangeAccumulator& rangeAccumulator);
         void UnTagAllEffects();
         void DeleteSelectedEffects(UndoManager& undo_mgr);
         void DeleteEffect(int id);
@@ -75,9 +94,12 @@ class EffectLayer
         void IncrementChangeCount(int startMS, int endMS);
 
         std::recursive_mutex &GetLock() {return lock;}
+    
+        void CleanupAfterRender();
     protected:
     private:
         void SortEffects();
+        void PlayEffect(Effect* effect);
 
         static std::atomic_int exclusive_index;
 
@@ -87,6 +109,7 @@ class EffectLayer
         void GetMaximumRangeWithLeftMovement(int index, int &toLeft, int &toRight);
         void GetMaximumRangeWithRightMovement(int index, int &toLeft, int &toRight);
         std::vector<Effect*> mEffects;
+        std::list<Effect*> mEffectsToDelete;
         int mIndex;
         Element* mParentElement;
         std::recursive_mutex lock;

@@ -1,6 +1,8 @@
 #include "TextEffect.h"
 
 #include <mutex>
+#include <array>
+#include <unordered_map>
 
 #include "TextPanel.h"
 #include <wx/checkbox.h>
@@ -11,7 +13,8 @@
 #include "../RenderBuffer.h"
 #include "../UtilClasses.h"
 #include "../models/Model.h"
-#include "../SequenceCheck.h"
+#include "../UtilFunctions.h"
+#include "../FontManager.h"
 
 #include "../../include/text-16.xpm"
 #include "../../include/text-24.xpm"
@@ -20,8 +23,7 @@
 #include "../../include/text-64.xpm"
 #include <log4cpp/Category.hh>
 
-
-TextEffect::TextEffect(int id) : RenderableEffect(id, "Text", text_16, text_24, text_32, text_48, text_64)
+TextEffect::TextEffect(int id) : RenderableEffect(id, "Text", text_16, text_24, text_32, text_48, text_64), font_mgr(FontManager::instance())
 {
     //ctor
 }
@@ -231,7 +233,7 @@ void TextEffect::SelectTextColor(std::string& palette, int index)
     palette = new_palette;
 }
 
-void TextEffect::SetDefaultParameters(Model *cls) {
+void TextEffect::SetDefaultParameters() {
     TextPanel *tp = (TextPanel*)panel;
     if (tp == nullptr) {
         return;
@@ -319,7 +321,7 @@ static TextDirection TextEffectDirectionsIndex(const wxString &st) {
     if (st == "down-left") return TEXTDIR_DOWNLEFT;
     if (st == "up-right") return TEXTDIR_UPRIGHT;
     if (st == "down-right") return TEXTDIR_DOWNRIGHT;
-    if (st == "wavey L-R/up-down") return TEXTDIR_WAVEY_LRUPDOWN;
+    if (st == "wavey") return TEXTDIR_WAVEY_LRUPDOWN;
     if (st == "vector") return TEXTDIR_VECTOR;
     return TEXTDIR_NONE;
 }
@@ -333,7 +335,6 @@ static int TextCountDownIndex(const wxString &st) {
     if (st == "minutes seconds") return 7;
     return 0;
 }
-
 static int TextEffectsIndex(const wxString &st) {
     if (st == "vert text up") return 1;
     if (st == "vert text down") return 2;
@@ -345,15 +346,17 @@ static int TextEffectsIndex(const wxString &st) {
 }
 
 void TextEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
-    xlColor c;
-    buffer.GetTextDrawingContext()->Clear();
 
-    buffer.palette.GetColor(0,c);
+    // determine if we are rendering an xLights Font
+    wxString xl_font = SettingsMap.Get("CHOICE_Text_Font", "Use OS Fonts");
+    if( xl_font != "Use OS Fonts" )
+    {
+        RenderXLText(effect, SettingsMap, buffer);
+        return;
+    }
 
     wxString text = SettingsMap["TEXTCTRL_Text"];
     if (text != "") {
-        std::string fontString = SettingsMap["FONTPICKER_Text_Font"];
-        SetFont(buffer.GetTextDrawingContext(),fontString,c);
 
         bool pixelOffsets = false;
         int startx = 0;
@@ -367,42 +370,46 @@ void TextEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &
         endx = wxAtoi(SettingsMap.Get("SLIDER_Text_XEnd", "0"));
         pixelOffsets = wxAtoi(SettingsMap.Get("CHECKBOX_Text_PixelOffsets", "0"));
 
-        RenderTextLine(buffer,
+        wxImage * i = RenderTextLine(buffer,
                        buffer.GetTextDrawingContext(),
                        text,
+                       SettingsMap["FONTPICKER_Text_Font"],
                        TextEffectDirectionsIndex(SettingsMap["CHOICE_Text_Dir"]),
                        wxAtoi(SettingsMap["CHECKBOX_TextToCenter"]),
                        TextEffectsIndex(SettingsMap["CHOICE_Text_Effect"]),
                        TextCountDownIndex(SettingsMap["CHOICE_Text_Count"]),
                        wxAtoi(SettingsMap.Get("TEXTCTRL_Text_Speed", "10")),
                        startx, starty, endx, endy, pixelOffsets);
-    }
-
-    wxImage * i = buffer.GetTextDrawingContext()->FlushAndGetImage();
-
-    bool ha = i->HasAlpha();
-    for(wxCoord x=0; x<buffer.BufferWi; x++)
-    {
-        for(wxCoord y=0; y<buffer.BufferHt; y++)
+        
+        if (i == nullptr) {
+            return;
+        }
+        xlColor c;
+        bool ha = i->HasAlpha();
+        unsigned char* data = i->GetData();
+        unsigned char* alpha = ha ? i->GetAlpha() : nullptr;
+        int w = i->GetWidth();
+        int h = i->GetHeight();
+        int cur = 0;
+        int cura = 0;
+        for(int y = h - 1; y >= 0; y--)
         {
-            if (ha) {
-                c.Set(i->GetRed(x, buffer.BufferHt-y-1),
-                      i->GetGreen(x, buffer.BufferHt-y-1),
-                      i->GetBlue(x, buffer.BufferHt-y-1),
-                      i->GetAlpha(x, buffer.BufferHt-y-1));
-            } else {
-                c.Set(i->GetRed(x, buffer.BufferHt-y-1),
-                      i->GetGreen(x, buffer.BufferHt-y-1),
-                      i->GetBlue(x, buffer.BufferHt-y-1));
-                if (c == xlBLACK) {
-                    c.alpha = 0;
+            for(int x=0; x < w; x++)
+            {
+                if (ha) {
+                    c.Set(data[cur], data[cur + 1], data[cur + 2], alpha[cura++]);
+                } else {
+                    c.Set(data[cur], data[cur + 1], data[cur + 2]);
+                    if (c == xlBLACK) {
+                        c.alpha = 0;
+                    }
                 }
+                cur += 3;
+                buffer.SetPixel(x, y, c);
             }
-            buffer.SetPixel(x,y,c);
         }
     }
 }
-
 
 wxSize GetMultiLineTextExtent(TextDrawingContext *dc,
                               const wxString& text,
@@ -467,25 +474,109 @@ wxSize GetMultiLineTextExtent(TextDrawingContext *dc,
     return wxSize(widthTextMax, heightTextTotal);
 }
 
+class CachedTextInfo {
+public:
+    CachedTextInfo() {}
+    CachedTextInfo(const std::string &txt, const std::string font, const std::vector<xlColor> &c, const wxRect &r)
+    : text(txt), rect(r), color(c), fontString(font) {}
+    ~CachedTextInfo() {}
+    
+    bool operator==(const CachedTextInfo &i) const {
+        return (text == i.text)
+            && (fontString == i.fontString)
+            && (rect == i.rect)
+            && (color == i.color);
+    }
+    
+    std::string text;
+    wxRect rect;
+    std::vector<xlColor> color;
+    std::string fontString;
+};
+
+struct CachedTextInfoHasher {
+    size_t operator()(const CachedTextInfo& t) const {
+        std::size_t h1 = std::hash<std::string>{}(t.text);
+        std::size_t h2 = std::hash<std::string>{}(t.fontString);
+        h1 ^= (h2 << 1);
+        for (auto a : t.color) {
+            h1 ^= a.GetRGB() << 3;
+        }
+        h1 ^= (t.rect.x << 8) + (t.rect.y << 16);
+        return h1;
+    }
+};
+
+
+class TextRenderCache : public EffectRenderCache {
+public:
+    TextRenderCache() {};
+    virtual ~TextRenderCache() {
+        for (auto it = textCache.begin(); it != textCache.end(); ++it) {
+            delete it->second;
+        }
+    };
+    int timer_countdown;
+    wxSize synced_textsize;
+    
+    wxImage *GetImage(const CachedTextInfo &inf) {
+        return textCache[inf];
+    }
+    void PutImage(const CachedTextInfo &inf, wxImage *img) {
+        textCache[inf] = img;
+    }
+    
+    wxSize GetMultiLineTextExtent(const std::string &font, const wxString &msg) {
+        std::pair<std::string, wxString> key(font, msg);
+        auto i = textExtentCache.find(key);
+        if (i == textExtentCache.end()) {
+            return wxSize(-1, -1);
+        }
+        return i->second;
+    }
+    void PutMultiLineTextExtent(const std::string &font, const wxString &msg, const wxSize &sz) {
+        std::pair<std::string, wxString> key(font, msg);
+        textExtentCache[key] = sz;
+    }
+    
+    std::unordered_map<CachedTextInfo, wxImage*, CachedTextInfoHasher> textCache;
+    std::map<std::pair<std::string, wxString>, wxSize> textExtentCache;
+};
+
 wxSize GetMultiLineTextExtent(TextDrawingContext *dc,
-                              const wxString& text)
+                              const wxString& text,
+                              TextRenderCache *cache,
+                              const std::string &font,
+                              bool &fontSet)
 {
-    wxCoord x,y,z;
-    return GetMultiLineTextExtent(dc, text, &x, &y, &z);
+    wxSize i = cache->GetMultiLineTextExtent(font, text);
+    if (i.x == -1 && i.y == -1) {
+        if (!fontSet) {
+            dc->Clear();
+            SetFont(dc, font, xlWHITE);
+            fontSet = true;
+        }
+        wxCoord x,y,z;
+        i = GetMultiLineTextExtent(dc, text, &x, &y, &z);
+        cache->PutMultiLineTextExtent(font, text, i);
+    }
+    return i;
 }
 
 void DrawLabel(TextDrawingContext *dc,
                const wxString& text,
                const wxRect& rect,
-               int alignment)
+               int alignment,
+               TextRenderCache *cache,
+               const std::string &fontString,
+               const std::vector<xlColor> colors)
 {
     // find the text position
     wxCoord widthText, heightText, heightLine;
     GetMultiLineTextExtent(dc, text, &widthText, &heightText, &heightLine);
 
-    wxCoord width, height;
-    width = widthText;
-    height = heightText;
+    wxCoord width = widthText;
+    wxCoord height = heightText;
 
     wxCoord x, y;
     if ( alignment & wxALIGN_RIGHT )
@@ -522,10 +613,10 @@ void DrawLabel(TextDrawingContext *dc,
     //     call DrawText() for single-line strings from here to avoid infinite
     //     recursion.
     wxString curLine;
+    int curPos = 0;
     for ( wxString::const_iterator pc = text.begin(); ; ++pc )
     {
-        if ( pc == text.end() || *pc == '\n' )
-        {
+        if ( pc == text.end() || *pc == '\n' ) {
             int xRealStart = x; // init it here to avoid compielr warnings
             if ( !curLine.empty() )
             {
@@ -533,7 +624,8 @@ void DrawLabel(TextDrawingContext *dc,
                 //     wxALIGN_LEFT is 0
                 if ( alignment & (wxALIGN_RIGHT | wxALIGN_CENTRE_HORIZONTAL) )
                 {
-                    wxCoord widthLine = GetMultiLineTextExtent(dc, curLine).x;
+                    wxCoord x1,y1,z1;
+                    wxCoord widthLine = GetMultiLineTextExtent(dc, curLine, &x1, &y1, &z1).x;
 
                     if ( alignment & wxALIGN_RIGHT )
                     {
@@ -545,8 +637,24 @@ void DrawLabel(TextDrawingContext *dc,
                     }
                 }
                 //else: left aligned, nothing to do
-
-                dc->DrawText(curLine, xRealStart, y);
+                if (colors.size() != 1) {
+                    wxArrayDouble d;
+                    dc->GetTextExtents(curLine, d);
+                    for (int x1 = 0; x1 < curLine.size(); x1++) {
+                        wxString c = curLine[x1];
+                        if (c != " ") {
+                            SetFont(dc, fontString, colors[curPos % colors.size()]);
+                            curPos++;
+                            double loc = xRealStart;
+                            if (x1 != 0) {
+                                loc += d[x1 - 1];
+                            }
+                            dc->DrawText(c, loc, y);
+                        }
+                    }
+                } else {
+                    dc->DrawText(curLine, xRealStart, y);
+                }
             }
 
             y += heightLine;
@@ -612,14 +720,6 @@ static wxString StripRight(wxString str, wxString pattern)
     return str;
 }
 
-class TextRenderCache : public EffectRenderCache {
-public:
-    TextRenderCache() {};
-    virtual ~TextRenderCache() {};
-    int timer_countdown;
-    wxSize synced_textsize;
-};
-
 TextRenderCache *GetCache(RenderBuffer &buffer, int id) {
     TextRenderCache *cache = (TextRenderCache*)buffer.infoCache[id];
     if (cache == nullptr) {
@@ -630,214 +730,24 @@ TextRenderCache *GetCache(RenderBuffer &buffer, int id) {
 }
 
 //jwylie - 2016-11-01  -- enhancement: add minute seconds countdown
-void TextEffect::RenderTextLine(RenderBuffer &buffer,
-                                TextDrawingContext* dc, const wxString& Line_orig, int dir,
-                                bool center, int Effect, int Countdown, int tspeed,
-                                int startx, int starty, int endx, int endy,
-                                bool isPixelBased)
+wxImage *TextEffect::RenderTextLine(RenderBuffer &buffer,
+                                    TextDrawingContext* dc,
+                                    const wxString& Line_orig,
+                                    const std::string &fontString,
+                                    int dir,
+                                    bool center, int Effect, int Countdown, int tspeed,
+                                    int startx, int starty, int endx, int endy,
+                                    bool isPixelBased)
 {
-    long tempLong,longsecs;
-    wxString msg,tempmsg;
-    int i,days,hours,minutes,seconds;
-    wxDateTime dt;
-    wxTimeSpan ts;
-    wxString::const_iterator end;
-    wxString fmt, Line = Line_orig; //make copy so it can be modified -DJ
-    wxChar delim;
-    wxString prepend = Line_orig;   //for prepended/appended text to countdown
-    wxString append = Line_orig;   //for prepended/appended text to countdown
-    wxString timePart = Line_orig;
-    wxArrayString minSec;
-    wxString tempSeconds;
+    int i;
+    wxString Line = Line_orig;
+    wxString msg, tempmsg;
 
-    if (Line.IsEmpty()) return;
+    if (Line.IsEmpty()) return nullptr;
 
     int state = (buffer.curPeriod - buffer.curEffStartPer) * tspeed * buffer.frameTimeInMs / 50;
-    int framesPerSec = 1000 / buffer.frameTimeInMs;
-    switch(Countdown)
-    {
-        case COUNTDOWN_SECONDS:
-            // countdown seconds
-            if (state==0)
-            {
-                if (!Line.ToLong(&tempLong)) tempLong=0;
-                GetCache(buffer,id)->timer_countdown = buffer.curPeriod+tempLong*framesPerSec+framesPerSec-1;  // capture 0 period
-            }
-            seconds=(GetCache(buffer,id)->timer_countdown-buffer.curPeriod)/framesPerSec;
-            if(seconds < 0) seconds=0;
-            msg=wxString::Format("%i",seconds);
-            break;
-//jwylie - 2016-11-01  -- enhancement: add minute seconds countdown
-        case COUNTDOWN_MINUTES_SECONDS:
 
-            if (timePart.Find('/') != -1 )
-            {
-                timePart = timePart.AfterFirst('/').BeforeLast('/');
-                prepend = prepend.BeforeFirst('/');
-                append = append.AfterLast('/');
-            }
-            else
-            {
-                append = "";
-                prepend = "";
-            }
-           minSec = wxSplit(timePart, ':');
-           if(minSec.size()==1)
-           {
-               seconds = wxAtoi(minSec[0]);
-           }
-           else if(minSec.size()==2)
-           {
-               minutes = wxAtoi(minSec[0]);
-               seconds = (minutes * 60) + wxAtoi(minSec[1]);
-               //MessageBoxA(NULL, "total seconds: " + wxString::Format("%i", seconds), "message", MB_ICONINFORMATION | MB_OK | MB_DEFBUTTON2);
-            }
-            else //invalid format
-            {
-               msg = _T("Invalid Format");
-               break;
-            }
-            if (state == 0)
-                GetCache(buffer,id)->timer_countdown = buffer.curPeriod+seconds*framesPerSec+framesPerSec-1;
-
-            else
-                seconds = (GetCache(buffer,id)->timer_countdown-buffer.curPeriod)/framesPerSec;
-
-            minutes = (seconds / 60);
-            seconds = seconds - (minutes * 60);
-
-           if(seconds < 0)
-                seconds=0;
-
-           tempSeconds = wxString::Format("%i", seconds);
-
-           if (tempSeconds.Len() == 1)
-                tempSeconds = tempSeconds.Pad(1, '0', false);
-
-           msg = prepend + ' ' + wxString::Format("%i", minutes) + " : " + tempSeconds + append;
-
-           break;
-
-        case COUNTDOWN_FREEFMT: //free format text with embedded formatting chars -DJ
-#if 0
-
-            Aug 14,2015 <scm>
-            Sample datestrings that are valid for the countdown timer
-                Wed, 02 Oct 2015 15:00:00 +0200
-                Wed, 02 Oct 2015 15:00:00 EST
-
-                Note, dates must be in the future, any date in the past will show as "Invalid Date" when converted
-
-
-
-                clear(
-
-                )
-                wxTimeSpan format chars are described at:
-                http://docs.wxwidgets.org/trunk/classwx_time_span.html
-                The following format specifiers are allowed after %:
-                Ã¯H - Number of Hours
-                Ã¯M - Number of Minutes
-                Ã¯S - Number of Seconds
-                Ã¯l - Number of Milliseconds
-                Ã¯D - Number of Days
-                Ã¯E - Number of Weeks
-                Ã¯% - The percent character
-
-                //Format Characters are described at: http://www.cplusplus.com/reference/ctime/strftime/
-                TIME FORMAT CHARACTERS:
-                %a Abbreviated weekday name eg. Thu
-                %A Full weekday name eg. Thursday
-                %b Abbreviated month name eg. Aug
-                %B Full month name eg. August
-                %c Date and time representation eg. Thu Aug 23 14:55:02 2001
-                %d Day of the month (01-31) eg. 23
-                %H Hour in 24h format (00-23) eg. 14
-                %I Hour in 12h format (01-12) eg. 02
-                %j Day of the year (001-366) eg. 235
-                %m Month as a decimal number (01-12) eg. 08
-                %M Minute (00-59) eg. 55
-                %p AM or PM designation eg. PM
-                %S Second (00-61) eg. 02
-                %U Week number with the first Sunday as the first day of week one (00-53) eg. 33
-                %w Weekday as a decimal number with Sunday as 0 (0-6) eg. 4
-                %W Week number with the first Monday as the first day of week one (00-53) eg. 34
-                %x Date representation eg. 08/23/01
-                %X Time representation eg. 14:55:02
-                %y Year, last two digits (00-99) eg. 01
-                %Y Year eg. 2001
-                %Z Timezone name or abbreviation CDT
-                %% A % sign eg. %
-#endif // 0
-                //time_local = time.Format(wxT("%T"), wxDateTime::A_EST).c_str();
-                if (Line.size() >= 4)
-                {
-                    delim = Line[0]; //use first char as date delimiter; date and format string follows that, separated by delimiter
-                    Line.Remove(0, 1); //.erase(Line.begin(), Line.begin() + 1); //remove leading delim
-                    //            Line.RemoveLast(); //remove delimiter
-                    fmt = Line.After(delim);
-                    Line.Truncate(Line.find(delim)); //remove fmt string, leaving only count down date
-                }
-                else fmt.Empty();
-            //CAUTION: fall thru here
-        case COUNTDOWN_D_H_M_S:
-        case COUNTDOWN_H_M_S:
-        case COUNTDOWN_M_or_S:
-        case COUNTDOWN_S:
-            // countdown to date
-            if (state%framesPerSec == 0)   //1x/sec
-            {
-                //            if ( dt.ParseDateTime(Line, &end) ) { //broken, force RFC822 for now -DJ
-                if ( dt.ParseRfc822Date(Line, &end) )
-                {
-                    // dt is (at least partially) valid, so calc # of seconds until then
-                    ts=dt.Subtract(wxDateTime::Now());
-                    wxLongLong ll=ts.GetSeconds();
-                    if (ll > LONG_MAX) ll=LONG_MAX;
-                    if (ll < 0) ll=0;
-                    longsecs=ll.ToLong();
-                }
-                else
-                {
-                    // invalid date/time
-                    longsecs = 0;
-                }
-                GetCache(buffer,id)->timer_countdown=longsecs;
-            }
-            else
-            {
-                longsecs=GetCache(buffer,id)->timer_countdown;
-                ts = wxTimeSpan(0, 0, longsecs, 0); //reconstruct wxTimeSpan so we can call .Format method -DJ
-            }
-            if (!longsecs)
-            {
-                msg = _T("invalid date");    //show when invalid -DJ
-                break;
-            }
-            days = longsecs / 60 / 60 / 24;
-            hours = (longsecs / 60 / 60) % 24;
-            minutes = (longsecs / 60) % 60;
-            seconds = longsecs % 60;
-            if (Countdown == COUNTDOWN_D_H_M_S)
-                msg=wxString::Format("%dd %dh %dm %ds",days,hours,minutes,seconds);
-            else if (Countdown == COUNTDOWN_H_M_S)
-                msg = wxString::Format("%d : %d : %d", hours, minutes, seconds);
-            else if (Countdown == COUNTDOWN_S)
-                msg = wxString::Format("%d", 60*60 * hours + 60 * minutes + seconds);
-            else if (Countdown == COUNTDOWN_FREEFMT)
-                //            msg = _T("%%") + Line + _T("%%") + fmt + _T("%%");
-                msg = ts.Format(fmt); //dt.Format(fmt)
-            else //if (Countdown == COUNTDOWN_M_or_S)
-                if (60 * hours + minutes < 5) //COUNTDOWN_M_or_S: show seconds
-                    msg = wxString::Format("%d", 60*60 * hours + 60 * minutes + seconds);
-                else //COUNTDOWN_M_or_S: show minutes
-                    msg = wxString::Format("%d m", 60 * hours + minutes);
-            break;
-        default:
-            msg=Line;
-            msg.Replace("\\n", "\n", true); //allow vertical spacing (mainly for up/down) -DJ
-            break;
-    }
+    FormatCountdown(Countdown, state, Line, buffer, msg, Line_orig);
 
     double TextRotation=0.0;
     switch(Effect)
@@ -861,14 +771,17 @@ void TextEffect::RenderTextLine(RenderBuffer &buffer,
             }
             break;
     }
-
-    wxSize textsize = GetMultiLineTextExtent(dc, msg);
-    int extra_left = IsGoingLeft(dir)? textsize.x - GetMultiLineTextExtent(dc, wxString(msg).Trim(false)).x: 0; //CAUTION: trim() alters object, so make a copy first
-    int extra_right = IsGoingRight(dir)? textsize.x - GetMultiLineTextExtent(dc, wxString(msg).Trim(true)).x: 0;
-    int extra_down = IsGoingDown(dir)? textsize.y - GetMultiLineTextExtent(dc, StripRight(msg, "\n")).y: 0;
-    int extra_up = IsGoingUp(dir)? textsize.y - GetMultiLineTextExtent(dc, StripLeft(msg, "\n")).y: 0;
+    
+    TextRenderCache *cache = GetCache(buffer, id);
+    bool fontSet = false;
+    
+    wxSize textsize = GetMultiLineTextExtent(dc, msg, cache, fontString, fontSet);
+    int extra_left = IsGoingLeft(dir)? textsize.x - GetMultiLineTextExtent(dc, wxString(msg).Trim(false), cache, fontString, fontSet).x: 0; //CAUTION: trim() alters object, so make a copy first
+    int extra_right = IsGoingRight(dir)? textsize.x - GetMultiLineTextExtent(dc, wxString(msg).Trim(true), cache, fontString, fontSet).x: 0;
+    int extra_down = IsGoingDown(dir)? textsize.y - GetMultiLineTextExtent(dc, StripRight(msg, "\n"), cache, fontString, fontSet).y: 0;
+    int extra_up = IsGoingUp(dir)? textsize.y - GetMultiLineTextExtent(dc, StripLeft(msg, "\n"), cache, fontString, fontSet).y: 0;
     //    debug(1, "size %d lstrip %d, rstrip %d, = %d, %d, text %s", dc.GetMultiLineTextExtent(msg).y, dc.GetMultiLineTextExtent(StripLeft(msg, "\n")).y, dc.GetMultiLineTextExtent(StripRight(msg, "\n")).y, extra_down, extra_up, (const char*)StripLeft(msg, "\n"));
-    int lineh = GetMultiLineTextExtent(dc, "X").y;
+    int lineh = GetMultiLineTextExtent(dc, "X", cache, fontString, fontSet).y;
     //    wxString debmsg = msg; debmsg.Replace("\n","\\n", true);
     int xoffset=0;
     int yoffset=0;
@@ -918,7 +831,6 @@ void TextEffect::RenderTextLine(RenderBuffer &buffer,
 
     int xlimit=totwidth*8 + 1;
     int ylimit=totheight*8 + 1;
-    int state8;
 
     if (TextRotation == 0.0)
     {
@@ -941,11 +853,13 @@ void TextEffect::RenderTextLine(RenderBuffer &buffer,
             case TEXTDIR_LEFT:
                 //           debug(1, "l2r[%d] center? %d, xlim/16 %d, state %d, xofs %d, extra l %d r %d, text %s", idx, center, xlimit/16, state, center? std::max((int)(xlimit/16 - state /*% xlimit*/ /8), -extra_left/2): xlimit/16 - state % xlimit/8, extra_left, extra_right, (const char*)msg);
                 // rect.Offset(center? std::max((int)(xlimit/16 - state /*% xlimit*/ /8), -extra_left/2): xlimit/16 - state % xlimit/8, OffsetTop);
-                state8 = state /8;
-                if(state8<0) state8+=32768;
-                if(state>2000000)
-                    state=state+0;
-                rect.Offset(center? std::max((int)(xlimit/16 - state8), -extra_left/2): xlimit/16 - state % xlimit/8, OffsetTop);
+                {                
+                    int state8 = state / 8;
+                    if (state8 < 0) state8 += 32768;
+                    if (state > 2000000)
+                        state = state + 0;
+                    rect.Offset(center ? std::max((int)(xlimit / 16 - state8), -extra_left / 2) : xlimit / 16 - state % xlimit / 8, OffsetTop);
+                }
                 break; // left, optionally stop at center
             case TEXTDIR_RIGHT:
                 rect.Offset(center? std::min((int)(state /*% xlimit*/ /8 - xlimit/16), extra_right/2): state % xlimit/8 - xlimit/16, OffsetTop);
@@ -981,59 +895,490 @@ void TextEffect::RenderTextLine(RenderBuffer &buffer,
                 rect.Offset(OffsetLeft, OffsetTop);
                 break; // static
         }
-        DrawLabel(dc, msg,rect,wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL);
-    }
-    else
-    {
-        switch (dir) {
-            case TEXTDIR_VECTOR: {
-                double position = buffer.GetEffectTimeIntervalPosition(1.0);
-                double ex = endx * buffer.BufferWi / 100;
-                double ey = -endy * buffer.BufferHt / 100;
-                if (isPixelBased) {
-                    ex = endx;
-                    ey = -endy;
-                }
-                ex = OffsetLeft + (ex - OffsetLeft) * position;
-                ey = OffsetTop + (ey - OffsetTop) * position;
-                if (TextRotation > 50) {
-                    dc->DrawText(msg, buffer.BufferWi / 2 + ex - txtwidth / 2, buffer.BufferHt / 2 + ey + textsize.GetHeight() / 2, TextRotation);
-                } else if (TextRotation > 0) {
-                    dc->DrawText(msg, buffer.BufferWi / 2 + ex - txtwidth / 2, buffer.BufferHt / 2 + ey + yoffset * 2, TextRotation);
-                } else if (TextRotation < -50) {
-                    dc->DrawText(msg, buffer.BufferWi / 2 + ex + txtwidth / 2, buffer.BufferHt / 2 + ey - textsize.GetHeight() / 2, TextRotation);
-                } else {
-                    dc->DrawText(msg, buffer.BufferWi / 2 + ex - txtwidth / 2 + xoffset, buffer.BufferHt / 2 + ey - textsize.GetHeight() / 2, TextRotation);
-                }
-            }
-                break;
-            case TEXTDIR_LEFT:
-                dc->DrawText(msg, buffer.BufferWi - state % xlimit/8 + xoffset, OffsetTop, TextRotation);
-                break; // left
-            case TEXTDIR_RIGHT:
-                dc->DrawText(msg, state % xlimit/8 - txtwidth + xoffset, OffsetTop, TextRotation);
-                break; // right
-            case TEXTDIR_UP:
-                dc->DrawText(msg, OffsetLeft, totheight - state % ylimit/8 - yoffset, TextRotation);
-                break; // up
-            case TEXTDIR_DOWN:
-                dc->DrawText(msg, OffsetLeft, state % ylimit/8 - yoffset, TextRotation);
-                break; // down
-            case TEXTDIR_UPLEFT:
-                dc->DrawText(msg, buffer.BufferWi - state % xlimit/8 + xoffset, totheight - state % ylimit/8 - yoffset, TextRotation);
-                break; // up-left
-            case TEXTDIR_DOWNLEFT:
-                dc->DrawText(msg, buffer.BufferWi - state % xlimit/8 + xoffset, state % ylimit/8 - yoffset, TextRotation);
-                break; // down-left
-            case TEXTDIR_UPRIGHT:
-                dc->DrawText(msg, state % xlimit/8 - txtwidth + xoffset, totheight - state % ylimit/8 - yoffset, TextRotation);
-                break; // up-right
-            case TEXTDIR_DOWNRIGHT:
-                dc->DrawText(msg, state % xlimit/8 - txtwidth + xoffset, state % ylimit/8 - yoffset, TextRotation);
-                break; // down-right
-            default:
-                dc->DrawText(msg, 0, OffsetTop, TextRotation);
-                break; // static
+        int num_colors = buffer.GetColorCount();
+        std::vector<xlColor> colors;
+        for (int x = 0; x < num_colors; x++) {
+            colors.push_back(buffer.GetPalette().GetColor(x));
         }
+        if (colors.size() == 0) {
+            colors.push_back(xlWHITE);
+        }
+        CachedTextInfo inf(msg.ToStdString(), fontString, colors, rect);
+        wxImage *img = GetCache(buffer,id)->GetImage(inf);
+        if (img == nullptr) {
+            dc->Clear();
+            SetFont(dc, fontString, colors[0]);
+            DrawLabel(dc, msg, rect, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, GetCache(buffer,id), fontString, colors);
+            wxImage *i2 = dc->FlushAndGetImage();
+            img = new wxImage(i2->GetSize());
+            *img = i2->Copy();
+            GetCache(buffer,id)->PutImage(inf, img);
+        }
+        return img;
+    }
+    
+    xlColor c;
+    buffer.palette.GetColor(0,c);
+    dc->Clear();
+    SetFont(dc,fontString,c);
+    switch (dir) {
+        case TEXTDIR_VECTOR: {
+            double position = buffer.GetEffectTimeIntervalPosition(1.0);
+            double ex = endx * buffer.BufferWi / 100;
+            double ey = -endy * buffer.BufferHt / 100;
+            if (isPixelBased) {
+                ex = endx;
+                ey = -endy;
+            }
+            ex = OffsetLeft + (ex - OffsetLeft) * position;
+            ey = OffsetTop + (ey - OffsetTop) * position;
+            if (TextRotation > 50) {
+                dc->DrawText(msg, buffer.BufferWi / 2 + ex - txtwidth / 2, buffer.BufferHt / 2 + ey + textsize.GetHeight() / 2, TextRotation);
+            } else if (TextRotation > 0) {
+                dc->DrawText(msg, buffer.BufferWi / 2 + ex - txtwidth / 2, buffer.BufferHt / 2 + ey + yoffset * 2, TextRotation);
+            } else if (TextRotation < -50) {
+                dc->DrawText(msg, buffer.BufferWi / 2 + ex + txtwidth / 2, buffer.BufferHt / 2 + ey - textsize.GetHeight() / 2, TextRotation);
+            } else {
+                dc->DrawText(msg, buffer.BufferWi / 2 + ex - txtwidth / 2 + xoffset, buffer.BufferHt / 2 + ey - textsize.GetHeight() / 2, TextRotation);
+            }
+        }
+            break;
+        case TEXTDIR_LEFT:
+            dc->DrawText(msg, buffer.BufferWi - state % xlimit/8 + xoffset, OffsetTop, TextRotation);
+            break; // left
+        case TEXTDIR_RIGHT:
+            dc->DrawText(msg, state % xlimit/8 - txtwidth + xoffset, OffsetTop, TextRotation);
+            break; // right
+        case TEXTDIR_UP:
+            dc->DrawText(msg, OffsetLeft, totheight - state % ylimit/8 - yoffset, TextRotation);
+            break; // up
+        case TEXTDIR_DOWN:
+            dc->DrawText(msg, OffsetLeft, state % ylimit/8 - yoffset, TextRotation);
+            break; // down
+        case TEXTDIR_UPLEFT:
+            dc->DrawText(msg, buffer.BufferWi - state % xlimit/8 + xoffset, totheight - state % ylimit/8 - yoffset, TextRotation);
+            break; // up-left
+        case TEXTDIR_DOWNLEFT:
+            dc->DrawText(msg, buffer.BufferWi - state % xlimit/8 + xoffset, state % ylimit/8 - yoffset, TextRotation);
+            break; // down-left
+        case TEXTDIR_UPRIGHT:
+            dc->DrawText(msg, state % xlimit/8 - txtwidth + xoffset, totheight - state % ylimit/8 - yoffset, TextRotation);
+            break; // up-right
+        case TEXTDIR_DOWNRIGHT:
+            dc->DrawText(msg, state % xlimit/8 - txtwidth + xoffset, state % ylimit/8 - yoffset, TextRotation);
+            break; // down-right
+        default:
+            dc->DrawText(msg, 0, OffsetTop, TextRotation);
+            break; // static
+    }
+    return buffer.GetTextDrawingContext()->FlushAndGetImage();
+}
+
+void TextEffect::FormatCountdown(int Countdown, int state, wxString& Line, RenderBuffer &buffer, wxString& msg, wxString Line_orig)
+{
+    long tempLong,longsecs;
+    int framesPerSec = 1000 / buffer.frameTimeInMs;
+    int minutes,seconds;
+
+    wxDateTime dt;
+    wxTimeSpan ts;
+    wxString::const_iterator end;
+    wxString fmt = Line_orig;
+    wxString prepend = Line_orig;   //for prepended/appended text to countdown
+    wxString append = Line_orig;   //for prepended/appended text to countdown
+    wxString timePart = Line_orig;
+
+    switch (Countdown)
+    {
+    case COUNTDOWN_SECONDS:
+            {
+                // countdown seconds
+                if (state == 0)
+                {
+                    if (!Line.ToLong(&tempLong)) tempLong = 0;
+                    GetCache(buffer, id)->timer_countdown = buffer.curPeriod + tempLong*framesPerSec + framesPerSec - 1;  // capture 0 period
+                }
+                seconds = (GetCache(buffer, id)->timer_countdown - buffer.curPeriod) / framesPerSec;
+                if (seconds < 0) seconds = 0;
+                msg = wxString::Format("%i", seconds);
+            }
+            break;
+//jwylie - 2016-11-01  -- enhancement: add minute seconds countdown
+        case COUNTDOWN_MINUTES_SECONDS:
+        {
+            if (timePart.Find('/') != -1)
+            {
+                timePart = timePart.AfterFirst('/').BeforeLast('/');
+                prepend = prepend.BeforeFirst('/');
+                append = append.AfterLast('/');
+            }
+            else
+            {
+                append = "";
+                prepend = "";
+            }
+            wxArrayString minSec = wxSplit(timePart, ':');
+            if (minSec.size() == 1)
+            {
+                seconds = wxAtoi(minSec[0]);
+            }
+            else if (minSec.size() == 2)
+            {
+                minutes = wxAtoi(minSec[0]);
+                seconds = (minutes * 60) + wxAtoi(minSec[1]);
+                //MessageBoxA(NULL, "total seconds: " + wxString::Format("%i", seconds), "message", MB_ICONINFORMATION | MB_OK | MB_DEFBUTTON2);
+            }
+            else //invalid format
+            {
+                msg = _T("Invalid Format");
+                break;
+            }
+            if (state == 0)
+                GetCache(buffer, id)->timer_countdown = buffer.curPeriod + seconds*framesPerSec + framesPerSec - 1;
+
+            else
+                seconds = (GetCache(buffer, id)->timer_countdown - buffer.curPeriod) / framesPerSec;
+
+            minutes = (seconds / 60);
+            seconds = seconds - (minutes * 60);
+
+            if (seconds < 0)
+                seconds = 0;
+
+            wxString tempSeconds = wxString::Format("%i", seconds);
+
+            if (tempSeconds.Len() == 1)
+                tempSeconds = tempSeconds.Pad(1, '0', false);
+
+            msg = prepend + ' ' + wxString::Format("%i", minutes) + " : " + tempSeconds + append;
+            }
+           break;
+
+        case COUNTDOWN_FREEFMT: //free format text with embedded formatting chars -DJ
+#if 0
+
+            Aug 14,2015 <scm>
+            Sample datestrings that are valid for the countdown timer
+                Wed, 02 Oct 2015 15:00:00 +0200
+                Wed, 02 Oct 2015 15:00:00 EST
+
+                Note, dates must be in the future, any date in the past will show as "Invalid Date" when converted
+
+
+
+                clear(
+
+                )
+                wxTimeSpan format chars are described at:
+                http://docs.wxwidgets.org/trunk/classwx_time_span.html
+                The following format specifiers are allowed after %:
+                ïH - Number of Hours
+                ïM - Number of Minutes
+                ïS - Number of Seconds
+                ïl - Number of Milliseconds
+                ïD - Number of Days
+                ïE - Number of Weeks
+                ï% - The percent character
+
+                //Format Characters are described at: http://www.cplusplus.com/reference/ctime/strftime/
+                TIME FORMAT CHARACTERS:
+                %a Abbreviated weekday name eg. Thu
+                %A Full weekday name eg. Thursday
+                %b Abbreviated month name eg. Aug
+                %B Full month name eg. August
+                %c Date and time representation eg. Thu Aug 23 14:55:02 2001
+                %d Day of the month (01-31) eg. 23
+                %H Hour in 24h format (00-23) eg. 14
+                %I Hour in 12h format (01-12) eg. 02
+                %j Day of the year (001-366) eg. 235
+                %m Month as a decimal number (01-12) eg. 08
+                %M Minute (00-59) eg. 55
+                %p AM or PM designation eg. PM
+                %S Second (00-61) eg. 02
+                %U Week number with the first Sunday as the first day of week one (00-53) eg. 33
+                %w Weekday as a decimal number with Sunday as 0 (0-6) eg. 4
+                %W Week number with the first Monday as the first day of week one (00-53) eg. 34
+                %x Date representation eg. 08/23/01
+                %X Time representation eg. 14:55:02
+                %y Year, last two digits (00-99) eg. 01
+                %Y Year eg. 2001
+                %Z Timezone name or abbreviation CDT
+                %% A % sign eg. %
+#endif // 0
+                //time_local = time.Format(wxT("%T"), wxDateTime::A_EST).c_str();
+                if (Line.size() >= 4)
+                {
+                    wxChar delim = Line[0]; //use first char as date delimiter; date and format string follows that, separated by delimiter
+                    Line.Remove(0, 1); //.erase(Line.begin(), Line.begin() + 1); //remove leading delim
+                    //            Line.RemoveLast(); //remove delimiter
+                    fmt = Line.After(delim);
+                    Line.Truncate(Line.find(delim)); //remove fmt string, leaving only count down date
+                }
+                else fmt.Empty();
+            //CAUTION: fall thru here
+        case COUNTDOWN_D_H_M_S:
+        case COUNTDOWN_H_M_S:
+        case COUNTDOWN_M_or_S:
+        case COUNTDOWN_S:
+        {
+            // countdown to date
+            if (state%framesPerSec == 0)   //1x/sec
+            {
+                //            if ( dt.ParseDateTime(Line, &end) ) { //broken, force RFC822 for now -DJ
+                if (dt.ParseRfc822Date(Line, &end))
+                {
+                    // dt is (at least partially) valid, so calc # of seconds until then
+                    ts = dt.Subtract(wxDateTime::Now());
+                    wxLongLong ll = ts.GetSeconds();
+                    if (ll > LONG_MAX) ll = LONG_MAX;
+                    if (ll < 0) ll = 0;
+                    longsecs = ll.ToLong();
+                }
+                else
+                {
+                    // invalid date/time
+                    longsecs = 0;
+                }
+                GetCache(buffer, id)->timer_countdown = longsecs;
+            }
+            else
+            {
+                longsecs = GetCache(buffer, id)->timer_countdown;
+                ts = wxTimeSpan(0, 0, longsecs, 0); //reconstruct wxTimeSpan so we can call .Format method -DJ
+            }
+            if (!longsecs)
+            {
+                msg = _T("invalid date");    //show when invalid -DJ
+                break;
+            }
+            int days = longsecs / 60 / 60 / 24;
+            int hours = (longsecs / 60 / 60) % 24;
+            minutes = (longsecs / 60) % 60;
+            seconds = longsecs % 60;
+            if (Countdown == COUNTDOWN_D_H_M_S)
+                msg = wxString::Format("%dd %dh %dm %ds", days, hours, minutes, seconds);
+            else if (Countdown == COUNTDOWN_H_M_S)
+                msg = wxString::Format("%d : %d : %d", hours, minutes, seconds);
+            else if (Countdown == COUNTDOWN_S)
+                msg = wxString::Format("%d", 60 * 60 * hours + 60 * minutes + seconds);
+            else if (Countdown == COUNTDOWN_FREEFMT)
+                //            msg = _T("%%") + Line + _T("%%") + fmt + _T("%%");
+                if (fmt == "" || (fmt.EndsWith("%") && !fmt.EndsWith("%%")))
+                {
+                    msg = _T("invalid format");
+                }
+                else
+                {
+                    msg = ts.Format(fmt); //dt.Format(fmt)
+                }
+            else //if (Countdown == COUNTDOWN_M_or_S)
+                if (60 * hours + minutes < 5) //COUNTDOWN_M_or_S: show seconds
+                    msg = wxString::Format("%d", 60 * 60 * hours + 60 * minutes + seconds);
+                else //COUNTDOWN_M_or_S: show minutes
+                    msg = wxString::Format("%d m", 60 * hours + minutes);
+        }
+            break;
+        default:
+            msg=Line;
+            msg.Replace("\\n", "\n", true); //allow vertical spacing (mainly for up/down) -DJ
+            break;
+    }
+}
+
+void TextEffect::RenderXLText(Effect *effect, const SettingsMap &settings, RenderBuffer &buffer)
+{
+    xlColor c;
+    int num_colors = buffer.palette.Size();
+    buffer.palette.GetColor(0,c);
+
+    int starty = wxAtoi(settings.Get("SLIDER_Text_YStart", "0"));
+    int startx = wxAtoi(settings.Get("SLIDER_Text_XStart", "0"));
+    int endy = wxAtoi(settings.Get("SLIDER_Text_YEnd", "0"));
+    int endx = wxAtoi(settings.Get("SLIDER_Text_XEnd", "0"));
+    bool pixelOffsets = wxAtoi(settings.Get("CHECKBOX_Text_PixelOffsets", "0"));
+
+    int OffsetLeft = startx * buffer.BufferWi / 100;
+    int OffsetTop = -starty * buffer.BufferHt / 100;
+    if (pixelOffsets) {
+        OffsetLeft = startx;
+        OffsetTop =  -starty;
+    }
+
+    font_mgr.init();  // make sure font class is initialized
+    wxString xl_font = settings["CHOICE_Text_Font"];
+    xlFont* font = font_mgr.get_font(xl_font);
+    wxBitmap* bmp = font->get_bitmap();
+    wxImage image = bmp->ConvertToImage();
+    int char_width = font->GetWidth();
+    int char_height = font->GetHeight();
+
+    wxString text = settings["TEXTCTRL_Text"];
+
+    wxString msg = text;
+    int Countdown = TextCountDownIndex(settings["CHOICE_Text_Count"]);
+    if( Countdown > 0 ) {
+        int tspeed = wxAtoi(settings.Get("TEXTCTRL_Text_Speed", "10"));
+        int state = (buffer.curPeriod - buffer.curEffStartPer) * tspeed * buffer.frameTimeInMs / 50;
+        wxString Line = text;
+        FormatCountdown(Countdown, state, Line, buffer, msg, text);
+        msg.Replace(" : ", ":");
+    }
+    text = msg;
+    int text_length = font_mgr.get_length(font, text);
+
+    int text_effect = TextEffectsIndex(settings["CHOICE_Text_Effect"]);
+    bool vertical = false;
+    bool rotate_90 = false;
+    bool up = false;
+    if( text_effect == 1 || text_effect == 2) {
+        vertical = true;
+        if( text_effect == 1 ) {
+            up = true;
+        }
+    } else if( text_effect == 4 || text_effect == 6) {
+        rotate_90 = true;
+        if( text_effect == 4 ) {
+            up = true;
+        }
+    }
+
+    int PreOffsetLeft = OffsetLeft;
+    int PreOffsetTop = OffsetTop;
+
+    if( rotate_90 ) {
+       OffsetLeft += buffer.BufferWi/2 - font->GetCapsHeight()/2;
+       if( up ) {
+           OffsetTop += buffer.BufferHt/2 + text_length/2;
+       } else {
+           OffsetTop += buffer.BufferHt/2 - text_length/2;
+       }
+    } else if( vertical ) {
+       OffsetLeft += buffer.BufferWi/2 - char_width/2;
+       if( up ) {
+           OffsetTop += buffer.BufferHt/2 + (char_height*text.length())/2;
+       } else {
+           OffsetTop += buffer.BufferHt/2 - (char_height*text.length())/2;
+       }
+    } else {
+        OffsetLeft += buffer.BufferWi/2 - text_length/2;
+        OffsetTop += buffer.BufferHt/2 - font->GetCapsHeight()/2;
+    }
+
+    AddMotions( OffsetLeft, OffsetTop, settings, buffer, text_length, char_height, endx, endy, pixelOffsets, PreOffsetLeft, PreOffsetTop );
+
+    if (text != "") {
+        int space_offset = 0;
+        for( int i = 0; i < text.length(); i++ ) {
+            buffer.palette.GetColor((i-space_offset)%num_colors,c);
+            if( text[i] == ' ' ) {
+                space_offset++;
+            }
+            int ascii = (int)text[i];
+            int x_start_corner = (ascii%8) * (char_width+1) + 1;
+            int y_start_corner = (ascii/8) * (char_height+1) + 1;
+
+            int actual_width = font->GetCharWidth(ascii);
+            if( rotate_90 && up ) {
+                OffsetTop -= actual_width;
+            }
+            for( int w = 0; w < actual_width; w++ )
+            {
+               int x_pos = x_start_corner + w;
+               for( int y_pos = y_start_corner; y_pos < y_start_corner+char_height; y_pos++)
+               {
+                   int red = image.GetRed(x_pos, y_pos);
+                   int green = image.GetGreen(x_pos, y_pos);
+                   int blue = image.GetBlue(x_pos, y_pos);
+                   if( red == 255 && green == 255 && blue == 255 ) {
+                      if( rotate_90 ) {
+                        if( up ) {
+                            buffer.SetPixel(y_pos - y_start_corner + OffsetLeft, (buffer.BufferHt - 1) - (actual_width - 1 - x_pos + x_start_corner + OffsetTop), c, false);
+                        } else {
+                            buffer.SetPixel(char_height - 1 - y_pos + y_start_corner + OffsetLeft, (buffer.BufferHt - 1) - (x_pos - x_start_corner + OffsetTop), c, false);
+                        }
+                      } else {
+                        buffer.SetPixel(x_pos - x_start_corner + OffsetLeft, buffer.BufferHt - (y_pos - y_start_corner + OffsetTop) - 1, c, false);
+                      }
+                   }
+               }
+            }
+            if( vertical ) {
+               if( up ) {
+                    OffsetTop -= char_height + 1;
+               } else {
+                    OffsetTop += char_height + 1;
+               }
+            } else if( rotate_90 && !up ) {
+                OffsetTop += actual_width;
+            } else if( !rotate_90 ) {
+                OffsetLeft += actual_width;
+            }
+        }
+    }
+}
+
+void TextEffect::AddMotions( int& OffsetLeft, int& OffsetTop, const SettingsMap& settings, RenderBuffer &buffer,
+                             int txtwidth, int txtheight, int endx, int endy, bool pixelOffsets, int PreOffsetLeft, int PreOffsetTop )
+{
+    int tspeed = wxAtoi(settings.Get("TEXTCTRL_Text_Speed", "10"));
+    int state = (buffer.curPeriod - buffer.curEffStartPer) * tspeed * buffer.frameTimeInMs / 50;
+
+    int totwidth=buffer.BufferWi+txtwidth;
+    int totheight=buffer.BufferHt+txtheight;
+
+    int xlimit=totwidth*8 + 1;
+    int ylimit=totheight*8 + 1;
+
+    TextDirection dir = TextEffectDirectionsIndex(settings["CHOICE_Text_Dir"]);
+    int center = wxAtoi(settings["CHECKBOX_TextToCenter"]);  // not implemented yet - hoping to switch to value curves anyways
+
+    switch (dir) {
+        case TEXTDIR_VECTOR:
+            {
+            double position = buffer.GetEffectTimeIntervalPosition(1.0);
+            double ex = endx * buffer.BufferWi / 100;
+            double ey = -endy * buffer.BufferHt / 100;
+            if (pixelOffsets) {
+                ex = endx;
+                ey = -endy;
+            }
+            OffsetLeft += (ex - OffsetLeft) * position;
+            OffsetTop += (ey - OffsetTop) * position;
+            }
+            break;
+        case TEXTDIR_LEFT:
+            OffsetLeft = buffer.BufferWi - state % xlimit/8 + PreOffsetLeft;
+            break; // left
+        case TEXTDIR_RIGHT:
+            OffsetLeft = state % xlimit/8 - txtwidth + PreOffsetLeft;
+            break; // right
+        case TEXTDIR_UP:
+            OffsetTop = buffer.BufferHt - state % ylimit/8 - PreOffsetTop;
+            break; // up
+        case TEXTDIR_DOWN:
+            OffsetTop = state % ylimit/8 - txtheight - PreOffsetTop;
+            break; // down
+        case TEXTDIR_UPLEFT:
+            OffsetLeft = buffer.BufferWi - state % xlimit/8 + PreOffsetLeft;
+            OffsetTop = buffer.BufferHt - state % ylimit/8 - PreOffsetTop;
+            break; // up-left
+        case TEXTDIR_DOWNLEFT:
+            OffsetLeft = buffer.BufferWi - state % xlimit/8 + PreOffsetLeft;
+            OffsetTop = state % ylimit/8 - txtheight - PreOffsetTop;
+            break; // down-left
+        case TEXTDIR_UPRIGHT:
+            OffsetLeft = state % xlimit/8 - txtwidth + PreOffsetLeft;
+            OffsetTop = buffer.BufferHt - state % ylimit/8 - PreOffsetTop;
+            break; // up-right
+        case TEXTDIR_DOWNRIGHT:
+            OffsetLeft = state % xlimit/8 - txtwidth + PreOffsetLeft;
+            OffsetTop = state % ylimit/8 - txtheight - PreOffsetTop;
+            break; // down-right
+        case TEXTDIR_WAVEY_LRUPDOWN:
+            OffsetLeft = xlimit/16 - state % xlimit/8;
+            OffsetTop = zigzag(state/4, totheight)/2 - totheight/4;
+            break; // left-to-right, wavey up-down 1/2 height (too bouncy if full height is used), slow down up/down motion (too fast unless scaled)
+        default:
+            break;
     }
 }

@@ -3,13 +3,13 @@
 
 //(*Headers(LayoutPanel)
 #include <wx/panel.h>
-class wxSplitterWindow;
-class wxCheckBox;
-class wxSplitterEvent;
-class wxStaticText;
+class wxChoice;
 class wxFlexGridSizer;
 class wxButton;
-class wxChoice;
+class wxSplitterWindow;
+class wxSplitterEvent;
+class wxStaticText;
+class wxCheckBox;
 //*)
 
 #include "wxCheckedListCtrl.h"
@@ -67,17 +67,17 @@ class LayoutPanel: public wxPanel
 
     private:
 		//(*Declarations(LayoutPanel)
-		wxFlexGridSizer* ToolSizer;
-		wxChoice* ChoiceLayoutGroups;
-		wxPanel* FirstPanel;
-		wxSplitterWindow* SplitterWindow2;
-		wxPanel* LeftPanel;
-		wxStaticText* StaticText1;
 		wxCheckBox* CheckBoxOverlap;
-		wxPanel* SecondPanel;
+		wxFlexGridSizer* ToolSizer;
+		wxStaticText* StaticText1;
 		wxButton* ButtonSavePreview;
-		wxSplitterWindow* ModelSplitter;
+		wxSplitterWindow* SplitterWindow2;
+		wxChoice* ChoiceLayoutGroups;
+		wxPanel* SecondPanel;
 		wxPanel* PreviewGLPanel;
+		wxPanel* FirstPanel;
+		wxPanel* LeftPanel;
+		wxSplitterWindow* ModelSplitter;
 		//*)
 
 		wxScrolledWindow* ModelGroupWindow;
@@ -99,14 +99,20 @@ class LayoutPanel: public wxPanel
 		//*)
 
 		static const long ID_TREELISTVIEW_MODELS;
+        static const long ID_PREVIEW_REPLACEMODEL;
         static const long ID_PREVIEW_ALIGN;
         static const long ID_PREVIEW_MODEL_NODELAYOUT;
         static const long ID_PREVIEW_MODEL_LOCK;
         static const long ID_PREVIEW_MODEL_UNLOCK;
         static const long ID_PREVIEW_MODEL_EXPORTASCUSTOM;
+        static const long ID_PREVIEW_MODEL_CREATEGROUP;
         static const long ID_PREVIEW_MODEL_WIRINGVIEW;
         static const long ID_PREVIEW_MODEL_ASPECTRATIO;
         static const long ID_PREVIEW_MODEL_EXPORTXLIGHTSMODEL;
+        static const long ID_PREVIEW_BULKEDIT;
+        static const long ID_PREVIEW_BULKEDIT_CONTROLLERCONNECTION;
+        static const long ID_PREVIEW_BULKEDIT_PREVIEW;
+        static const long ID_PREVIEW_BULKEDIT_DIMMINGCURVES;
         static const long ID_PREVIEW_ALIGN_TOP;
         static const long ID_PREVIEW_ALIGN_BOTTOM;
         static const long ID_PREVIEW_ALIGN_LEFT;
@@ -125,6 +131,8 @@ class LayoutPanel: public wxPanel
         static const long ID_PREVIEW_MODEL_DELETEPOINT;
         static const long ID_PREVIEW_MODEL_ADDCURVE;
         static const long ID_PREVIEW_MODEL_DELCURVE;
+        static const long ID_PREVIEW_SAVE_LAYOUT_IMAGE;
+        static const long ID_PREVIEW_PRINT_LAYOUT_IMAGE;
 
 	public:
 
@@ -159,8 +167,11 @@ class LayoutPanel: public wxPanel
         void DoUndo(wxCommandEvent& event);
         void DeleteSelectedModel();
         void LockSelectedModels(bool lock);
+        void PreviewSaveImage();
+        void PreviewPrintImage();
 
     public:
+        void SaveEffects();
         void UpdatePreview();
         void SelectModel(const std::string & name, bool highlight_tree = true);
         void SelectModel(Model *model, bool highlight_tree = true);
@@ -173,12 +184,21 @@ class LayoutPanel: public wxPanel
         const std::string& GetCurrentLayoutGroup() const {return currentLayoutGroup;}
         void Reset();
         void SetDirtyHiLight(bool dirty);
+        std::string GetCurrentPreview() const;
 
         void ModelGroupUpdated(ModelGroup *group, bool full_refresh);
+        bool HandleLayoutKeyBinding(wxKeyEvent& event);
 
     protected:
         void AddModelButton(const std::string &type, const char *imageData[]);
         void UpdateModelsForPreview(const std::string &group, LayoutGroup* layout_grp, std::vector<Model *> &prev_models, bool filtering );
+        void CreateModelGroupFromSelected();
+        void BulkEditControllerConnection();
+        void BulkEditControllerPreview();
+        void BulkEditDimmingCurves();
+        void ReplaceModel();
+        void ShowNodeLayout();
+        void ShowWiring();
 
         bool SelectSingleModel(int x,int y);
         bool SelectMultipleModels(int x,int y);
@@ -188,17 +208,19 @@ class LayoutPanel: public wxPanel
 
         int FindModelsClicked(int x,int y, std::vector<int> &found);
 
-        int ModelsSelectedCount();
-        int GetSelectedModelIndex();
-        std::list<Model*> GetSelectedModels();
+        int ModelsSelectedCount() const;
+        int GetSelectedModelIndex() const;
+        std::list<Model*> GetSelectedModels() const;
         void PreviewModelAlignTops();
         void PreviewModelAlignBottoms();
         void PreviewModelAlignLeft();
         void PreviewModelAlignRight();
         void PreviewModelAlignHCenter();
         void PreviewModelAlignVCenter();
+        void PreviewModelHDistribute();
+        void PreviewModelVDistribute();
         void PreviewModelResize(bool sameWidth, bool sameHeight);
-        Model *CreateNewModel(const std::string &type);
+        Model *CreateNewModel(const std::string &type) const;
 
         bool _firstTreeLoad;
         bool m_dragging;
@@ -216,12 +238,12 @@ class LayoutPanel: public wxPanel
         int mNumGroups;
         bool mPropGridActive;
         wxTreeListItem mSelectedGroup;
-        wxColour mDefaultSaveBtnColor;
 
         wxPropertyGrid *propertyEditor;
         bool updatingProperty;
         Model *selectedModel;
 
+        void ReloadModelList();
         void refreshModelList();
         void resetPropertyGrid();
         void clearPropGrid();
@@ -270,6 +292,7 @@ class LayoutPanel: public wxPanel
             Icon_Custom,
             Icon_Dmx,
             Icon_Icicle,
+            Icon_Image,
             Icon_Line,
             Icon_Matrix,
             Icon_Poly,
@@ -286,7 +309,8 @@ class LayoutPanel: public wxPanel
         {
             Col_Model,
             Col_StartChan,
-            Col_EndChan
+            Col_EndChan,
+            Col_ControllerConnection
         };
 
         ModelPreview *modelPreview;
@@ -304,7 +328,11 @@ class LayoutPanel: public wxPanel
 
         static const long ID_MNU_DELETE_MODEL;
         static const long ID_MNU_DELETE_MODEL_GROUP;
+        static const long ID_MNU_DELETE_EMPTY_MODEL_GROUPS;
         static const long ID_MNU_RENAME_MODEL_GROUP;
+        static const long ID_MNU_MAKESCVALID;
+        static const long ID_MNU_MAKEALLSCVALID;
+        static const long ID_MNU_MAKEALLSCNOTOVERLAPPING;
         static const long ID_MNU_ADD_MODEL_GROUP;
         void OnModelsPopup(wxCommandEvent& event);
 		LayoutGroup* GetLayoutGroup(const std::string &name);
@@ -317,16 +345,16 @@ class LayoutPanel: public wxPanel
         void InitImageList();
         wxTreeListCtrl* CreateTreeListCtrl(long style);
         int GetModelTreeIcon(Model* model, bool open);
-        int AddModelToTree(Model *model, wxTreeListItem* parent, bool fullName = false);
+        int AddModelToTree(Model *model, wxTreeListItem* parent, bool expanded, int nativeOrder, bool fullName = false);
         void RenameModelInTree(Model* model, const std::string new_name);
-        int SortElementsFunction(wxTreeListItem item1, wxTreeListItem item2, unsigned sortColumn);
+        //int SortElementsFunction(wxTreeListItem item1, wxTreeListItem item2, unsigned sortColumn);
 
         class ModelListComparator : public wxTreeListItemComparator
         {
         public:
-            ModelListComparator() {};
+            ModelListComparator() { xlights = nullptr; };
             virtual ~ModelListComparator() {};
-            virtual int Compare(wxTreeListCtrl *treelist, unsigned column, wxTreeListItem first, wxTreeListItem second);
+            virtual int Compare(wxTreeListCtrl *treelist, unsigned column, wxTreeListItem first, wxTreeListItem second) override;
             int SortElementsFunction(wxTreeListCtrl *treelist, wxTreeListItem item1, wxTreeListItem item2, unsigned sortColumn);
             void SetFrame(xLightsFrame* frame) {xlights = frame;}
        private:

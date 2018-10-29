@@ -1,18 +1,16 @@
-#include "PianoEffect.h"
-
-#include "PianoPanel.h"
-
-#include "../sequencer/Effect.h"
-#include "../RenderBuffer.h"
-#include "../UtilClasses.h"
-#include "../xLightsMain.h"
-#include "../xLightsXmlFile.h"
-#include "../SequenceCheck.h"
-
 #include <vector>
 
 #include "../../include/piano-16.xpm"
 #include "../../include/piano-64.xpm"
+
+#include "PianoEffect.h"
+#include "PianoPanel.h"
+#include "../sequencer/Effect.h"
+#include "../RenderBuffer.h"
+#include "../UtilClasses.h"
+#include "../xLightsXmlFile.h"
+#include "../UtilFunctions.h"
+#include "models/Model.h"
 
 #include <log4cpp/Category.hh>
 
@@ -123,7 +121,7 @@ wxPanel *PianoEffect::CreatePanel(wxWindow *parent) {
 	return _panel;
 }
 
-void PianoEffect::SetDefaultParameters(Model *cls) {
+void PianoEffect::SetDefaultParameters() {
     PianoPanel *pp = (PianoPanel*)panel;
     if (pp == nullptr) {
         return;
@@ -161,7 +159,7 @@ void PianoEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
 		        SettingsMap.GetInt("SPINCTRL_Piano_EndMIDI"),
 		        SettingsMap.GetBool("CHECKBOX_Piano_ShowSharps"),
 		        std::string(SettingsMap.Get("CHOICE_Piano_Type", "True Piano")),
-		        GetValueCurveInt("Piano_Scale", 100, SettingsMap, oset, PIANO_SCALE_MIN, PIANO_SCALE_MAX),
+		        GetValueCurveInt("Piano_Scale", 100, SettingsMap, oset, PIANO_SCALE_MIN, PIANO_SCALE_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS()),
 		        std::string(SettingsMap.Get("CHOICE_Piano_MIDITrack_APPLYLAST", "")),
                 SettingsMap.GetInt("SLIDER_Piano_XOffset", 0)
                 );
@@ -292,7 +290,7 @@ void PianoEffect::ReduceChannels(std::list<float>* pdata, int start, int end, bo
 		}
 		else
 		{
-			it++;
+			++it;
 		}
 	}
 }

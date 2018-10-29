@@ -1,18 +1,17 @@
 #include <wx/wx.h>
-
-#include "Model.h"
-
 #include <wx/xml/xml.h>
 #include <wx/tokenzr.h>
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/advprops.h>
+#include <wx/sstream.h>
 
+#include "Model.h"
+#include "ModelManager.h"
 #include "../xLightsMain.h" //for Preview and Other model collections
 #include "../xLightsXmlFile.h"
 #include "../Color.h"
 #include "../DrawGLUtils.h"
 #include "../DimmingCurve.h"
-
 #include "../StrandNodeNamesDialog.h"
 #include "../ModelFaceDialog.h"
 #include "../ModelStateDialog.h"
@@ -21,19 +20,21 @@
 #include "../SubModelsDialog.h"
 #include "../ControllerConnectionDialog.h"
 #include "../outputs/Output.h"
+#include "../outputs/OutputManager.h"
 #include "../outputs/IPOutput.h"
-
+#include "../VendorModelDialog.h"
+#include "../ModelPreview.h"
 #include "ModelScreenLocation.h"
-#include <wx/sstream.h>
-
 #include "SubModel.h"
 #include "../UtilFunctions.h"
 #include "xLightsVersion.h"
 
+#include <log4cpp/Category.hh>
 
 static const std::string DEFAULT("Default");
 static const std::string PER_PREVIEW("Per Preview");
 static const std::string SINGLE_LINE("Single Line");
+static const std::string AS_PIXEL("As Pixel");
 static const std::string VERT_PER_STRAND("Vertical Per Strand");
 static const std::string HORIZ_PER_STRAND("Horizontal Per Strand");
 
@@ -45,20 +46,28 @@ wxMessageBox(msg, _("Export Error")); \
 return; \
 }
 
-const std::vector<std::string> Model::DEFAULT_BUFFER_STYLES {DEFAULT, PER_PREVIEW, SINGLE_LINE};
+const std::vector<std::string> Model::DEFAULT_BUFFER_STYLES {DEFAULT, PER_PREVIEW, SINGLE_LINE, AS_PIXEL};
 
 Model::Model(const ModelManager &manager) : modelDimmingCurve(nullptr), ModelXml(nullptr),
     parm1(0), parm2(0), parm3(0), pixelStyle(1), pixelSize(2), transparency(0), blackTransparency(0),
     StrobeRate(0), changeCount(0), modelManager(manager), CouldComputeStartChannel(false), maxVertexCount(0),
-    splitRGB(false)
+    splitRGB(false), rgbwHandlingType(0)
 {
+    // These member vars were not initialised so give them some defaults.
+    BufferHt = 0;
+    BufferWi = 0;
+    IsLtoR = true;
+    isBotToTop = true;
+    SingleNode = false;
+    zeroBased = false;
+    SingleChannel = false;
 }
 
 Model::~Model() {
     if (modelDimmingCurve != nullptr) {
         delete modelDimmingCurve;
     }
-    for (auto it = subModels.begin(); it != subModels.end(); it++) {
+    for (auto it = subModels.begin(); it != subModels.end(); ++it) {
         Model *m = *it;
         delete m;
     }
@@ -181,10 +190,12 @@ public:
                     f1 = f1->GetNext();
                 }
             }
-            f1 = new wxXmlNode(m_model->GetModelXml(), wxXML_ELEMENT_NODE , "dimmingCurve");
-            for (auto it = dimmingInfo.begin(); it != dimmingInfo.end(); it++) {
-                wxXmlNode *dc = new wxXmlNode(f1, wxXML_ELEMENT_NODE , it->first);
-                for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+            f1 = new wxXmlNode(wxXML_ELEMENT_NODE , "dimmingCurve");
+            m_model->GetModelXml()->AddChild(f1);
+            for (auto it = dimmingInfo.begin(); it != dimmingInfo.end(); ++it) {
+                wxXmlNode *dc = new wxXmlNode(wxXML_ELEMENT_NODE , it->first);
+                f1->AddChild(dc);
+                for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
                     dc->AddAttribute(it2->first, it2->second);
                 }
             }
@@ -268,6 +279,8 @@ public:
             return new StatesDialogAdapter(m_model);
         case 5:
             return new SubModelsDialogAdapter(m_model);
+        default:
+            break;
         }
         return nullptr;
     }
@@ -279,13 +292,13 @@ protected:
 class StartChannelDialogAdapter : public wxPGEditorDialogAdapter
 {
 public:
-    StartChannelDialogAdapter(Model *model)
-    : wxPGEditorDialogAdapter(), m_model(model) {
+    StartChannelDialogAdapter(Model *model, std::string preview)
+    : wxPGEditorDialogAdapter(), m_model(model), _preview(preview) {
     }
     virtual bool DoShowDialog(wxPropertyGrid* propGrid,
                               wxPGProperty* property) override {
         StartChannelDialog dlg(propGrid);
-        dlg.Set(property->GetValue().GetString(), m_model->GetModelManager());
+        dlg.Set(property->GetValue().GetString(), m_model->GetModelManager(), _preview);
         if (dlg.ShowModal() == wxID_OK) {
             wxVariant v(dlg.Get());
             SetValue(v);
@@ -295,6 +308,7 @@ public:
     }
 protected:
     Model *m_model;
+    std::string _preview;
 };
 
 class StartChannelProperty : public wxStringProperty
@@ -304,8 +318,9 @@ public:
                          int strand,
                         const wxString& label,
                         const wxString& name,
-                        const wxString& value)
-    : wxStringProperty(label, name, value), m_model(m), m_strand(strand) {
+                        const wxString& value,
+                        std::string preview)
+        : wxStringProperty(label, name, value), m_model(m), m_strand(strand), _preview(preview) {
     }
     // Set editor to have button
     virtual const wxPGEditor* DoGetEditorClass() const override {
@@ -313,10 +328,11 @@ public:
     }
     // Set what happens on button click
     virtual wxPGEditorDialogAdapter* GetEditorDialog() const override {
-        return new StartChannelDialogAdapter(m_model);
+        return new StartChannelDialogAdapter(m_model, _preview);
     }
 protected:
     Model *m_model;
+    std::string _preview;
     int m_strand;
 };
 
@@ -342,8 +358,54 @@ protected:
 };
 
 static wxArrayString NODE_TYPES;
+static wxArrayString RGBW_HANDLING;
 static wxArrayString PIXEL_STYLES;
 static wxArrayString LAYOUT_GROUPS;
+
+wxArrayString Model::GetLayoutGroups(const ModelManager& mm)
+{
+    wxArrayString lg;
+    lg.push_back("Default");
+    lg.push_back("All Previews");
+    lg.push_back("Unassigned");
+
+    wxXmlNode* layouts_node = mm.GetLayoutsNode();
+    for (wxXmlNode* e = layouts_node->GetChildren(); e != nullptr; e = e->GetNext())
+    {
+        if (e->GetName() == "layoutGroup")
+        {
+            wxString grp_name = e->GetAttribute("name");
+            if (!grp_name.IsEmpty())
+            {
+                lg.push_back(grp_name.ToStdString());
+            }
+        }
+    }
+
+    return lg;
+}
+
+void Model::Rename(std::string newName)
+{
+    name = newName;
+    ModelXml->DeleteAttribute("name");
+    ModelXml->AddAttribute("name", name);
+}
+
+void Model::SetStartChannel(std::string startChannel, bool suppressRecalc)
+{
+    ModelXml->DeleteAttribute("StartChannel");
+    ModelXml->AddAttribute("StartChannel", startChannel);
+    if (ModelXml->GetAttribute("Advanced") == "1") {
+        ModelXml->DeleteAttribute(StartChanAttrName(0));
+        ModelXml->AddAttribute(StartChanAttrName(0), startChannel);
+    }
+    if (!suppressRecalc)
+    {
+        RecalcStartChannels();
+    }
+    IncrementChangeCount();
+}
 
 void Model::SetProperty(wxString property, wxString value, bool apply)
 {
@@ -377,46 +439,51 @@ void Model::AddProperties(wxPropertyGridInterface *grid) {
         NODE_TYPES.push_back("GRB Nodes");
         NODE_TYPES.push_back("BRG Nodes");
         NODE_TYPES.push_back("BGR Nodes");
+        
+        NODE_TYPES.push_back("WRGB Nodes");
+        NODE_TYPES.push_back("WRBG Nodes");
+        NODE_TYPES.push_back("WGBR Nodes");
+        NODE_TYPES.push_back("WGRB Nodes");
+        NODE_TYPES.push_back("WBRG Nodes");
+        NODE_TYPES.push_back("WBGR Nodes");
+
+        NODE_TYPES.push_back("RGBW Nodes");
+        NODE_TYPES.push_back("RBGW Nodes");
+        NODE_TYPES.push_back("GBRW Nodes");
+        NODE_TYPES.push_back("GRBW Nodes");
+        NODE_TYPES.push_back("BRGW Nodes");
+        NODE_TYPES.push_back("BGRW Nodes");
+
         NODE_TYPES.push_back("3 Channel RGB");
         NODE_TYPES.push_back("4 Channel RGBW");
+        NODE_TYPES.push_back("4 Channel WRGB");
         NODE_TYPES.push_back("Strobes");
         NODE_TYPES.push_back("Single Color");
+        NODE_TYPES.push_back("Single Color Intensity");
+        
+        
+        RGBW_HANDLING.push_back("R=G=B -> W");
+        RGBW_HANDLING.push_back("RGB Only");
+        RGBW_HANDLING.push_back("White Only");
     }
 
-    LAYOUT_GROUPS.clear();
-    LAYOUT_GROUPS.push_back("Default");
-    LAYOUT_GROUPS.push_back("All Previews");
-    LAYOUT_GROUPS.push_back("Unassigned");
-
-    wxXmlNode* layouts_node = modelManager.GetLayoutsNode();
-    for(wxXmlNode* e=layouts_node->GetChildren(); e!=NULL; e=e->GetNext() )
-    {
-        if (e->GetName() == "layoutGroup")
-        {
-            wxString grp_name=e->GetAttribute("name");
-            if (!grp_name.IsEmpty())
-            {
-                LAYOUT_GROUPS.push_back(grp_name.ToStdString());
-            }
-        }
-    }
+    LAYOUT_GROUPS = Model::GetLayoutGroups(modelManager);
 
     wxPGProperty *p;
     wxPGProperty *sp;
 
     p = grid->Append(new wxPropertyCategory(DisplayAs, "ModelType"));
-    p->GetCell(0).SetFgCol(*wxBLACK);
 
     AddTypeProperties(grid);
 
     if (HasOneString(DisplayAs)) {
-        p = grid->Append(new StartChannelProperty(this, 0, "Start Channel", "ModelStartChannel", ModelXml->GetAttribute("StartChannel","1")));
+        grid->Append(new StartChannelProperty(this, 0, "Start Channel", "ModelStartChannel", ModelXml->GetAttribute("StartChannel","1"), modelManager.GetXLightsFrame()->GetSelectedLayoutPanelPreview()));
     } else {
         bool hasIndiv = ModelXml->GetAttribute("Advanced", "0") == "1";
         p = grid->Append(new wxBoolProperty("Indiv Start Chans", "ModelIndividualStartChannels", hasIndiv));
         p->SetAttribute("UseCheckbox", true);
         p->Enable(parm1 > 1);
-        sp = grid->AppendIn(p, new StartChannelProperty(this, 0, "Start Channel", "ModelStartChannel", ModelXml->GetAttribute("StartChannel","1")));
+        sp = grid->AppendIn(p, new StartChannelProperty(this, 0, "Start Channel", "ModelStartChannel", ModelXml->GetAttribute("StartChannel","1"), modelManager.GetXLightsFrame()->GetSelectedLayoutPanelPreview()));
         if (hasIndiv) {
             int c = Model::HasOneString(DisplayAs) ? 1 : parm1;
             for (int x = 0; x < c; x++) {
@@ -431,8 +498,16 @@ void Model::AddProperties(wxPropertyGridInterface *grid) {
                     sp->SetLabel(nm);
                     sp->SetValue(val);
                 } else {
-                    sp = grid->AppendIn(p, new StartChannelProperty(this, x, nm, nm, val));
+                    sp = grid->AppendIn(p, new StartChannelProperty(this, x, nm, nm, val, modelManager.GetXLightsFrame()->GetSelectedLayoutPanelPreview()));
                 }
+            }
+        }
+        else
+        {
+            // remove per strand start channels if individual isnt selected
+            for (int x = 0; x < 100; x++) {
+                wxString nm = StartChanAttrName(x);
+                ModelXml->DeleteAttribute(nm);
             }
         }
     }
@@ -460,16 +535,15 @@ void Model::AddProperties(wxPropertyGridInterface *grid) {
     grid->LimitPropertyEditing(p);
     p = grid->Append(new PopupDialogProperty(this, "Sub-Models", "SubModels", CLICK_TO_EDIT, 5));
     grid->LimitPropertyEditing(p);
-    p = grid->Append(new ControllerConnectionProperty(this, "Controller Connection", "ControllerConnection", ModelXml->GetAttribute("ControllerConnection", "")));
+    grid->Append(new ControllerConnectionProperty(this, "Controller Connection", "ControllerConnection", ModelXml->GetAttribute("ControllerConnection", "")));
 
     p = grid->Append(new wxPropertyCategory("String Properties", "ModelStringProperties"));
-    p->GetCell(0).SetFgCol(*wxBLACK);
     int i = NODE_TYPES.Index(StringType);
     if (i == wxNOT_FOUND) {
-        i = NODE_TYPES.size() - 1;
+        i = NODE_TYPES.size() - 2;
     }
     grid->AppendIn(p, new wxEnumProperty("String Type", "ModelStringType", NODE_TYPES, wxArrayInt(), i));
-    if (i == NODE_TYPES.size() - 1)  {
+    if (i == NODE_TYPES.size() - 1 || i == NODE_TYPES.size() - 2)  {
         //get the color
         wxColor v;
         if (StringType=="Single Color Red") {
@@ -480,19 +554,22 @@ void Model::AddProperties(wxPropertyGridInterface *grid) {
             v = *wxBLUE;
         } else if (StringType=="Single Color White" || StringType == "W") {
             v = *wxWHITE;
-        } else if (StringType=="Single Color Custom") {
+        } else if (StringType=="Single Color Custom" || StringType=="Single Color Intensity") {
             v = customColor.asWxColor();
         } else if (StringType[0] == '#') {
             v = xlColor(StringType).asWxColor();
         }
-        sp = grid->AppendIn(p, new wxColourProperty("Color", "ModelStringColor", v));
+        grid->AppendIn(p, new wxColourProperty("Color", "ModelStringColor", v));
     } else {
         sp = grid->AppendIn(p, new wxColourProperty("Color", "ModelStringColor", *wxRED));
         sp->Enable(false);
     }
-
+    sp = grid->AppendIn(p, new wxEnumProperty("RGBW Color Handling", "ModelRGBWHandling", RGBW_HANDLING, wxArrayInt(), rgbwHandlingType));
+    if (HasSingleChannel(StringType) || GetNodeChannelCount(StringType) != 4) {
+        sp->Enable(false);
+    }
+    
     p = grid->Append(new wxPropertyCategory("Appearance", "ModelAppearance"));
-    p->GetCell(0).SetFgCol(*wxBLACK);
     sp = grid->AppendIn(p, new wxUIntProperty("Pixel Size", "ModelPixelSize", pixelSize));
     sp->SetAttribute("Min", 1);
     sp->SetAttribute("Max", 300);
@@ -564,13 +641,20 @@ int Model::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEve
         return 2;
     } else if (event.GetPropertyName() == "ControllerConnection") {
         controller_connection = event.GetValue().GetString();
+
+        if (!event.GetValue().GetString().Contains(":") && wxAtoi(controller_connection) != 0)
+        {
+            controller_connection = "WS2811:" + wxString::Format("%d", wxAtoi(controller_connection));
+            event.GetProperty()->SetValue(controller_connection);
+        }
+
         ModelXml->DeleteAttribute("ControllerConnection");
         if (controller_connection != "")
         {
             ModelXml->AddAttribute("ControllerConnection", controller_connection);
         }
         IncrementChangeCount();
-        return 2;
+        return 3 | 0x0008;
     }
     else if (event.GetPropertyName() == "SubModels") {
         SetFromXml(ModelXml, zeroBased);
@@ -616,16 +700,21 @@ int Model::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEve
         IncrementChangeCount();
         return 2;
     } else if (event.GetPropertyName() == "ModelStringColor"
-               || event.GetPropertyName() == "ModelStringType") {
+               || event.GetPropertyName() == "ModelStringType"
+               || event.GetPropertyName() == "ModelRGBWHandling") {
         wxPGProperty *p2 = grid->GetPropertyByName("ModelStringType");
         int i = p2->GetValue().GetLong();
         ModelXml->DeleteAttribute("StringType");
-        if (i == NODE_TYPES.size() - 1) {
+        ModelXml->DeleteAttribute("RGBWHandling");
+        if (i == NODE_TYPES.size() - 1 || i == NODE_TYPES.size() - 2) {
             wxPGProperty *p = grid->GetPropertyByName("ModelStringColor");
             xlColor c;
             wxString tp = GetColorString(p, c);
+			if (NODE_TYPES[i] == "Single Color Intensity") {
+				tp = "Single Color Intensity";
+			}
             p->Enable();
-            if (tp == "Single Color Custom") {
+            if (tp == "Single Color Custom" || tp == "Single Color Intensity") {
                 ModelXml->DeleteAttribute("CustomColor");
                 xlColor xc = c;
                 ModelXml->AddAttribute("CustomColor", xc);
@@ -635,15 +724,28 @@ int Model::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEve
             ModelXml->AddAttribute("StringType", NODE_TYPES[i]);
             grid->GetPropertyByName("ModelStringColor")->Enable(false);
         }
+        if (GetNodeChannelCount(ModelXml->GetAttribute("StringType")) == 4) {
+            p2 = grid->GetPropertyByName("ModelRGBWHandling");
+            ModelXml->AddAttribute("RGBWHandling", RGBW_HANDLING[p2->GetValue().GetLong()]);
+        }
         SetFromXml(ModelXml, zeroBased);
         IncrementChangeCount();
-        return 3 | ((event.GetPropertyName() == "ModelStringType" ) ? 0x0008 : 0);
+        return 3 | ((event.GetPropertyName() == "ModelStringType" ) ? 0x0004 | 0x0008 : 0);
     } else if (event.GetPropertyName() == "ModelStartChannel" || event.GetPropertyName() == "ModelIndividualStartChannels.ModelStartChannel") {
+
+        wxString val = event.GetValue().GetString();
+
+        if ((val.StartsWith("@") || val.StartsWith("#") || val.StartsWith(">")) && !val.Contains(":"))
+        {
+            val = val + ":1";
+            event.GetProperty()->SetValue(val);
+        }
+
         ModelXml->DeleteAttribute("StartChannel");
-        ModelXml->AddAttribute("StartChannel", event.GetValue().GetString());
+        ModelXml->AddAttribute("StartChannel", val);
         if (ModelXml->GetAttribute("Advanced") == "1") {
             ModelXml->DeleteAttribute(StartChanAttrName(0));
-            ModelXml->AddAttribute(StartChanAttrName(0), event.GetValue().GetString());
+            ModelXml->AddAttribute(StartChanAttrName(0), val);
         }
         RecalcStartChannels();
         IncrementChangeCount();
@@ -661,7 +763,8 @@ int Model::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEve
                 }
             }
         } else {
-            for (int x = 0; x < c; x++) {
+            // overkill but just delete any that are there
+            for (int x = 0; x < 100; x++) {
                 ModelXml->DeleteAttribute(StartChanAttrName(x));
             }
         }
@@ -672,8 +775,16 @@ int Model::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEve
     } else if (event.GetPropertyName().StartsWith("ModelIndividualStartChannels.")) {
         wxString str = event.GetPropertyName();
         str = str.SubString(str.Find(".") + 1, str.length());
+
+        wxString val = event.GetValue().GetString();
+        if ((val.StartsWith("@") || val.StartsWith("#") || val.StartsWith(">")) && !val.Contains(":"))
+        {
+            val = val + ":1";
+            event.GetProperty()->SetValue(val);
+        }
+
         ModelXml->DeleteAttribute(str);
-        ModelXml->AddAttribute(str, event.GetValue().GetString());
+        ModelXml->AddAttribute(str, val);
         RecalcStartChannels();
         IncrementChangeCount();
         return 3 | 0x0008;
@@ -711,6 +822,7 @@ void Model::AdjustStringProperties(wxPropertyGridInterface *grid, int newNum) {
                 if (sp != nullptr) {
                     grid->DeleteProperty(sp);
                 }
+                ModelXml->DeleteAttribute(nm);
             }
             while (count < newNum) {
                 wxString nm = StartChanAttrName(count);
@@ -720,7 +832,7 @@ void Model::AdjustStringProperties(wxPropertyGridInterface *grid, int newNum) {
                     ModelXml->DeleteAttribute(nm);
                     ModelXml->AddAttribute(nm, val);
                 }
-                grid->AppendIn(p, new StartChannelProperty(this, count, nm, nm, val));
+                grid->AppendIn(p, new StartChannelProperty(this, count, nm, nm, val, modelManager.GetXLightsFrame()->GetSelectedLayoutPanelPreview()));
                 count++;
             }
         } else if (p->GetChildCount() > 1) {
@@ -778,13 +890,14 @@ void Model::ParseFaceInfo(wxXmlNode *f, std::map<std::string, std::map<std::stri
         att = att->GetNext();
     }
 }
+
 void Model::WriteFaceInfo(wxXmlNode *rootXml, const std::map<std::string, std::map<std::string, std::string> > &faceInfo) {
     if (!faceInfo.empty()) {
-        for (auto it = faceInfo.begin(); it != faceInfo.end(); it++) {
+        for (auto it = faceInfo.begin(); it != faceInfo.end(); ++it) {
             wxXmlNode *f = new wxXmlNode(rootXml, wxXML_ELEMENT_NODE , "faceInfo");
             std::string name = it->first;
             f->AddAttribute("Name", name);
-            for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+            for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
                 f->AddAttribute(it2->first, it2->second);
             }
         }
@@ -821,9 +934,9 @@ wxString Model::SerialiseFace() const
     wxString res = "";
 
     if (!faceInfo.empty()) {
-        for (auto it = faceInfo.begin(); it != faceInfo.end(); it++) {
+        for (auto it = faceInfo.begin(); it != faceInfo.end(); ++it) {
             res += "    <faceInfo Name=\"" + it->first + "\" ";
-            for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+            for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
                 res += it2->first + "=\"" + it2->second + "\" ";
             }
             res += "/>\n";
@@ -899,35 +1012,70 @@ std::string Model::ComputeStringStartChannel(int i) {
     if (i == 0) {
         return ModelXml->GetAttribute("StartChannel", "1").ToStdString();
     }
-    wxString stch = ModelXml->GetAttribute(StartChanAttrName(i - 1));
-    wxString sNet = "";
-    int ChannelsPerString = CalcCannelsPerString();
-    long StringStartChanLong = 0;
+
+    wxString existingStartChannelAsString = ModelXml->GetAttribute(StartChanAttrName(i));
+    if (existingStartChannelAsString != "")
+    {
+        return existingStartChannelAsString;
+    }
+
+    wxString stch = ModelXml->GetAttribute("StartChannel", "1");
+    wxString priorStringStartChannelAsString = ModelXml->GetAttribute(StartChanAttrName(i - 1));
+    int priorLength = CalcCannelsPerString();
+    // This will be required once custom model supports multiple strings ... working on that
+    //if (DisplayAs == "Custom")
+    //{
+    //    priorLength = GetStrandLength(i - 1) * GetChanCountPerNode();
+    //}
+    long priorStringStartChannel = GetNumberFromChannelString(priorStringStartChannelAsString);
+    long startChannel = priorStringStartChannel + priorLength;
     if (stch.Contains(":")) {
-        sNet = stch.SubString(0, stch.Find(":")-1);
-        stch = stch.SubString(stch.Find(":") + 1, stch.size());
-        long startNetwork;
-        if (sNet.ToLong(&startNetwork) && startNetwork > 0) {
-            startNetwork--; // Zero based index
-            if (stch.ToLong(&StringStartChanLong) && StringStartChanLong > 0) {
-                // get the string end channel
-                long ststch;
-                Output* o = modelManager.GetOutputManager()->GetOutput(StringStartChanLong + ChannelsPerString + 1, ststch);
+        auto comps = wxSplit(priorStringStartChannelAsString, ':');
+        if (comps[0].StartsWith("#"))
+        {
+            long ststch;
+            Output* o = modelManager.GetOutputManager()->GetOutput(startChannel, ststch);
+            if (comps.size() == 2)
+            {
                 if (o != nullptr)
                 {
-                    return wxString::Format("%i:%i",o->GetOutputNumber(), ststch).ToStdString();
+                    return wxString::Format("#%i:%ld", o->GetUniverse(), ststch).ToStdString();
+                }
+                else
+                {
+                    return wxString::Format("%ld", startChannel);
                 }
             }
-        } else if (stch.ToLong(&StringStartChanLong) && StringStartChanLong > 0) {
-            long StringEndChan=StringStartChanLong + ChannelsPerString;
-            stch = sNet + wxString::Format(":%d", StringEndChan);
+            else
+            {
+                if (o != nullptr)
+                {
+                    return wxString::Format("%s:i:%ld", comps[0], o->GetUniverse(), ststch).ToStdString();
+                }
+                else
+                {
+                    return wxString::Format("%ld", startChannel);
+                }
+            }
+        }
+        else if (comps[0].StartsWith(">") || comps[0].StartsWith("@"))
+        {
+            return wxString::Format("%s:%ld", comps[0], wxAtol(comps[1]) + priorLength);
+        }
+        else {
+            long ststch;
+            Output* o = modelManager.GetOutputManager()->GetLevel1Output(startChannel, ststch);
+            if (o != nullptr)
+            {
+                return wxString::Format("%i:%ld", o->GetOutputNumber(), ststch).ToStdString();
+            }
+            else
+            {
+                return wxString::Format("%ld", startChannel);
+            }
         }
     }
-    if (stch.ToLong(&StringStartChanLong) && StringStartChanLong > 0) {
-        long StringEndChan=StringStartChanLong + ChannelsPerString;
-        stch = wxString::Format(wxT("%i"), StringEndChan);
-    }
-    return stch.ToStdString();
+    return wxString::Format("%ld", startChannel);
 }
 
 int Model::GetNumStrands() const {
@@ -970,6 +1118,60 @@ bool Model::ModelRenamed(const std::string &oldName, const std::string &newName)
         SetFromXml(ModelXml, zeroBased);
     }
     return changed;
+}
+
+bool Model::IsValidStartChannelString() const
+{
+    wxString sc = ModelXml->GetAttribute("StartChannel");
+
+    if (sc.IsNumber() && wxAtol(sc) > 0 && ! sc.Contains('.')) return true; // absolule
+
+    if (!sc.Contains(':')) return false; // all other formats need a colon
+
+    wxArrayString parts = wxSplit(sc, ':');
+
+    if (parts.size() > 3) return false;
+
+    if (parts[0][0] == '#')
+    {
+        if (parts.size() == 2)
+        {
+            Output* o = modelManager.GetOutputManager()->GetOutput(wxAtoi(parts[0].substr(1)), "");
+            if (o != nullptr &&
+                (parts[1].IsNumber() && wxAtol(parts[1]) > 0 && !parts[1].Contains('.')))
+            {
+                return true;
+            }
+        }
+        else if (parts.size() == 3)
+        {
+            wxString ip = parts[0].substr(1);
+            Output* o = modelManager.GetOutputManager()->GetOutput(wxAtoi(parts[1]), ip.ToStdString());
+            if (IsIPValidOrHostname(ip.ToStdString()) && o != nullptr &&
+                (parts[2].IsNumber() && wxAtol(parts[2]) > 0 && !parts[2].Contains('.')))
+            {
+                return true;
+            }
+        }
+    }
+    else if (parts[0][0] == '>' || parts[0][0] == '@')
+    {
+        if ((parts.size() == 2) &&
+            (parts[0].substr(1) != GetName()) && // self referencing
+            (parts[1].IsNumber() && wxAtol(parts[1]) > 0 && !parts[1].Contains('.')))
+        {
+            // dont bother checking the model name ... other processes will check for that
+            return true;
+        }
+    }
+    else if ((parts.size() == 2) &&
+             (parts[0].IsNumber() && wxAtol(parts[0]) > 0 && !parts[0].Contains('.')) &&
+             (parts[1].IsNumber() && wxAtol(parts[1]) > 0 && !parts[1].Contains('.'))) // output:startch
+    {
+        return true;
+    }
+
+    return false;
 }
 
 bool Model::UpdateStartChannelFromChannelString(std::map<std::string, Model*>& models, std::list<std::string>& used)
@@ -1022,38 +1224,58 @@ int Model::GetNumberFromChannelString(const std::string &str, bool &valid, std::
             int returnChannel = wxAtoi(sc);
             bool fromStart = start[0] == '@';
             start = start.substr(1, start.size());
-            dependsonmodel = start;
-            Model *m = modelManager[start];
-            if (m != nullptr && m->CouldComputeStartChannel) {
-                if (fromStart) {
-                    int i = m->GetFirstChannel();
-                    if (i == -1 && m == this && stringStartChan.size() > 0) {
-                        i = stringStartChan[0];
-                    }
-                    return i + returnChannel;
-                }
-                else {
-                    return m->GetLastChannel() + returnChannel + 1;
-                }
-            }
-            else {
+            if (start == GetName() && !CouldComputeStartChannel)
+            {
                 valid = false;
                 output = 1;
             }
+            else
+            {
+                if (start != GetName()) {
+                    dependsonmodel = start;
+                }
+                Model *m = modelManager[start];
+                if (m != nullptr && m->CouldComputeStartChannel) {
+                    if (fromStart) {
+                        int i = m->GetFirstChannel();
+                        if (i == -1 && m == this && stringStartChan.size() > 0) {
+                            i = stringStartChan[0];
+                        }
+                        int res = i + returnChannel;
+                        if (res < 1)
+                        {
+                            valid = false;
+                            res = 1;
+                        }
+                        return res;
+                    }
+                    else {
+                        int res = m->GetLastChannel() + returnChannel + 1;
+                        if (res < 1)
+                        {
+                            valid = false;
+                            res = 1;
+                        }
+                        return res;
+                    }
+                }
+                else {
+                    valid = false;
+                    output = 1;
+                }
+            }
         }
-        else if (start[0] == '#'){
+        else if (start[0] == '#') {
             wxString ss = wxString(str);
             wxArrayString cs = wxSplit(ss.SubString(1, ss.Length()), ':');
-            int returnChannel = 1;
-            int returnUniverse = 1;
             if (cs.Count() == 3)
             {
                 // #ip:universe:channel
-                returnUniverse = wxAtoi(cs[1]);
-                returnChannel = wxAtoi(cs[2]);
+                int returnUniverse = wxAtoi(cs[1]);
+                int returnChannel = wxAtoi(cs[2]);
 
                 int res = modelManager.GetOutputManager()->GetAbsoluteChannel(cs[0].Trim(false).Trim(true).ToStdString(), returnUniverse - 1, returnChannel - 1);
-                if (res < 0)
+                if (res < 1)
                 {
                     res = 1;
                     valid = false;
@@ -1063,19 +1285,26 @@ int Model::GetNumberFromChannelString(const std::string &str, bool &valid, std::
             else if (cs.Count() == 2)
             {
                 // #universe:channel
-                returnChannel = wxAtoi(sc);
-                returnUniverse = wxAtoi(ss.SubString(1, ss.Find(":") - 1));
+                int returnChannel = wxAtoi(sc);
+                int returnUniverse = wxAtoi(ss.SubString(1, ss.Find(":") - 1));
 
                 // find output based on universe number ...
                 int res = modelManager.GetOutputManager()->GetAbsoluteChannel("", returnUniverse - 1, returnChannel - 1);
-                if (res < 0)
+                if (res < 1)
                 {
                     res = 1;
                     valid = false;
                 }
                 return res;
             }
-            } else {
+            else
+            {
+                valid = false;
+                return 1;
+            }
+        }
+        else
+        {
             output = wxAtoi(start);
             if (output == 0) {
                 output = 1; // 1 based
@@ -1091,6 +1320,12 @@ int Model::GetNumberFromChannelString(const std::string &str, bool &valid, std::
             returnChannel = 1;
         }
     }
+    else if (returnChannel < 1)
+    {
+        valid = false;
+        returnChannel = 1;
+    }
+
     return returnChannel;
 }
 
@@ -1137,7 +1372,6 @@ void Model::SetFromXml(wxXmlNode* ModelNode, bool zb) {
     subModels.clear();
 
     wxString tempstr,channelstr;
-    long StartChannel;
 
     zeroBased = zb;
     ModelXml=ModelNode;
@@ -1148,10 +1382,28 @@ void Model::SetFromXml(wxXmlNode* ModelNode, bool zb) {
     DisplayAs=ModelNode->GetAttribute("DisplayAs").ToStdString();
     controller_connection = ModelNode->GetAttribute("ControllerConnection").ToStdString();
     StringType=ModelNode->GetAttribute("StringType").ToStdString();
+    _pixelCount = ModelNode->GetAttribute("PixelCount", "").ToStdString();
+    _pixelType = ModelNode->GetAttribute("PixelType", "").ToStdString();
+    _pixelSpacing = ModelNode->GetAttribute("PixelSpacing", "").ToStdString();
     SingleNode=HasSingleNode(StringType);
-    SingleChannel=HasSingleChannel(StringType);
-    rgbOrder = SingleNode ? "RGB" : StringType.substr(0, 3);
-    description = UnXmlSafe(ModelNode->GetAttribute("Description").ToStdString());
+    int ncc = GetNodeChannelCount(StringType);
+    SingleChannel = (ncc == 1);
+    if (SingleNode) {
+        rgbOrder = "RGB";
+    } else if (ncc == 4 && StringType[0] == 'W') {
+        rgbOrder = StringType.substr(1, 4);
+    } else {
+        rgbOrder = StringType.substr(0, 3);
+    }
+    if (ncc == 4) {
+        std::string s = ModelNode->GetAttribute("RGBWHandling").ToStdString();
+        for (int x = 0; x < RGBW_HANDLING.size(); x++) {
+            if (RGBW_HANDLING[x] == s) {
+                rgbwHandlingType = x;
+            }
+        }
+    }
+    description = UnXmlSafe(ModelNode->GetAttribute("Description"));
 
     tempstr=ModelNode->GetAttribute("parm1");
     tempstr.ToLong(&parm1);
@@ -1192,9 +1444,9 @@ void Model::SetFromXml(wxXmlNode* ModelNode, bool zb) {
 
     CouldComputeStartChannel = false;
     std::string  dependsonmodel;
-    StartChannel = GetNumberFromChannelString(ModelNode->GetAttribute("StartChannel","1").ToStdString(), CouldComputeStartChannel, dependsonmodel);
+    long StartChannel = GetNumberFromChannelString(ModelNode->GetAttribute("StartChannel","1").ToStdString(), CouldComputeStartChannel, dependsonmodel);
     tempstr=ModelNode->GetAttribute("Dir");
-    IsLtoR=tempstr != "R";
+    IsLtoR = tempstr != "R";
     if (ModelNode->HasAttribute("StartSide")) {
         tempstr=ModelNode->GetAttribute("StartSide");
         isBotToTop = (tempstr == "B");
@@ -1236,6 +1488,7 @@ void Model::SetFromXml(wxXmlNode* ModelNode, bool zb) {
     wxXmlNode *f = ModelNode->GetChildren();
     faceInfo.clear();
     stateInfo.clear();
+    wxXmlNode * dimmingCurveNode = nullptr;
     while (f != nullptr) {
         if ("faceInfo" == f->GetName()) {
             ParseFaceInfo(f, faceInfo);
@@ -1244,6 +1497,7 @@ void Model::SetFromXml(wxXmlNode* ModelNode, bool zb) {
             ParseStateInfo(f, stateInfo);
         }
         else if ("dimmingCurve" == f->GetName()) {
+            dimmingCurveNode = f;
             modelDimmingCurve = DimmingCurve::createFromXML(f);
         }
         else if ("subModel" == f->GetName()) {
@@ -1258,11 +1512,14 @@ void Model::SetFromXml(wxXmlNode* ModelNode, bool zb) {
             modelDimmingCurve = DimmingCurve::createBrightnessGamma(b, 1.0);
         }
     }
+    if (modelDimmingCurve == nullptr && dimmingCurveNode != nullptr) {
+        ModelNode->RemoveChild(dimmingCurveNode);
+    }
     IncrementChangeCount();
 }
 
 void Model::RemoveSubModel(const std::string &name) {
-    for (auto a = subModels.begin(); a != subModels.end(); a++) {
+    for (auto a = subModels.begin(); a != subModels.end(); ++a) {
         Model *m = *a;
         if (m->GetName() == name) {
             delete m;
@@ -1272,7 +1529,7 @@ void Model::RemoveSubModel(const std::string &name) {
 }
 
 Model *Model::GetSubModel(const std::string &name) {
-    for (auto a = subModels.begin(); a != subModels.end(); a++) {
+    for (auto a = subModels.begin(); a != subModels.end(); ++a) {
         if ((*a)->GetName() == name) {
             return *a;
         }
@@ -1314,27 +1571,47 @@ void Model::SetStringStartChannels(bool zeroBased, int NumberOfStrings, int Star
 void Model::InitModel() {
 }
 
-
 void Model::GetNodeChannelValues(size_t nodenum, unsigned char *buf) {
-    Nodes[nodenum]->GetForChannels(buf);
+    wxASSERT(nodenum < Nodes.size()); // trying to catch an error i can see in crash reports
+    if (nodenum < Nodes.size()) {
+        Nodes[nodenum]->GetForChannels(buf);
+    }
 }
+
 void Model::SetNodeChannelValues(size_t nodenum, const unsigned char *buf) {
-    Nodes[nodenum]->SetFromChannels(buf);
+    wxASSERT(nodenum < Nodes.size()); // trying to catch an error i can see in crash reports
+    if (nodenum < Nodes.size()) {
+        Nodes[nodenum]->SetFromChannels(buf);
+    }
 }
+
 xlColor Model::GetNodeColor(size_t nodenum) const {
+    wxASSERT(nodenum < Nodes.size()); // trying to catch an error i can see in crash reports
     xlColor color;
-    Nodes[nodenum]->GetColor(color);
+    if (nodenum < Nodes.size()) {
+        Nodes[nodenum]->GetColor(color);
+    }
+    else
+    {
+        color = xlWHITE;
+    }
     return color;
 }
+
 xlColor Model::GetNodeMaskColor(size_t nodenum) const {
-    if (Nodes.size() == 0) return xlWHITE; // this shouldnt happen but it does if you have a custom model with no nodes in it
+    if (nodenum >= Nodes.size()) return xlWHITE; // this shouldnt happen but it does if you have a custom model with no nodes in it
     xlColor color;
     Nodes[nodenum]->GetMaskColor(color);
     return color;
 }
+
 void Model::SetNodeColor(size_t nodenum, const xlColor &c) {
-    Nodes[nodenum]->SetColor(c);
+    wxASSERT(nodenum < Nodes.size()); // trying to catch an error i can see in crash reports
+    if (nodenum < Nodes.size()) {
+        Nodes[nodenum]->SetColor(c);
+    }
 }
+
 bool Model::IsNodeInBufferRange(size_t nodeNum, int x1, int y1, int x2, int y2) {
     if (nodeNum < Nodes.size()) {
         for (auto a = Nodes[nodeNum]->Coords.begin(); a != Nodes[nodeNum]->Coords.end(); ++a) {
@@ -1347,10 +1624,46 @@ bool Model::IsNodeInBufferRange(size_t nodeNum, int x1, int y1, int x2, int y2) 
     return false;
 }
 
-
 // only valid for rgb nodes and dumb strings (not traditional strings)
 wxChar Model::GetChannelColorLetter(wxByte chidx) {
     return rgbOrder[chidx];
+}
+
+char Model::EncodeColour(const xlColor& c)
+{
+	if (c.red > 0 && c.green == 0 && c.blue == 0)
+	{
+		return 'R';
+	}
+	if (c.red == 0 && c.green > 0 && c.blue == 0)
+	{
+		return 'G';
+	}
+	if (c.red == 0 && c.green == 0 && c.blue > 0)
+	{
+		return 'B';
+	}
+	if (c.red > 0 && c.red == c.green && c.red == c.blue)
+	{
+		return 'W';
+	}
+
+	return 'X';
+}
+
+// Accepts any absolute channel number and if it happens to be used by this model a single character representing the channel colour is returned.
+// If the channel does not map to the model this returns ' '
+char Model::GetAbsoluteChannelColorLetter(long absoluteChannel)
+{
+    long fc = GetFirstChannel();
+    if (absoluteChannel < fc + 1 || absoluteChannel > GetLastChannel() + 1) return ' ';
+
+    if (SingleChannel)
+    {
+        return EncodeColour(GetNodeMaskColor(0));
+    }
+
+    return GetChannelColorLetter((absoluteChannel - fc - 1) % GetChanCountPerNode());
 }
 
 int CountChar(const std::string& s, char c)
@@ -1381,20 +1694,56 @@ std::string Model::GetStartChannelInDisplayFormat()
     }
 }
 
-std::string Model::GetLastChannelInStartChannelFormat(OutputManager* outputManager)
+std::string Model::GetLastChannelInStartChannelFormat(OutputManager* outputManager, std::list<std::string>* visitedModels)
 {
+    bool allocated = false;
+    if (visitedModels == nullptr)
+    {
+        allocated = true;
+        visitedModels = new std::list<std::string>();
+    }
+    visitedModels->push_back(GetName());
+
+    std::string modelFormat = ModelStartChannel;
+    char firstChar = ModelStartChannel[0];
+
     unsigned int lastChannel = GetLastChannel()+1;
 
-    if (ModelStartChannel == "")
+    if ((firstChar == '@' || firstChar == '>') && CountChar(ModelStartChannel, ':') == 1)
     {
-        return "(1)";
+        std::string referencedModel = ModelStartChannel.substr(1, ModelStartChannel.find(':') - 1);
+        Model *m = modelManager[referencedModel];
+
+        if (m != nullptr && std::find(visitedModels->begin(), visitedModels->end(), referencedModel) == visitedModels->end())
+        {
+            std::string end = m->GetLastChannelInStartChannelFormat(outputManager, visitedModels);
+            if (end != "")
+            {
+                if (end[0] == '#')
+                {
+                    firstChar = '#';
+                    modelFormat = end;
+                }
+                else if (CountChar(end, ':') == 1)
+                {
+                    firstChar = '0';
+                    modelFormat = end;
+                }
+            }
+        }
     }
-    else if (ModelStartChannel[0] == '#')
+
+    if (allocated)
+    {
+        delete visitedModels;
+    }
+
+    if (firstChar == '#')
     {
         // universe:channel
         long startChannel;
         Output* output = outputManager->GetOutput(lastChannel, startChannel);
-        
+
         if (output == nullptr) {
             return wxString::Format("%u", lastChannel).ToStdString();
         }
@@ -1405,7 +1754,7 @@ std::string Model::GetLastChannelInStartChannelFormat(OutputManager* outputManag
             startChannel = lastChannel - output->GetStartChannel() + 1;
         }
 
-        if (CountChar(ModelStartChannel, ':') == 1)
+        if (CountChar(modelFormat, ':') == 1)
         {
             return wxString::Format("#%d:%ld (%u)", output->GetUniverse(), startChannel, lastChannel).ToStdString();
         }
@@ -1419,7 +1768,7 @@ std::string Model::GetLastChannelInStartChannelFormat(OutputManager* outputManag
             return wxString::Format("#%s:%d:%ld (%u)", ip, output->GetUniverse(), startChannel, lastChannel).ToStdString();
         }
     }
-    else if (ModelStartChannel[0] == '@' || ModelStartChannel[0] == '>' || CountChar(ModelStartChannel, ':') == 0)
+    else if (firstChar == '@' || firstChar == '>' || CountChar(modelFormat, ':') == 0)
     {
         // absolute
         return wxString::Format("%u", lastChannel).ToStdString();
@@ -1428,7 +1777,7 @@ std::string Model::GetLastChannelInStartChannelFormat(OutputManager* outputManag
     {
         // output:channel
         long startChannel;
-        Output* output = outputManager->GetOutput(lastChannel, startChannel);
+        Output* output = outputManager->GetLevel1Output(lastChannel, startChannel);
 
         if (output == nullptr)
         {
@@ -1447,17 +1796,18 @@ unsigned int Model::GetLastChannel() {
     for(size_t idx=0; idx<NodeCount; idx++) {
         if (Nodes[idx]->ActChan == (unsigned int)-1)
         {
-            return (unsigned int)NodeCount * Nodes[idx]->GetChanCount();
+            return (unsigned int)NodeCount * Nodes[idx]->GetChanCount() - 1;
         }
         LastChan=std::max(LastChan,Nodes[idx]->ActChan + Nodes[idx]->GetChanCount() - 1);
     }
     return LastChan;
 }
+
 unsigned int Model::GetFirstChannel() {
-    unsigned int LastChan=-1;
-    size_t NodeCount=GetNodeCount();
-    for(size_t idx=0; idx<NodeCount; idx++) {
-        LastChan=std::min(LastChan,Nodes[idx]->ActChan);
+    unsigned int LastChan = -1;
+    size_t NodeCount = GetNodeCount();
+    for (size_t idx = 0; idx < NodeCount; idx++) {
+        LastChan = std::min(LastChan, Nodes[idx]->ActChan);
     }
     return LastChan;
 }
@@ -1517,8 +1867,6 @@ void Model::SetLineCoord() {
     }
 }
 
-
-
 void Model::SetBufferSize(int NewHt, int NewWi) {
     BufferHt = NewHt;
     BufferWi = NewWi;
@@ -1538,30 +1886,6 @@ const std::string &Model::NodeType(size_t nodenum) const {
     return Nodes.size() && nodenum < Nodes.size() ? Nodes[nodenum]->GetNodeType(): NodeBaseClass::RGB; //avoid memory access error if no nods -DJ
 }
 
-NodeBaseClass* Model::createNode(int ns, const std::string &StringType, size_t NodesPerString, const std::string &rgbOrder) {
-    NodeBaseClass *ret = nullptr;
-    if (StringType=="Single Color Red" || StringType == "R") {
-        ret = new NodeClassRed(ns, NodesPerString);
-    } else if (StringType=="Single Color Green" || StringType == "G") {
-        ret = new NodeClassGreen(ns,NodesPerString);
-    } else if (StringType=="Single Color Blue" || StringType == "B") {
-        ret = new NodeClassBlue(ns,NodesPerString);
-    } else if (StringType=="Single Color White" || StringType == "W") {
-        ret = new NodeClassWhite(ns,NodesPerString);
-    } else if (StringType[0] == '#') {
-        ret = new NodeClassCustom(ns,NodesPerString, xlColor(StringType));
-    } else if (StringType=="Strobes White 3fps" || StringType=="Strobes") {
-        ret = new NodeClassWhite(ns,NodesPerString);
-    } else if (StringType=="4 Channel RGBW" || StringType == "RGBW") {
-        ret = new NodeClassRGBW(ns,NodesPerString);
-    } else {
-        ret = new NodeBaseClass(ns,1,rgbOrder);
-    }
-    ret->model = this;
-    return ret;
-}
-
-
 void Model::GetBufferSize(const std::string &type, const std::string &transform, int &bufferWi, int &bufferHi) const {
     if (type == DEFAULT) {
         bufferHi = this->BufferHt;
@@ -1569,6 +1893,9 @@ void Model::GetBufferSize(const std::string &type, const std::string &transform,
     } else if (type == SINGLE_LINE) {
         bufferHi = 1;
         bufferWi = Nodes.size();
+    } else if (type == AS_PIXEL) {
+        bufferHi = 1;
+        bufferWi = 1;
     } else if (type == VERT_PER_STRAND) {
         bufferHi = GetNumStrands();
         bufferWi = 1;
@@ -1589,6 +1916,7 @@ void Model::GetBufferSize(const std::string &type, const std::string &transform,
     }
     AdjustForTransform(transform, bufferWi, bufferHi);
 }
+
 void Model::AdjustForTransform(const std::string &transform,
                                int &bufferWi, int &bufferHi) const {
     if (transform == "Rotate CC 90" || transform == "Rotate CW 90") {
@@ -1624,25 +1952,25 @@ void Model::ApplyTransform(const std::string &type,
         return;
     } else if (type == "Rotate 180") {
         for (size_t x = 0; x < newNodes.size(); x++) {
-            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); it2++) {
+            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); ++it2) {
                 SetCoords(*it2, bufferWi - it2->bufX - 1, bufferHi - it2->bufY - 1);
             }
         }
     } else if (type == "Flip Vertical") {
         for (size_t x = 0; x < newNodes.size(); x++) {
-            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); it2++) {
+            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); ++it2) {
                 SetCoords(*it2, it2->bufX, bufferHi - it2->bufY - 1);
             }
         }
     } else if (type == "Flip Horizontal") {
         for (size_t x = 0; x < newNodes.size(); x++) {
-            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); it2++) {
+            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); ++it2) {
                 SetCoords(*it2, bufferWi - it2->bufX - 1, it2->bufY);
             }
         }
     } else if (type == "Rotate CW 90") {
         for (size_t x = 0; x < newNodes.size(); x++) {
-            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); it2++) {
+            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); ++it2) {
                 SetCoords(*it2, bufferHi - it2->bufY - 1, it2->bufX);
             }
         }
@@ -1651,7 +1979,7 @@ void Model::ApplyTransform(const std::string &type,
         bufferWi = tmp;
     } else if (type == "Rotate CC 90") {
         for (int x = 0; x < newNodes.size(); x++) {
-            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); it2++) {
+            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); ++it2) {
                 SetCoords(*it2, it2->bufY, bufferWi - it2->bufX - 1);
             }
         }
@@ -1662,20 +1990,30 @@ void Model::ApplyTransform(const std::string &type,
 }
 
 void Model::InitRenderBufferNodes(const std::string &type,
-                                  const std::string &transform,
-                                  std::vector<NodeBaseClassPtr> &newNodes, int &bufferWi, int &bufferHi) const {
+    const std::string &transform,
+    std::vector<NodeBaseClassPtr> &newNodes, int &bufferWi, int &bufferHt) const {
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
     int firstNode = newNodes.size();
+
+    // want to see if i can catch something that causes this to crash
+    if (firstNode + Nodes.size() <= 0)
+    {
+        // This seems to happen when an effect is dropped on a strand with zero pixels
+        // Like a polyline segment with no nodes
+        logger_base.warn("Model::InitRenderBufferNodes firstNode + Nodes.size() = %ld. %s::'%s'. This commonly happens on a polyline segement with zero pixels or a cutom model with no nodes but with effects dropped on it.", (long)firstNode + Nodes.size(), (const char *)GetDisplayAs().c_str(), (const char *)GetFullName().c_str());
+    }
+
     newNodes.reserve(firstNode + Nodes.size());
     for (auto it = Nodes.begin(); it != Nodes.end(); ++it) {
         newNodes.push_back(NodeBaseClassPtr(it->get()->clone()));
     }
     if (type == DEFAULT) {
-        bufferHi = this->BufferHt;
+        bufferHt = this->BufferHt;
         bufferWi = this->BufferWi;
-    } else if (type == SINGLE_LINE) {
-        bufferHi = 1;
+    }
+    else if (type == SINGLE_LINE) {
+        bufferHt = 1;
         bufferWi = newNodes.size();
         int cnt = 0;
         for (int x = firstNode; x < newNodes.size(); x++) {
@@ -1688,11 +2026,25 @@ void Model::InitRenderBufferNodes(const std::string &type,
             }
             cnt++;
         }
-    } else if (type == HORIZ_PER_STRAND) {
+    }
+    else if (type == AS_PIXEL) {
+        bufferHt = 1;
+        bufferWi = 1;
+        for (int x = firstNode; x < newNodes.size(); x++) {
+            if (newNodes[x] == nullptr)
+            {
+                logger_base.crit("XXX Model::InitRenderBufferNodes newNodes[x] is null ... this is going to crash.");
+            }
+            for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); ++it2) {
+                SetCoords(*it2, 0, 0);
+            }
+        }
+    }
+    else if (type == HORIZ_PER_STRAND) {
         bufferWi = GetNumStrands();
-        bufferHi = 1;
+        bufferHt = 1;
         for (int x = 0; x < bufferWi; x++) {
-            bufferHi = std::max(bufferHi, GetStrandLength(x));
+            bufferHt = std::max(bufferHt, GetStrandLength(x));
         }
         int cnt = 0;
         int strand = 0;
@@ -1702,22 +2054,24 @@ void Model::InitRenderBufferNodes(const std::string &type,
                 strand++;
                 strandLen = GetStrandLength(strand);
                 cnt = 0;
-            } else {
+            }
+            else {
                 if (newNodes[x] == nullptr)
                 {
                     logger_base.crit("AAA Model::InitRenderBufferNodes newNodes[x] is null ... this is going to crash.");
                 }
                 for (auto it2 = newNodes[x]->Coords.begin(); it2 != newNodes[x]->Coords.end(); ++it2) {
-                    SetCoords(*it2, strand, cnt, -1, bufferHi, strandLen);
+                    SetCoords(*it2, strand, cnt, -1, bufferHt, strandLen);
                 }
                 cnt++;
                 x++;
             }
         }
-    } else if (type == VERT_PER_STRAND) {
-        bufferHi = GetNumStrands();
+    }
+    else if (type == VERT_PER_STRAND) {
+        bufferHt = GetNumStrands();
         bufferWi = 1;
-        for (int x = 0; x < bufferHi; x++) {
+        for (int x = 0; x < bufferHt; x++) {
             bufferWi = std::max(bufferWi, GetStrandLength(x));
         }
         int cnt = 0;
@@ -1728,7 +2082,8 @@ void Model::InitRenderBufferNodes(const std::string &type,
                 strand++;
                 strandLen = GetStrandLength(strand);
                 cnt = 0;
-            } else {
+            }
+            else {
                 if (newNodes[x] == nullptr)
                 {
                     logger_base.crit("BBB Model::InitRenderBufferNodes newNodes[x] is null ... this is going to crash.");
@@ -1740,12 +2095,13 @@ void Model::InitRenderBufferNodes(const std::string &type,
                 x++;
             }
         }
-    } else if (type == PER_PREVIEW || type == PER_PREVIEW_NO_OFFSET) {
+    }
+    else if (type == PER_PREVIEW || type == PER_PREVIEW_NO_OFFSET) {
         float maxX = -1000000;
         float minX = 1000000;
         float maxY = -1000000;
         float minY = 1000000;
-        float sx,sy;
+        float sx, sy;
         GetModelScreenLocation().PrepareToDraw();
 
         for (int x = firstNode; x < newNodes.size(); x++) {
@@ -1780,7 +2136,7 @@ void Model::InitRenderBufferNodes(const std::string &type,
             offx = 0;
             offy = 0;
         }
-        bufferHi = bufferWi = -1;
+        bufferHt = bufferWi = -1;
         for (int x = firstNode; x < newNodes.size(); x++) {
             if (newNodes[x] == nullptr)
             {
@@ -1796,8 +2152,8 @@ void Model::InitRenderBufferNodes(const std::string &type,
                 if (it2->bufX > bufferWi) {
                     bufferWi = it2->bufX;
                 }
-                if (it2->bufY > bufferHi) {
-                    bufferHi = it2->bufY;
+                if (it2->bufY > bufferHt) {
+                    bufferHt = it2->bufY;
                 }
 
                 if (noOff) {
@@ -1807,19 +2163,34 @@ void Model::InitRenderBufferNodes(const std::string &type,
             }
         }
         if (!noOff) {
-            bufferHi++;
+            bufferHt++;
             bufferWi++;
-        } else {
-            bufferHi = std::round(maxY - minY + 1.0f);
+        }
+        else {
+            bufferHt = std::round(maxY - minY + 1.0f);
             bufferWi = std::round(maxX - minX + 1.0f);
         }
-    } else {
-        bufferHi = this->BufferHt;
+    }
+    else {
+        bufferHt = this->BufferHt;
         bufferWi = this->BufferWi;
     }
-    ApplyTransform(transform, newNodes, bufferWi, bufferHi);
-}
 
+    // Zero buffer sizes are bad
+    // This can happen when a strand is zero length ... maybe also a custom model with no nodes
+    if (BufferHt == 0)
+    {
+        logger_base.warn("Model::InitRenderBufferNodes BufferHt was 0 ... overidden to be 1.");
+        bufferHt = 1;
+    }
+    if (BufferWi == 0)
+    {
+        logger_base.warn("Model::InitRenderBufferNodes BufferWi was 0 ... overidden to be 1.");
+        bufferWi = 1;
+    }
+
+    ApplyTransform(transform, newNodes, bufferWi, bufferHt);
+}
 
 std::string Model::GetNextName() {
     if (nodeNames.size() > Nodes.size()) {
@@ -1827,60 +2198,78 @@ std::string Model::GetNextName() {
     }
     return "";
 }
+
 // set size of Nodes vector and each Node's Coords vector
 void Model::SetNodeCount(size_t NumStrings, size_t NodesPerString, const std::string &rgbOrder) {
     size_t n;
     if (SingleNode) {
         if (StringType=="Single Color Red") {
-            for(n=0; n<NumStrings; n++) {
-                Nodes.push_back(NodeBaseClassPtr(new NodeClassRed(n,NodesPerString, GetNextName())));
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassRed(n, NodesPerString, GetNextName())));
                 Nodes.back()->model = this;
             }
         } else if (StringType=="Single Color Green") {
-            for(n=0; n<NumStrings; n++) {
-                Nodes.push_back(NodeBaseClassPtr(new NodeClassGreen(n,NodesPerString, GetNextName())));
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassGreen(n, NodesPerString, GetNextName())));
                 Nodes.back()->model = this;
             }
         } else if (StringType=="Single Color Blue") {
-            for(n=0; n<NumStrings; n++) {
-                Nodes.push_back(NodeBaseClassPtr(new NodeClassBlue(n,NodesPerString, GetNextName())));
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassBlue(n, NodesPerString, GetNextName())));
                 Nodes.back()->model = this;
             }
         } else if (StringType=="Single Color White") {
-            for(n=0; n<NumStrings; n++) {
-                Nodes.push_back(NodeBaseClassPtr(new NodeClassWhite(n,NodesPerString, GetNextName())));
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassWhite(n, NodesPerString, GetNextName())));
                 Nodes.back()->model = this;
             }
         } else if (StringType=="Strobes White 3fps" || StringType=="Strobes") {
             StrobeRate=7;  // 1 out of every 7 frames
-            for(n=0; n<NumStrings; n++) {
-                Nodes.push_back(NodeBaseClassPtr(new NodeClassWhite(n,NodesPerString, GetNextName())));
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassWhite(n, NodesPerString, GetNextName())));
                 Nodes.back()->model = this;
             }
         } else if (StringType=="Single Color Custom") {
-            for(n=0; n<NumStrings; n++) {
-                Nodes.push_back(NodeBaseClassPtr(new NodeClassCustom(n,NodesPerString, customColor, GetNextName())));
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassCustom(n, NodesPerString, customColor, GetNextName())));
+                Nodes.back()->model = this;
+            }
+        } else if (StringType=="Single Color Intensity") {
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassIntensity(n, NodesPerString, customColor, GetNextName())));
                 Nodes.back()->model = this;
             }
         } else if (StringType=="4 Channel RGBW") {
-            for(n=0; n<NumStrings; n++) {
-                Nodes.push_back(NodeBaseClassPtr(new NodeClassRGBW(n,NodesPerString, GetNextName())));
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassRGBW(n, NodesPerString, "RGB", true, rgbwHandlingType, GetNextName())));
+                Nodes.back()->model = this;
+            }
+        } else if (StringType=="4 Channel WRGB") {
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeClassRGBW(n, NodesPerString, "RGB", true, rgbwHandlingType, GetNextName())));
                 Nodes.back()->model = this;
             }
         } else {
             // 3 Channel RGB
-            for(n=0; n<NumStrings; n++) {
-                Nodes.push_back(NodeBaseClassPtr(new NodeBaseClass(n,NodesPerString, "RGB", GetNextName())));
+            for(n = 0; n < NumStrings; n++) {
+                Nodes.push_back(NodeBaseClassPtr(new NodeBaseClass(n, NodesPerString, "RGB", GetNextName())));
                 Nodes.back()->model = this;
             }
         }
     } else if (NodesPerString == 0) {
         Nodes.push_back(NodeBaseClassPtr(new NodeBaseClass(0, 0, rgbOrder, GetNextName())));
         Nodes.back()->model = this;
-    } else {
-        size_t numnodes=NumStrings*NodesPerString;
-        for(n=0; n<numnodes; n++) {
+    } else if (StringType[3] == ' ') {
+        size_t numnodes = NumStrings * NodesPerString;
+        for(n = 0; n < numnodes; n++) {
             Nodes.push_back(NodeBaseClassPtr(new NodeBaseClass(n/NodesPerString, 1, rgbOrder, GetNextName())));
+            Nodes.back()->model = this;
+        }
+    } else {
+        bool wLast = StringType[3] == 'W';
+        size_t numnodes = NumStrings * NodesPerString;
+        for(n = 0; n < numnodes; n++) {
+            Nodes.push_back(NodeBaseClassPtr(new NodeClassRGBW(n/NodesPerString, 1, rgbOrder, wLast, rgbwHandlingType, GetNextName())));
             Nodes.back()->model = this;
         }
     }
@@ -1894,6 +2283,11 @@ int Model::GetNodeChannelCount(const std::string & nodeType) {
     } else if (nodeType == "Strobes") {
         return 1;
     } else if (nodeType == "4 Channel RGBW") {
+        return 4;
+    } else if (nodeType == "4 Channel WRGB") {
+        return 4;
+    } else if (nodeType[0] == 'W' || nodeType [3] == 'W') {
+        //various WRGB and RGBW types
         return 4;
     }
     return 3;
@@ -1946,13 +2340,15 @@ int Model::GetChanCount() const {
     }
     return max - min;
 }
+
 int Model::GetChanCountPerNode() const {
-    size_t NodeCnt=GetNodeCount();
+    size_t NodeCnt = GetNodeCount();
     if (NodeCnt == 0) {
         return 0;
     }
     return Nodes[0]->GetChanCount();
 }
+
 size_t Model::GetCoordCount(size_t nodenum) const {
     return nodenum < Nodes.size() ? Nodes[nodenum]->Coords.size() : 0;
 }
@@ -2206,6 +2602,10 @@ void Model::ExportAsCustomXModel() const {
     wxString a = ModelXml->GetAttribute("Antialias");
     wxString sn = ModelXml->GetAttribute("StrandNames");
     wxString nn = ModelXml->GetAttribute("NodeNames");
+    wxString pc = ModelXml->GetAttribute("PixelCount");
+    wxString pt = ModelXml->GetAttribute("PixelType");
+    wxString psp = ModelXml->GetAttribute("PixelSpacing");
+
     wxString v = xlights_version_string;
     f.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<custommodel \n");
     f.Write(wxString::Format("name=\"%s\" ", name));
@@ -2218,6 +2618,12 @@ void Model::ExportAsCustomXModel() const {
     f.Write(wxString::Format("Antialias=\"%s\" ", a));
     f.Write(wxString::Format("StrandNames=\"%s\" ", sn));
     f.Write(wxString::Format("NodeNames=\"%s\" ", nn));
+    if (pc != "")
+        f.Write(wxString::Format("PixelCount=\"%s\" ", pc));
+    if (pt != "")
+        f.Write(wxString::Format("PixelType=\"%s\" ", pt));
+    if (psp != "")
+        f.Write(wxString::Format("PixelSpacing=\"%s\" ", psp));
     f.Write("CustomModel=\"");
     f.Write(cm);
     f.Write("\" ");
@@ -2242,107 +2648,122 @@ void Model::ExportAsCustomXModel() const {
     f.Close();
 }
 
-std::string Model::ChannelLayoutHtml(OutputManager* outputManager) {
-    size_t NodeCount=GetNodeCount();
-    size_t i,idx;
-    int n,x,y,s;
-    wxString bgcolor;
+std::string Model::ChannelLayoutHtml(OutputManager* outputManager)
+{
+    size_t NodeCount = GetNodeCount();
+
     std::vector<int> chmap;
-    chmap.resize(BufferHt * BufferWi,0);
+    chmap.resize(BufferHt * BufferWi, 0);
+
     bool IsCustom = DisplayAs == "Custom";
+
     std::string direction;
     if (IsCustom) {
-        direction="n/a";
+        direction = "n/a";
     } else if (!IsLtoR) {
         if(!isBotToTop)
-            direction="Top Right";
+            direction = "Top Right";
         else
-            direction="Bottom Right";
+            direction = "Bottom Right";
     } else {
         if (!isBotToTop)
-            direction="Top Left";
+            direction = "Top Left";
         else
-            direction="Bottom Left";
+            direction = "Bottom Left";
     }
 
     long sc;
     Output* o = outputManager->GetOutput(this->GetFirstChannel(), sc);
 
     std::string html = "<html><body><table border=0>";
-    html+="<tr><td>Name:</td><td>"+name+"</td></tr>";
-    html+="<tr><td>Display As:</td><td>"+DisplayAs+"</td></tr>";
-    html+="<tr><td>String Type:</td><td>"+StringType+"</td></tr>";
-    html+="<tr><td>Start Corner:</td><td>"+direction+"</td></tr>";
-    html+=wxString::Format("<tr><td>Total nodes:</td><td>%d</td></tr>",(int)NodeCount);
-    html+=wxString::Format("<tr><td>Height:</td><td>%d</td></tr>",BufferHt);
+    html += "<tr><td>Name:</td><td>" + name + "</td></tr>";
+    html += "<tr><td>Display As:</td><td>" + DisplayAs + "</td></tr>";
+    html += "<tr><td>String Type:</td><td>" + StringType + "</td></tr>";
+    html += "<tr><td>Start Corner:</td><td>" + direction + "</td></tr>";
+    html += wxString::Format("<tr><td>Total nodes:</td><td>%d</td></tr>", (int)NodeCount);
+    html += wxString::Format("<tr><td>Height:</td><td>%d</td></tr>", BufferHt);
+
     if (o != nullptr)
+    {
         html += wxString::Format("<tr><td>Controller:</td><td>%s:%s</td></tr>", o->GetCommPort(), o->GetDescription());
+    }
+
     if (wxString(controller_connection).Contains(":"))
     {
         wxArrayString cc = wxSplit(controller_connection, ':');
         html += wxString::Format("<tr><td>Pixel protocol:</td><td>%s</td></tr>", cc[0]);
-        if (GetNumStrings() ==  1)
+        if (GetNumStrings() == 1)
+        {
             html += wxString::Format("<tr><td>Controller Connection:</td><td>%s</td></tr>", cc[1]);
+        }
         else
-            html += wxString::Format("<tr><td>Controller Connections:</td><td>%s-%d</td></tr>", cc[1], wxAtoi(cc[1])+ GetNumPhysicalStrings() -1);
+        {
+            html += wxString::Format("<tr><td>Controller Connections:</td><td>%s-%d</td></tr>", cc[1], wxAtoi(cc[1]) + GetNumPhysicalStrings() - 1);
+        }
     }
-    html+="</table><p>Node numbers starting with 1 followed by string number:</p><table border=1>";
-
-    int Ibufx,Ibufy;
+    html += "</table><p>Node numbers starting with 1 followed by string number:</p><table border=1>";
 
     if (BufferHt == 1) {
         // single line or arch or cane
-        html+="<tr>";
-        for(i=1; i<=NodeCount; i++) {
-            n=IsLtoR ? i : NodeCount-i+1;
-            s=Nodes[n-1]->StringNum+1;
-            bgcolor=s%2 == 1 ? "#ADD8E6" : "#90EE90";
-            html += wxString::Format("<td bgcolor='"+bgcolor+"'>n%ds%d</td>",n,s);
+        html += "<tr>";
+        for (size_t i = 1; i <= NodeCount; i++) {
+            int n = IsLtoR ? i : NodeCount - i + 1;
+            int s = Nodes[n-1]->StringNum + 1;
+            wxString bgcolor = s%2 == 1 ? "#ADD8E6" : "#90EE90";
+            while (n > NodesPerString())
+            {
+                n -= NodesPerString();
+            }
+            html += wxString::Format("<td bgcolor='" + bgcolor + "'>n%ds%d</td>", n, s);
         }
-        html+="</tr>";
+        html += "</tr>";
     } else if (BufferHt > 1) {
         // horizontal or vertical matrix or frame
-        for(i=0; i<NodeCount; i++) {
-
-            Ibufx = Nodes[i]->Coords[0].bufX;
-            Ibufy = Nodes[i]->Coords[0].bufY;
-            idx=Nodes[i]->Coords[0].bufY * BufferWi + Nodes[i]->Coords[0].bufX;
-            if (idx < chmap.size()) chmap[idx]=i + 1;
+        for (size_t i = 0; i < NodeCount; i++) {
+            size_t idx = Nodes[i]->Coords[0].bufY * BufferWi + Nodes[i]->Coords[0].bufX;
+            if (idx < chmap.size())
+            {
+                chmap[idx] = i + 1;
+            }
         }
-        for(y=BufferHt-1; y>=0; y--) {
-            html+="<tr>";
-            for(x=0; x<BufferWi; x++) {
-                n=chmap[y*BufferWi+x];
-                if (n==0) {
-                    html+="<td></td>";
+        for (int y = BufferHt - 1; y >= 0; y--) {
+            html += "<tr>";
+            for (int x = 0; x < BufferWi; x++) {
+                int n = chmap[y * BufferWi + x];
+                if (n == 0) {
+                    html += "<td></td>";
                 } else {
-                    s=Nodes[n-1]->StringNum+1;
-                    bgcolor=s%2 == 1 ? "#ADD8E6" : "#90EE90";
-                    html+=wxString::Format("<td bgcolor='"+bgcolor+"'>n%ds%d</td>",n,s);
+                    int s = Nodes[n-1]->StringNum + 1;
+                    wxString bgcolor = (s%2 == 1) ? "#ADD8E6" : "#90EE90";
+                    while (n > NodesPerString())
+                    {
+                        n -= NodesPerString();
+                    }
+                    html += wxString::Format("<td bgcolor='" + bgcolor + "'>n%ds%d</td>", n, s);
                 }
             }
-            html+="</tr>";
+            html += "</tr>";
         }
     } else {
-        html+="<tr><td>Error - invalid height</td></tr>";
+        html += "<tr><td>Error - invalid height</td></tr>";
     }
-    html+="</table></body></html>";
+    html += "</table></body></html>";
     return html;
 }
 
 // initialize screen coordinates
 void Model::CopyBufCoord2ScreenCoord() {
-    size_t NodeCount=GetNodeCount();
-    int xoffset=BufferWi/2;
-    int yoffset=BufferHt/2;
-    for(size_t n=0; n<NodeCount; n++) {
+    size_t NodeCount = GetNodeCount();
+    int xoffset = BufferWi / 2;
+    int yoffset = BufferHt / 2;
+    for (size_t n = 0; n < NodeCount; n++) {
         size_t CoordCount=GetCoordCount(n);
-        for(size_t c=0; c < CoordCount; c++) {
+        for (size_t c = 0; c < CoordCount; c++) {
             Nodes[n]->Coords[c].screenX = Nodes[n]->Coords[c].bufX - xoffset;
             Nodes[n]->Coords[c].screenY = Nodes[n]->Coords[c].bufY - yoffset;
         }
     }
-    GetModelScreenLocation().SetRenderSize(BufferWi,BufferHt);
+    GetModelScreenLocation().SetRenderSize(BufferWi, BufferHt);
 }
 
 void Model::UpdateXmlWithScale() {
@@ -2359,22 +2780,22 @@ bool Model::IsContained(ModelPreview* preview, int x1, int y1, int x2, int y2) {
     return GetModelScreenLocation().IsContained(x1, y1, x2, y2);
 }
 
-
-bool Model::HitTest(ModelPreview* preview,int x,int y) {
-    int y1 = preview->GetVirtualCanvasHeight()-y;
+bool Model::HitTest(ModelPreview* preview, int x, int y) {
+    int y1 = preview->GetVirtualCanvasHeight() - y;
     SetMinMaxModelScreenCoordinates(preview);
     return GetModelScreenLocation().HitTest(x, y1);
 }
 
-
-wxCursor Model::CheckIfOverHandles(int &handle, wxCoord x,wxCoord y) {
+wxCursor Model::CheckIfOverHandles(int &handle, wxCoord x, wxCoord y) {
     return GetModelScreenLocation().CheckIfOverHandles(handle, x, y);
 }
-wxCursor Model::InitializeLocation(int &handle, wxCoord x,wxCoord y) {
+
+wxCursor Model::InitializeLocation(int &handle, wxCoord x, wxCoord y) {
     return GetModelScreenLocation().InitializeLocation(handle, x, y, Nodes);
 }
 
-void Model::ApplyTransparency(xlColor &color, int transparency) {
+void Model::ApplyTransparency(xlColor &color, int transparency) const
+{
     if (transparency) {
         float t = 100.0f - transparency;
         t *= 2.55f;
@@ -2386,17 +2807,19 @@ void Model::ApplyTransparency(xlColor &color, int transparency) {
 // display model using colors stored in each node
 // used when preview is running
 void Model::DisplayModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulator &va, const xlColor *c, bool allowSelected) {
-    size_t NodeCount=Nodes.size();
+    size_t NodeCount = Nodes.size();
     xlColor color;
     if (c != nullptr) {
         color = *c;
     }
+
     int w, h;
-    //int vw, vh;
-    //preview->GetSize(&w, &h);
     preview->GetVirtualCanvasSize(w, h);
 
-    GetModelScreenLocation().PrepareToDraw();
+	 ModelScreenLocation& screenLocation = GetModelScreenLocation();
+	 screenLocation.SetPreviewSize(w, h, std::vector<NodeBaseClassPtr>());
+
+    screenLocation.PrepareToDraw();
 
     int vcount = 0;
     for (auto it = Nodes.begin(); it != Nodes.end(); ++it) {
@@ -2414,13 +2837,14 @@ void Model::DisplayModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulat
     }
     va.PreAlloc(maxVertexCount);
 
-    bool started = false;
-    int first = 0; int last = NodeCount;
-    int buffFirst = -1; int buffLast = -1;
+    int first = 0;
+    int last = NodeCount;
+    int buffFirst = -1;
+    int buffLast = -1;
     bool left = true;
 
     while (first < last) {
-        int n = 0;
+        int n;
         if (left) {
             n = first;
             first++;
@@ -2462,7 +2886,6 @@ void Model::DisplayModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulat
             GetModelScreenLocation().TranslatePoint(sx, sy);
 
             if (pixelStyle < 2) {
-                started = true;
                 if (splitRGB) {
                     if ((color.Red() == color.Blue()) && (color.Blue() == color.Green())) {
                         xlColor c3(color);
@@ -2595,19 +3018,18 @@ void Model::DisplayEffectOnWindow(ModelPreview* preview, double pointSize) {
         // layer calculation and map to output
         size_t NodeCount=Nodes.size();
         int vcount = 0;
-        for (auto it = Nodes.begin(); it != Nodes.end(); it++) {
+        for (auto it = Nodes.begin(); it != Nodes.end(); ++it) {
             vcount += it->get()->Coords.size();
         }
         if (vcount > maxVertexCount) {
             maxVertexCount = vcount;
         }
         DrawGLUtils::xlAccumulator va(maxVertexCount);
-        float sx,sy;
         int first = 0; int last = NodeCount;
         int buffFirst = -1; int buffLast = -1;
         bool left = true;
         while (first < last) {
-            int n = 0;
+            int n;
             if (left) {
                 n = first;
                 first++;
@@ -2643,8 +3065,8 @@ void Model::DisplayEffectOnWindow(ModelPreview* preview, double pointSize) {
             size_t CoordCount=GetCoordCount(n);
             for(size_t c=0; c < CoordCount; c++) {
                 // draw node on screen
-                sx=Nodes[n]->Coords[c].screenX;
-                sy=Nodes[n]->Coords[c].screenY;
+                float sx = Nodes[n]->Coords[c].screenX;
+                float sy = Nodes[n]->Coords[c].screenY;
 
                 if (!GetModelScreenLocation().IsCenterBased()) {
                     sx -= GetModelScreenLocation().RenderWi / 2.0;
@@ -2802,6 +3224,8 @@ void Model::SetTop(ModelPreview* preview,int y) {
 
     SetMinMaxModelScreenCoordinates(preview);
     GetModelScreenLocation().SetTop(y);
+    GetModelScreenLocation().Write(ModelXml);
+    SetFromXml(ModelXml);
     IncrementChangeCount();
 }
 
@@ -2811,6 +3235,8 @@ void Model::SetBottom(ModelPreview* preview,int y) {
 
     SetMinMaxModelScreenCoordinates(preview);
     GetModelScreenLocation().SetBottom(y);
+    GetModelScreenLocation().Write(ModelXml);
+    SetFromXml(ModelXml);
     IncrementChangeCount();
 }
 
@@ -2820,6 +3246,8 @@ void Model::SetLeft(ModelPreview* preview,int x) {
 
     SetMinMaxModelScreenCoordinates(preview);
     GetModelScreenLocation().SetLeft(x);
+    GetModelScreenLocation().Write(ModelXml);
+    SetFromXml(ModelXml);
     IncrementChangeCount();
 }
 
@@ -2829,6 +3257,8 @@ void Model::SetRight(ModelPreview* preview,int x) {
 
     SetMinMaxModelScreenCoordinates(preview);
     GetModelScreenLocation().SetRight(x);
+    GetModelScreenLocation().Write(ModelXml);
+    SetFromXml(ModelXml);
     IncrementChangeCount();
 }
 
@@ -2853,6 +3283,8 @@ void Model::SetWidth(ModelPreview* preview, int w) {
 
     SetMinMaxModelScreenCoordinates(preview);
     GetModelScreenLocation().SetMWidth(w);
+    GetModelScreenLocation().Write(ModelXml);
+    SetFromXml(ModelXml);
     IncrementChangeCount();
 }
 
@@ -2897,6 +3329,10 @@ void Model::SetHcenterOffset(float offset) {
     if (GetModelScreenLocation().IsLocked()) return;
 
     GetModelScreenLocation().SetHcenterOffset(offset);
+
+    GetModelScreenLocation().Write(ModelXml);
+    SetFromXml(ModelXml);
+
     IncrementChangeCount();
 }
 
@@ -2905,6 +3341,10 @@ void Model::SetVcenterOffset(float offset) {
     if (GetModelScreenLocation().IsLocked()) return;
 
     GetModelScreenLocation().SetVcenterOffset(offset);
+
+    GetModelScreenLocation().Write(ModelXml);
+    SetFromXml(ModelXml);
+
     IncrementChangeCount();
 }
 
@@ -2955,16 +3395,55 @@ void Model::ExportXlightsModel()
 {
 }
 
-Model* Model::GetXlightsModel(Model* model, std::string &last_model, xLightsFrame* xlights, bool &cancelled)
+Model* Model::GetXlightsModel(Model* model, std::string &last_model, xLightsFrame* xlights, bool &cancelled, bool download)
 {
     if (last_model == "")
     {
-        wxString filename = wxFileSelector(_("Choose model file"), wxEmptyString, wxEmptyString, wxEmptyString, "xLights Model files (*.xmodel)|*.xmodel|LOR prop files (*.lff;*.lpf)|*.lff;*.lpf", wxFD_OPEN);
-        if (filename.IsEmpty()) {
-            cancelled = true;
-            return model;
+        if (download)
+        {
+            xlights->SuspendAutoSave(true);
+            VendorModelDialog dlg(xlights);
+            xlights->SetCursor(wxCURSOR_WAIT);
+            if (dlg.DlgInit())
+            {
+                xlights->SetCursor(wxCURSOR_DEFAULT);
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    xlights->SuspendAutoSave(false);
+                    last_model = dlg.GetModelFile();
+
+                    if (last_model == "")
+                    {
+                        wxMessageBox("Failed to download model file.");
+
+                        cancelled = true;
+                        return model;
+                    }
+                }
+                else
+                {
+                    xlights->SuspendAutoSave(false);
+                    cancelled = true;
+                    return model;
+                }
+            }
+            else
+            {
+                xlights->SetCursor(wxCURSOR_DEFAULT);
+                xlights->SuspendAutoSave(false);
+                cancelled = true;
+                return model;
+            }
         }
-        last_model = filename.ToStdString();
+        else
+        {
+            wxString filename = wxFileSelector(_("Choose model file"), wxEmptyString, wxEmptyString, wxEmptyString, "xLights Model files (*.xmodel)|*.xmodel|LOR prop files (*.lff;*.lpf)|*.lff;*.lpf", wxFD_OPEN);
+            if (filename.IsEmpty()) {
+                cancelled = true;
+                return model;
+            }
+            last_model = filename.ToStdString();
+        }
     }
 
     // if it isnt an xmodel then it is custom
@@ -3005,6 +3484,29 @@ Model* Model::GetXlightsModel(Model* model, std::string &last_model, xLightsFram
             model->SetHcenterOffset(x);
             model->SetVcenterOffset(y);
             ((BoxedScreenLocation&)model->GetModelScreenLocation()).SetScale(w, h);
+            model->SetLayoutGroup(model->GetLayoutGroup());
+            model->Selected = true;
+            return model;
+        }
+        else if (root->GetName() == "archesmodel") {
+
+            // grab the attributes I want to keep
+            std::string startChannel = model->GetModelXml()->GetAttribute("StartChannel", "1").ToStdString();
+            int l = ((BoxedScreenLocation&)model->GetModelScreenLocation()).GetLeft();
+            int r = ((BoxedScreenLocation&)model->GetModelScreenLocation()).GetRight();
+            int t = ((BoxedScreenLocation&)model->GetModelScreenLocation()).GetTop();
+            int b = ((BoxedScreenLocation&)model->GetModelScreenLocation()).GetBottom();
+
+            // not a custom model so delete the default model that was created
+            if (model != nullptr) {
+                delete model;
+            }
+            model = xlights->AllModels.CreateDefaultModel("Arches", startChannel);
+
+            int h1 = 1;
+            model->InitializeLocation(h1, l, b);
+            ((ThreePointScreenLocation&)model->GetModelScreenLocation()).SetMWidth(std::abs(r-l));
+            ((ThreePointScreenLocation&)model->GetModelScreenLocation()).SetHeight(2 * (float)std::abs(t-b) / (float)std::abs(r-l));
             model->SetLayoutGroup(model->GetLayoutGroup());
             model->Selected = true;
             return model;
@@ -3132,6 +3634,24 @@ int Model::GetPort() const
     return 0;
 }
 
+bool Model::IsPixelProtocol() const
+{
+    wxString protocol = GetProtocol();
+    protocol.MakeLower();
+    return (GetPort() != 0 && protocol != "dmx" && protocol != "pixelnet" && protocol != "renard");
+}
+
+void Model::SetControllerConnection(const std::string& controllerConnection)
+{
+    controller_connection = controllerConnection;
+    ModelXml->DeleteAttribute("ControllerConnection");
+    if (controller_connection != "")
+    {
+        ModelXml->AddAttribute("ControllerConnection", controller_connection);
+    }
+    IncrementChangeCount();
+}
+
 std::list<std::string> Model::GetProtocols()
 {
     std::list<std::string> res;
@@ -3168,17 +3688,24 @@ bool Model::IsProtocolValid(std::string protocol)
     return (std::find(protocols.begin(), protocols.end(), protocol) != protocols.end());
 }
 
-std::list<std::string> Model::GetFaceFiles() const
+// all when true includes all image files ... even if they dont really exist
+std::list<std::string> Model::GetFaceFiles(bool all) const
 {
     std::list<std::string> res;
 
     for (auto it = faceInfo.begin(); it != faceInfo.end(); ++it)
     {
-        for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2)
+        if (it->second.find("Type") != it->second.end() && it->second.at("Type") == "Matrix")
         {
-            if (wxFile::Exists(it2->second))
+            for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2)
             {
-                res.push_back(it2->second);
+                if (it2->first != "CustomColors" && it2->first != "ImagePlacement" && it2->first != "Type" && it2->second != "")
+                {
+                    if (all || wxFile::Exists(it2->second))
+                    {
+                        res.push_back(it2->second);
+                    }
+                }
             }
         }
     }

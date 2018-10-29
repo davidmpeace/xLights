@@ -52,14 +52,18 @@ public:
     
     virtual EffectLayer* GetEffectLayerFromExclusiveIndex(int index);
     EffectLayer* GetEffectLayer(int index) const;
+    int GetLayerNumberFromIndex(int index);
     size_t GetEffectLayerCount() const;
     std::list<std::string> GetFileReferences(EffectManager& em) const;
+    bool SelectEffectUsingDescription(std::string description);
+    bool SelectEffectUsingLayerTime(int layer, int time);
 
     EffectLayer* AddEffectLayer();
     void RemoveEffectLayer(int index);
     EffectLayer* InsertEffectLayer(int index);
+    bool operator==(const Element& e) const;
+    bool operator<(const Element& e) const;
 
-    
     bool GetCollapsed() const { return mCollapsed; }
     void SetCollapsed(bool collapsed) { mCollapsed = collapsed; }
     
@@ -100,6 +104,7 @@ public:
     void ClearDirtyFlags() {
         dirtyStart = dirtyEnd = -1;
     }
+    virtual void CleanupAfterRender();
     
 protected:
     EffectLayer* AddEffectLayerInternal();
@@ -112,6 +117,7 @@ protected:
     bool mCollapsed;
 
     std::vector<EffectLayer*> mEffectLayers;
+    std::list<EffectLayer *> mLayersToDelete;
     ChangeListener *listener;
     volatile int changeCount = 0;
     volatile int dirtyStart = -1;
@@ -184,6 +190,17 @@ public:
     int GetNodeLayerCount() const {
         return mNodeLayers.size();
     }
+
+    std::string GetStrandName() const {
+        if(GetName() == "")
+            return wxString::Format("Strand %d", mStrand + 1).ToStdString();
+        return GetName();
+    }
+
+    virtual std::string GetFullName() const override;
+    
+    virtual void CleanupAfterRender() override;
+
 private:
     int mStrand;
 
@@ -207,11 +224,13 @@ class ModelElement : public Element
 
         virtual EffectLayer* GetEffectLayerFromExclusiveIndex(int index) override;
 
+        int GetSubModelAndStrandCount() const;
         int GetSubModelCount() const;
         SubModelElement *GetSubModel(int i);
         SubModelElement *GetSubModel(const std::string &name, bool create = false);
         void RemoveSubModel(const std::string &name);
-    
+        void RemoveAllSubModels();
+        void AddSubModel(SubModelElement* sme);
     
         bool ShowStrands() const { return mStrandsVisible;}
         void ShowStrands(bool b) { mStrandsVisible = b;}
@@ -223,6 +242,9 @@ class ModelElement : public Element
 
         StrandElement *GetStrand(int strand, bool create = false);
         int GetStrandCount() const { return mStrands.size(); }
+    
+        virtual void CleanupAfterRender() override;
+
     protected:
     private:
         bool mStrandsVisible = false;

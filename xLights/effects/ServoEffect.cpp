@@ -1,18 +1,15 @@
-#include "ServoEffect.h"
-#include "ServoPanel.h"
-
-#include "../sequencer/Effect.h"
-#include "../RenderBuffer.h"
-#include "../UtilClasses.h"
-
-#include "../xLightsMain.h" //xLightsFrame
-#include "../models/DmxModel.h"
-
 #include "../../include/servo-16.xpm"
 #include "../../include/servo-24.xpm"
 #include "../../include/servo-32.xpm"
 #include "../../include/servo-48.xpm"
 #include "../../include/servo-64.xpm"
+
+#include "ServoEffect.h"
+#include "ServoPanel.h"
+#include "../sequencer/Effect.h"
+#include "../RenderBuffer.h"
+#include "../UtilClasses.h"
+#include "../models/DmxModel.h"
 
 ServoEffect::ServoEffect(int id) : RenderableEffect(id, "Servo", servo_16, servo_24, servo_32, servo_48, servo_64)
 {
@@ -28,7 +25,7 @@ wxPanel *ServoEffect::CreatePanel(wxWindow *parent) {
     return new ServoPanel(parent);
 }
 
-void ServoEffect::SetDefaultParameters(Model *cls) {
+void ServoEffect::SetDefaultParameters() {
     ServoPanel *dp = (ServoPanel*)panel;
     if (dp == nullptr) {
         return;
@@ -41,13 +38,13 @@ void ServoEffect::SetDefaultParameters(Model *cls) {
 void ServoEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
     double eff_pos = buffer.GetEffectTimeIntervalPosition();
     std::string sel_chan = SettingsMap["CHOICE_Channel"];
-    float position = GetValueCurveDouble("Servo", 0, SettingsMap, eff_pos, SERVO_MIN, SERVO_MAX);
+    float position = GetValueCurveDouble("Servo", 0, SettingsMap, eff_pos, SERVO_MIN, SERVO_MAX, SERVO_DIVISOR, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     bool is_16bit = SettingsMap.GetBool("CHECKBOX_16bit");
 
     if (buffer.cur_model == "") {
         return;
     }
-    Model* model_info = buffer.frame->AllModels[buffer.cur_model];
+    Model* model_info = buffer.GetModel();
     if (model_info == nullptr) {
         return;
     }
@@ -100,7 +97,8 @@ void ServoEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
                     int red_channel = dmx->GetRedChannel();
                     int grn_channel = dmx->GetGreenChannel();
                     int blu_channel = dmx->GetBlueChannel();
-                    if( red_channel == (i+1) || grn_channel == (i+1) || blu_channel == (i+1) || brt_channel == (i+1) ) {
+                    int white_channel = dmx->GetWhiteChannel();
+                    if( red_channel == (i+1) || grn_channel == (i+1) || blu_channel == (i+1) || white_channel == (i+1) || brt_channel == (i+1) ) {
                         min_limit = 0;
                         max_limit = 255;
                     }

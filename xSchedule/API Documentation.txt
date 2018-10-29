@@ -79,7 +79,7 @@ http://<host:port>/xScheduleQuery?Query=<query>&Parameters=<parameters>
 		GetButtons
 			- This returns a list of user defined button labels which the user has setup. The UI can use the "PressButton" command to cause the scheduler to process the command as if the user had pressed it. This allows a website to show the same user defined buttons on a webpage.
 				
-http://<host:port>/xScheduleCommand?Command-<command>&Parameters=<parameters>
+http://<host:port>/xScheduleCommand?Command=<command>&Parameters=<parameters>
 
 	This API is used to trigger an action by the scheduler. Some are simple actions, but some are complex compound actions. 
 	
@@ -97,6 +97,12 @@ http://<host:port>/xScheduleCommand?Command-<command>&Parameters=<parameters>
 			
 		Play specified playlist <playlist name>
 			This plays the specified playlist once.
+			
+		Play specified playlist if not playing <playlist name>
+			This plays the specified playlist once but only if that playlist is not already playing.
+			
+		Play specified playlist if nothing playing <playlist name>
+			This plays the specified playlist once but only if no other playlist is already playing.
 			
 		Play specified playlist looped <playlist name>
 			This plays the specified playlist and loops it.
@@ -190,7 +196,13 @@ http://<host:port>/xScheduleCommand?Command-<command>&Parameters=<parameters>
 		
 		Increase brightness by n% <brighness -100-100>
 			Adjusts the global brightness level by the specified amount. Unless you are running a fully pixel show this is unlikely to be useful as it adjusts the value of every single output channel. To dim selected channels/elements see the schedulers output processing settings.
-		
+
+		Activate specified schedule <schedule name>
+			Sets all instances of schedules with the specified name to enabled
+			
+		Deactivate specified schedule <schedule name>
+			Sets all instances of schedules with the specified name to disabled
+			
 		Set brightness to n% <brightness 0-100>
 			Adjusts the global brightness level to the specified level. Unless you are running a fully pixel show this is unlikely to be useful as it adjusts the value of every single output channel. To dim selected channels/elements see the schedulers output processing settings.
 			
@@ -246,7 +258,36 @@ http://<host:port>/xScheduleCommand?Command-<command>&Parameters=<parameters>
 		Run process <playlist name>,<step name>,<run process name>
 			This api will run the run process specified without interupting any playlists that happen to be playing at that time. This can be used to run a script which maybe does some more complicated control of the scheduler. For example ... if you wanted to fade the volume down over a period of 3 seconds you could kick off a script that called the api to change the volume several times over the time period.
 		
+		Run event playlist step <playlistname>,<step name>
+			This api will run the specified playlist step once immediately without interrupting anything else. Data from this step will overwrite almost everything
 
+		Run event playlist step unique <playlistname>,<step name>
+			This api will run the specified playlist step once immediately without interrupting anything else. Data from this step will overwrite almost everything. If any existing items from the specified playlist are already in the event playlist list they are stopped and removed
+
+		Run event playlist step if idle <playlistname>,<step name>
+			This api will run the specified playlist step once immediately without interrupting anything else as long as there isnt already an event playing in that playlist. Data from this step will overwrite almost everything.
+
+		Run event playlist step looped <playlistname>,<step name>
+			This api will run the specified playlist step continuously immediately without interrupting anything else. Data from this step will overwrite almost everything
+
+		Run event playlist step unique looped <playlistname>,<step name>
+			This api will run the specified playlist step continuously immediately without interrupting anything else. Data from this step will overwrite almost everything. If any existing items from the specified playlist are already in the event playlist list they are stopped and removed
+
+		Run event playlist step if idle looped <playlistname>,<step name>
+			This api will run the specified playlist step continuously immediately without interrupting anything else as long as there isnt already an event playing in that playlist. Data from this step will overwrite almost everything.
+			
+		Stop event playlist <playlistname>
+			This api will stop the specified playlist if it is running as an event playlist.
+		
+		Stop event playlist if running step <playlistname>,<step name>
+			This api will stop the specified playlist if it is running as an event playlist and the specified step happens to be playing.
+
+		Set playlist as background <playlistname>
+			Sets the named playlist as the current background playlist.
+			
+		Clear background playlist
+			Stops any existing background playlist.
+			
 http://<host:port>/xScheduleStash?Command=<command>&Key=<key>
 
 

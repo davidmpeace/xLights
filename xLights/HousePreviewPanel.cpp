@@ -1,14 +1,16 @@
-#include "HousePreviewPanel.h"
-#include "xLightsMain.h"
-#include "ModelPreview.h"
-#include <wx/artprov.h>
-#include "xLightsXmlFile.h"
-
 //(*InternalHeaders(HousePreviewPanel)
 #include <wx/intl.h>
 #include <wx/string.h>
-#include "SequenceCheck.h"
 //*)
+
+#include <wx/artprov.h>
+
+#include "HousePreviewPanel.h"
+#include "xLightsMain.h"
+#include "ModelPreview.h"
+#include "xLightsXmlFile.h"
+#include "UtilFunctions.h"
+#include "sequencer/MainSequencer.h"
 
 //(*IdInit(HousePreviewPanel)
 const long HousePreviewPanel::ID_BITMAPBUTTON1 = wxNewId();
@@ -40,9 +42,9 @@ HousePreviewPanel::HousePreviewPanel(wxWindow* parent, xLightsFrame* frame,
     _showToolbar = showToolbars;
 
 	//(*Initialize(HousePreviewPanel)
-	wxFlexGridSizer* ModelPreviewSizer;
-	wxFlexGridSizer* FlexGridSizer2;
 	wxFlexGridSizer* FlexGridSizer1;
+	wxFlexGridSizer* FlexGridSizer2;
+	wxFlexGridSizer* ModelPreviewSizer;
 
 	Create(parent, id, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("id"));
 	FlexGridSizer1 = new wxFlexGridSizer(0, 1, 0, 0);
@@ -115,7 +117,6 @@ HousePreviewPanel::~HousePreviewPanel()
 	//(*Destroy(HousePreviewPanel)
 	//*)
 }
-
 
 void HousePreviewPanel::OnPlayButtonClick(wxCommandEvent& event)
 {
@@ -229,12 +230,12 @@ void HousePreviewPanel::EnablePlayControls(const std::string& control, bool enab
     }
 }
 
-void HousePreviewPanel::SetDurationFrames(long frames)
+void HousePreviewPanel::SetDurationFrames(int frames)
 {
     SliderPosition->SetMax(frames);
 }
 
-void HousePreviewPanel::SetPositionFrames(long frames)
+void HousePreviewPanel::SetPositionFrames(int frames)
 {
     SliderPosition->SetValue(frames);
     StaticText_Time->SetLabel(FORMATTIME(frames * _xLights->CurrentSeqXmlFile->GetFrameMS()));
@@ -242,6 +243,10 @@ void HousePreviewPanel::SetPositionFrames(long frames)
 
 void HousePreviewPanel::OnSliderPositionCmdSliderUpdated(wxScrollEvent& event)
 {
-    _xLights->GetMainSequencer()->PanelTimeLine->ResetMarkers(event.GetPosition() * _xLights->CurrentSeqXmlFile->GetFrameMS());
-    StaticText_Time->SetLabel(FORMATTIME(event.GetPosition() * _xLights->CurrentSeqXmlFile->GetFrameMS()));
+    int pos = event.GetPosition() * _xLights->CurrentSeqXmlFile->GetFrameMS();
+    wxCommandEvent seekToEvent(EVT_SEQUENCE_SEEKTO);
+    seekToEvent.SetInt(pos);
+    wxPostEvent(_xLights, seekToEvent);
+    _xLights->GetMainSequencer()->PanelTimeLine->ResetMarkers(pos);
+    StaticText_Time->SetLabel(FORMATTIME(pos));
 }

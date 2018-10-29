@@ -62,11 +62,22 @@ int GalaxyEffect::DrawEffectBackground(const Effect *e, int x1, int y1, int x2, 
     return 0;
 }
 
-void GalaxyEffect::SetDefaultParameters(Model *cls) {
+void GalaxyEffect::SetDefaultParameters() {
     GalaxyPanel *gp = (GalaxyPanel*)panel;
     if (gp == nullptr) {
         return;
     }
+
+    gp->ValueCurve_Galaxy_Accel->SetActive(false);
+    gp->ValueCurve_Galaxy_CenterX->SetActive(false);
+    gp->ValueCurve_Galaxy_CenterY->SetActive(false);
+    gp->ValueCurve_Galaxy_Duration->SetActive(false);
+    gp->ValueCurve_Galaxy_End_Radius->SetActive(false);
+    gp->ValueCurve_Galaxy_End_Width->SetActive(false);
+    gp->ValueCurve_Galaxy_Revolutions->SetActive(false);
+    gp->ValueCurve_Galaxy_Start_Angle->SetActive(false);
+    gp->ValueCurve_Galaxy_Start_Radius->SetActive(false);
+    gp->ValueCurve_Galaxy_Start_Width->SetActive(false);
 
     SetSliderValue(gp->Slider_Galaxy_Accel, 0);
     SetSliderValue(gp->Slider_Galaxy_CenterX, 50);
@@ -87,16 +98,11 @@ void GalaxyEffect::SetDefaultParameters(Model *cls) {
 const double PI  =3.141592653589793238463;
 #define ToRadians(x) ((double)x * PI / (double)180.0)
 
-void CalcEndpointColor(double end_angle, double start_angle, double &adj_angle, bool reverse_dir,
+void CalcEndpointColor(double end_angle, double start_angle, double &adj_angle,
                        double head_end_of_tail, double color_length, int num_colors,
                        RenderBuffer &buffer, xlColor &color)
 {
     adj_angle = end_angle + (double)start_angle;
-    if( reverse_dir )
-    {
-        adj_angle *= -1.0;
-    }
-
     double cv = (head_end_of_tail-adj_angle) / color_length;
     int ci = (int)cv;
     double cp = cv - (double)ci;
@@ -121,16 +127,16 @@ double GetStep(double radius)
 
 void GalaxyEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
     double eff_pos = buffer.GetEffectTimeIntervalPosition();
-    int center_x = GetValueCurveInt("Galaxy_CenterX", 50, SettingsMap, eff_pos, GALAXY_CENTREX_MIN, GALAXY_CENTREX_MAX);
-    int center_y = GetValueCurveInt("Galaxy_CenterY", 50, SettingsMap, eff_pos, GALAXY_CENTREY_MIN, GALAXY_CENTREY_MAX);
-    int start_radius = GetValueCurveInt("Galaxy_Start_Radius", 1, SettingsMap, eff_pos, GALAXY_STARTRADIUS_MIN , GALAXY_STARTRADIUS_MAX);
-    int end_radius = GetValueCurveInt("Galaxy_End_Radius", 10, SettingsMap, eff_pos, GALAXY_ENDRADIUS_MIN, GALAXY_ENDRADIUS_MAX);
-    int start_angle = GetValueCurveInt("Galaxy_Start_Angle", 0, SettingsMap, eff_pos, GALAXY_STARTANGLE_MIN, GALAXY_STARTANGLE_MAX);
-    int revolutions = GetValueCurveInt("Galaxy_Revolutions", 1440, SettingsMap, eff_pos, GALAXY_REVOLUTIONS_MIN, GALAXY_REVOLUTIONS_MAX, 360);
-    int start_width = GetValueCurveInt("Galaxy_Start_Width", 5, SettingsMap, eff_pos, GALAXY_STARTWIDTH_MIN, GALAXY_STARTWIDTH_MAX);
-    int end_width = GetValueCurveInt("Galaxy_End_Width", 5, SettingsMap, eff_pos, GALAXY_ENDWIDTH_MIN, GALAXY_ENDWIDTH_MAX);
-    int duration = GetValueCurveInt("Galaxy_Duration", 20, SettingsMap, eff_pos, GALAXY_DURATION_MIN, GALAXY_DURATION_MAX);
-    int acceleration = GetValueCurveInt("Galaxy_Accel", 0, SettingsMap, eff_pos, GALAXY_ACCEL_MIN, GALAXY_ACCEL_MAX);
+    int center_x = GetValueCurveInt("Galaxy_CenterX", 50, SettingsMap, eff_pos, GALAXY_CENTREX_MIN, GALAXY_CENTREX_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int center_y = GetValueCurveInt("Galaxy_CenterY", 50, SettingsMap, eff_pos, GALAXY_CENTREY_MIN, GALAXY_CENTREY_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int start_radius = GetValueCurveInt("Galaxy_Start_Radius", 1, SettingsMap, eff_pos, GALAXY_STARTRADIUS_MIN , GALAXY_STARTRADIUS_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int end_radius = GetValueCurveInt("Galaxy_End_Radius", 10, SettingsMap, eff_pos, GALAXY_ENDRADIUS_MIN, GALAXY_ENDRADIUS_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int start_angle = GetValueCurveInt("Galaxy_Start_Angle", 0, SettingsMap, eff_pos, GALAXY_STARTANGLE_MIN, GALAXY_STARTANGLE_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int revolutions = GetValueCurveInt("Galaxy_Revolutions", 1440, SettingsMap, eff_pos, GALAXY_REVOLUTIONS_MIN, GALAXY_REVOLUTIONS_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS(), 360);
+    int start_width = GetValueCurveInt("Galaxy_Start_Width", 5, SettingsMap, eff_pos, GALAXY_STARTWIDTH_MIN, GALAXY_STARTWIDTH_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int end_width = GetValueCurveInt("Galaxy_End_Width", 5, SettingsMap, eff_pos, GALAXY_ENDWIDTH_MIN, GALAXY_ENDWIDTH_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int duration = GetValueCurveInt("Galaxy_Duration", 20, SettingsMap, eff_pos, GALAXY_DURATION_MIN, GALAXY_DURATION_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int acceleration = GetValueCurveInt("Galaxy_Accel", 0, SettingsMap, eff_pos, GALAXY_ACCEL_MIN, GALAXY_ACCEL_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     bool reverse_dir = SettingsMap.GetBool("CHECKBOX_Galaxy_Reverse");
     bool blend_edges = SettingsMap.GetBool("CHECKBOX_Galaxy_Blend_Edges");
     bool inward = SettingsMap.GetBool("CHECKBOX_Galaxy_Inward");
@@ -175,14 +181,13 @@ void GalaxyEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer
     buffer.ClearTempBuf();
 
     double last_check = (inward ? std::min(head_end_of_tail,revs) : std::max(0.0, tail_end_of_tail) ) + (double)start_angle;
-    double current_radius = radius1;
 
     // This section rounds off the head / tail
     double adj_angle;
     double end_angle = (inward ? std::min(head_end_of_tail,revs) : std::max(0.0, tail_end_of_tail));
-    CalcEndpointColor(end_angle, start_angle, adj_angle, reverse_dir, head_end_of_tail, color_length, num_colors, buffer, color);
+    CalcEndpointColor(end_angle, start_angle, adj_angle, head_end_of_tail, color_length, num_colors, buffer, color);
     double pct1 = adj_angle/revs;
-    current_radius = radius2 * pct1 + radius1 * (1.0 - pct1);
+    double current_radius = radius2 * pct1 + radius1 * (1.0 - pct1);
     double current_width = width2 * pct1 + width1 * (1.0 - pct1);;
     double current_delta = 0.0;
     double current_distance = 0.0;
@@ -295,13 +300,13 @@ void GalaxyEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer
                     {
                         buffer.SetTempPixel((int)x1,(int)y1,color);
                         temp_colors_pct[(int)x1][(int)y1] = color_pct2;
-                        pixel_age[(int)x1][(int)y1] = adj_angle;
+                        pixel_age[(int)x1][(int)y1] = abs(adj_angle);
                     }
                     if ((int)x2 >= 0 && (int)x2 < buffer.BufferWi && (int)y2 >= 0 && (int)y2 < buffer.BufferHt)
                     {
                         buffer.SetTempPixel((int)x2,(int)y2,color);
                         temp_colors_pct[(int)x2][(int)y2] = color_pct2;
-                        pixel_age[(int)x2][(int)y2] = adj_angle;
+                        pixel_age[(int)x2][(int)y2] = abs(adj_angle);
                     }
                 }
             }
@@ -317,13 +322,13 @@ void GalaxyEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer
             if( r >= current_radius ) break;
         }
         // blend old data down into final buffer
-        if( blend_edges && ( (inward ? (last_check-adj_angle) : (adj_angle-last_check)) >= 90.0) )
+        if( blend_edges && ( (inward ? (last_check-abs(adj_angle)) : (abs(adj_angle)-last_check)) >= 90.0) )
         {
             for( int x = 0; x < buffer.BufferWi; x++ )
             {
                 for( int y = 0; y < buffer.BufferHt; y++ )
                 {
-                    if( temp_colors_pct[x][y] > 0.0 && ((inward ? (pixel_age[x][y]-adj_angle) : (adj_angle-pixel_age[x][y])) >= 180.0) )
+                    if( temp_colors_pct[x][y] > 0.0 && ((inward ? (pixel_age[x][y]-abs(adj_angle)) : (abs(adj_angle)-pixel_age[x][y])) >= 180.0) )
                     {
                         buffer.GetTempPixel(x,y,c_new);
                         buffer.GetPixel(x,y,c_old);
@@ -334,16 +339,15 @@ void GalaxyEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer
                     }
                 }
             }
-            last_check = adj_angle;
+            last_check = abs(adj_angle);
         }
         step = GetStep(current_radius+half_width);
     }
 
     // This section rounds off the head / tail
     end_angle = inward ? std::max(0.1, tail_end_of_tail) : std::min(head_end_of_tail,revs);
-    CalcEndpointColor(end_angle, start_angle, adj_angle, reverse_dir, head_end_of_tail, color_length, num_colors, buffer, color);
+    CalcEndpointColor(end_angle, start_angle, adj_angle, head_end_of_tail, color_length, num_colors, buffer, color);
     end_angle_start = end_angle + (inward ? -step : step);
-    current_delta = 0.0;
     current_distance = 0.0;
     if( current_radius >= half_width && half_width > 0.0) {
         for( double i = end_angle_start; current_distance <= half_width; (inward ? i -= step : i += step) )

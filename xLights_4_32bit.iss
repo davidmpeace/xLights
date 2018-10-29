@@ -14,6 +14,9 @@
 
 
 #define MyTitleName "xLights" 
+#define Year 2018
+#define Version 40
+#define Bits 32
 
 [Setup]
 ;; (not yet implemented) SignTool=mystandard
@@ -21,17 +24,17 @@
 ChangesEnvironment=yes
 ; setting to DisableDirPage no makes it so users can change the installation directory
 DisableDirPage=no   
-AppName=xLights
-AppVersion=2017.29
-DefaultDirName={pf32}\xLights
-DefaultGroupName=xLights
-SetupIconFile=include\xlights.ico
+AppName={#MyTitleName}
+AppVersion={#Year}.{#Version}
+DefaultDirName={pf32}\{#MyTitleName}
+DefaultGroupName={#MyTitleName}
+SetupIconFile=include\{#MyTitleName}.ico
 
-UninstallDisplayIcon={app}\xLights.exe
+UninstallDisplayIcon={app}\{#MyTitleName}.exe
 Compression=lzma2
 SolidCompression=yes
 OutputDir=output
-OutputBaseFilename=xLights32_2017_x
+OutputBaseFilename={#MyTitleName}{#Bits}_{#Year}_{#Version}
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "Do you want to create desktop icon?"; Flags: checkablealone
@@ -40,7 +43,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "D
 Source: "bin/xLights.exe"; DestDir: "{app}"
 Source: "bin/xlights.map"; DestDir: "{app}"; Flags: "ignoreversion"
 Source: "bin/xlights.windows.properties"; DestDir: "{app}"; Flags: "ignoreversion"
-Source: "include\xLights.ico"; DestDir: "{app}"
+Source: "include\xlights.ico"; DestDir: "{app}"
 Source: "include\xLights_nutcracker.ico"; DestDir: "{app}"
 
 ; xSchedule
@@ -50,12 +53,25 @@ Source: "bin/xschedule.windows.properties"; DestDir: "{app}"; Flags: "ignorevers
 Source: "bin/xScheduleWeb\*.*"; DestDir: "{app}/xScheduleWeb"; Flags: replacesameversion recursesubdirs
 Source: "include\xSchedule.ico"; DestDir: "{app}"; Flags: "ignoreversion"
 
-Source: "C:\wxWidgets-3.1.0\lib\gcc_dll\wxmsw310u_gcc_custom.dll";    DestDir: "{app}"; Flags: "ignoreversion"
-Source: "C:\wxWidgets-3.1.0\lib\gcc_dll\wxmsw310u_gl_gcc_custom.dll"; DestDir: "{app}"; Flags: "ignoreversion"
+; xCapture
+Source: "bin/xCapture.exe"; DestDir: "{app}"
+Source: "bin/xCapture.map"; DestDir: "{app}"; Flags: "ignoreversion"
+Source: "bin/xcapture.windows.properties"; DestDir: "{app}"; Flags: "ignoreversion"
+Source: "include\xcapture.ico"; DestDir: "{app}"; Flags: "ignoreversion"
+
+; xFade
+Source: "bin/xFade.exe"; DestDir: "{app}"
+Source: "bin/xFade.map"; DestDir: "{app}"; Flags: "ignoreversion"
+Source: "bin/xfade.windows.properties"; DestDir: "{app}"; Flags: "ignoreversion"
+Source: "include\xfade.ico"; DestDir: "{app}"; Flags: "ignoreversion"
+
+Source: "bin/wxmsw311u_gcc_custom.dll";    DestDir: "{app}"; Flags: "ignoreversion"
+Source: "bin/wxmsw311u_gl_gcc_custom.dll"; DestDir: "{app}"; Flags: "ignoreversion"
 Source: "bin/libgcc_s_sjlj-1.dll"; DestDir: "{app}";  Flags: "ignoreversion"
-Source: "bin\libgcc_s_dw2-1.dll";  DestDir: "{app}";  Flags: "ignoreversion"
-Source: "bin\libstdc++-6.dll";     DestDir: "{app}";  Flags: "ignoreversion"
-Source: "bin\libwinpthread-1.dll"; DestDir: "{app}";  Flags: "ignoreversion"
+; Use the default installed mingw 32 bit files
+Source: "C:\Program Files (x86)\mingw-w64\i686-7.2.0-posix-dwarf-rt_v5-rev1\mingw32\bin\libgcc_s_dw2-1.dll";  DestDir: "{app}";  Flags: "ignoreversion"
+Source: "C:\Program Files (x86)\mingw-w64\i686-7.2.0-posix-dwarf-rt_v5-rev1\mingw32\bin\libstdc++-6.dll";     DestDir: "{app}";  Flags: "ignoreversion"
+Source: "C:\Program Files (x86)\mingw-w64\i686-7.2.0-posix-dwarf-rt_v5-rev1\mingw32\bin\libwinpthread-1.dll"; DestDir: "{app}";  Flags: "ignoreversion"
 Source: "bin/liblog4cpp.dll"; DestDir: "{app}";  Flags: "ignoreversion"
 
 ; avlib - video and audio
@@ -74,7 +90,7 @@ Source: "bin/standard_dictionary"; DestDir: "{app}"
 Source: "bin/user_dictionary";     DestDir: "{app}"
 
 ; Path editor
-Source: "bin/PathEditor.exe";      DestDir: "{app}"
+;Source: "bin/PathEditor.exe";      DestDir: "{app}"
 
 ; readmes and licenses
 Source: "License.txt"; DestDir: "{app}";
@@ -90,15 +106,30 @@ Source: "valuecurves\*.*"; DestDir: "{app}/valuecurves"   ; Flags: replacesameve
 ; Source: "controllers\*.*"; DestDir: "{app}/controllers"   ; Flags: replacesameversion recursesubdirs
 
 [Icons] 
-Name: "{commondesktop}\xLights4"; Filename: "{app}\xLights.EXE";   WorkingDir: "{app}"; Tasks: desktopicon ;   IconFilename: "{app}\xLights.ico";
+Name: "{group}\xLights"; Filename: "{app}\xLights.EXE"; WorkingDir: "{app}"
+Name: "{group}\xSchedule"; Filename: "{app}\xSchedule.EXE"; WorkingDir: "{app}"
+Name: "{commondesktop}\xLights"; Filename: "{app}\xLights.EXE";   WorkingDir: "{app}"; Tasks: desktopicon ;   IconFilename: "{app}\xLights.ico";
 Name: "{commondesktop}\xSchedule"; Filename: "{app}\xSchedule.EXE";   WorkingDir: "{app}"; Tasks: desktopicon ;   IconFilename: "{app}\xSchedule.ico";
 
 [Run]
 Filename: "{app}\xLights.exe"; Description: "Launch application"; Flags: postinstall nowait skipifsilent 
 
 [Registry]
+Root: HKCU; Subkey: "Software\Xlights"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\xSchedule"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\xCapture"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\xFade"; Flags: uninsdeletekey
 ; set PATH. if it is already there dont add path to our installation. we are doing this so user can run ffmpeg from a cmd prompt
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}\xLights"; Check: NeedsAddPath ('C:\Program Files (x86)\xLights')
+
+; Remove Keith's Batch Render to prevent confusion
+[InstallDelete]
+Type: files; Name: "{app}\wxmsw310u_gcc_custom.dll"
+Type: files; Name: "{app}\wxmsw310u_gl_gcc_custom.dll"
+Type: files; Name: "{app}\xLightsBatchRenderer.exe"
+Type: files; Name: "{app}\xLightsBatchRenderer.ico"
+Type: files; Name: "{group}\xLightsBatchRender.lnk"
+Type: files; Name: "{commondesktop}\xLightsBatchRender.lnk"
 
 [Code]
 

@@ -32,6 +32,29 @@
 #include "ValueCurve.h"
 #include "RenderUtils.h"
 
+#define BLUR_MIN 1
+#define BLUR_MAX 15
+#define RZ_ROTATION_MIN 0
+#define RZ_ROTATION_MAX 100
+#define RZ_ZOOM_MIN 0
+#define RZ_ZOOM_MAX 30
+#define RZ_ZOOM_DIVISOR 10
+#define RZ_ROTATIONS_MIN 0
+#define RZ_ROTATIONS_MAX 200
+#define RZ_ROTATIONS_DIVISOR 10
+#define RZ_PIVOTX_MIN 0
+#define RZ_PIVOTX_MAX 100
+#define RZ_PIVOTY_MIN 0
+#define RZ_PIVOTY_MAX 100
+#define RZ_XROTATION_MIN 0
+#define RZ_XROTATION_MAX 360
+#define RZ_YROTATION_MIN 0
+#define RZ_YROTATION_MAX 360
+#define RZ_XPIVOT_MIN 0
+#define RZ_XPIVOT_MAX 100
+#define RZ_YPIVOT_MIN 0
+#define RZ_YPIVOT_MAX 100
+
 /**
  * \brief enumeration of the different techniques used in layering effects
  */
@@ -43,8 +66,10 @@ enum MixTypes
     Mix_Effect2, /**<  Effect 2 only */
     Mix_Mask1,   /**<  Effect 2 color shows where Effect 1 is black */
     Mix_Mask2,   /**<  Effect 1 color shows where Effect 2 is black */
-    Mix_Unmask1, /**<  Effect 2 color shows where Effect 1 is not black */
-    Mix_Unmask2, /**<  Effect 1 color shows where Effect 2 is black */
+    Mix_Unmask1, /**<  Effect 2 color shows where Effect 1 is not black but with no fade ... black becomes white*/
+    Mix_Unmask2, /**<  Effect 1 color shows where Effect 2 is not black but with no fade ... black becomes white*/
+    Mix_TrueUnmask1, /**<  Effect 2 color shows where Effect 1 is not black */
+    Mix_TrueUnmask2, /**<  Effect 1 color shows where Effect 2 is black */
     Mix_1_reveals_2,  /**<  Effect 2 color only shows if Effect 1 is black  1 reveals 2 */
     Mix_2_reveals_1,  /**<  Effect 1 color only shows if Effect 2 is black */
     Mix_Layered, /**<  Effect 1 is back ground and shows only when effect 2 is black */
@@ -57,8 +82,8 @@ enum MixTypes
     Mix_Subtractive,
     Mix_Max,
     Mix_Min
-
 };
+
 class Effect;
 class SequenceElements;
 class SettingsMap;
@@ -76,10 +101,16 @@ private:
             rotations = 0;
             zoom = 1.0f;
             zoomquality = 1;
+            rotationorder = "X, Y, Z";
             pivotpointx = 50;
             pivotpointy = 50;
+            xrotation = 0;
+            yrotation = 0;
+            xpivot = 50;
+            ypivot = 0;
             sparkle_count = 0;
-            music_sparkle_count = false;
+            use_music_sparkle_count = false;
+            music_sparkle_count_factor = 1.0;
             brightness = 100;
             hueadjust = 0;
             saturationadjust = 0;
@@ -89,6 +120,7 @@ private:
             mixType = Mix_Normal;
             effectMixThreshold = 0.0;
             effectMixVaries = false;
+            canvas = false;
             BufferHt = BufferWi = 0;
             persistent = false;
             usingModelBuffers = false;
@@ -108,10 +140,14 @@ private:
         std::string saturationAdjustValueCurve;
         std::string valueAdjustValueCurve;
         std::string rotationValueCurve;
+        std::string xrotationValueCurve;
+        std::string yrotationValueCurve;
         std::string zoomValueCurve;
         std::string rotationsValueCurve;
         std::string pivotpointxValueCurve;
         std::string pivotpointyValueCurve;
+        std::string xpivotValueCurve;
+        std::string ypivotValueCurve;
         std::string rotoZoom;
         int BufferHt;
         int BufferWi;
@@ -124,19 +160,29 @@ private:
         ValueCurve SaturationAdjustValueCurve;
         ValueCurve ValueAdjustValueCurve;
         ValueCurve RotationValueCurve;
+        ValueCurve XRotationValueCurve;
+        ValueCurve YRotationValueCurve;
         ValueCurve ZoomValueCurve;
         ValueCurve RotationsValueCurve;
         ValueCurve PivotPointXValueCurve;
         ValueCurve PivotPointYValueCurve;
+        ValueCurve XPivotValueCurve;
+        ValueCurve YPivotValueCurve;
         int sparkle_count;
-        bool music_sparkle_count;
+        bool use_music_sparkle_count;
+        float music_sparkle_count_factor;
 		int blur;
         int rotation;
+        int xrotation;
+        int yrotation;
         float rotations;
         float zoom;
         int zoomquality;
+        std::string rotationorder;
         int pivotpointx;
         int pivotpointy;
+        int xpivot;
+        int ypivot;
         int brightness;
         int hueadjust;
         int saturationadjust;
@@ -146,6 +192,7 @@ private:
         MixTypes mixType;
         float effectMixThreshold;
         bool effectMixVaries;
+        bool canvas;
         bool persistent;
         int fadeInSteps;
         int fadeOutSteps;
@@ -167,6 +214,8 @@ private:
         void calculateMask(const std::string &type, bool mode, bool isFirstFrame);
         bool isMasked(int x, int y);
         
+        void clear();
+        
     private:
         void createSquareExplodeMask(bool end);
         void createCircleExplodeMask(bool end);
@@ -185,13 +234,15 @@ private:
     std::vector<LayerInfo*> layers;
     int frameTimeInMs;
 
-    int CurrentLayer;
-
-    void GetMixedColor(int node, xlColor& c, const std::vector<bool> & validLayers, int EffectPeriod);
-    xlColor mixColors(const wxCoord &x, const wxCoord &y, const xlColor &c0, const xlColor &c1, int layer);
+    //both fg and bg may be modified, bg will contain the new, mixed color to be the bg for the next mix
+    void mixColors(const wxCoord &x, const wxCoord &y, xlColor &fg, xlColor &bg, int layer);
     void reset(int layers, int timing);
 	void Blur(LayerInfo* layer, float offset);
     void RotoZoom(LayerInfo* layer, float offset);
+    void RotateX(LayerInfo* layer, float offset);
+    void RotateY(LayerInfo* layer, float offset);
+    void RotateZAndZoom(LayerInfo* layer, float offset);
+    void GetMixedColor(int node, xlColor& c, const std::vector<bool> & validLayers, int EffectPeriod);
 
     std::string modelName;
     std::string lastBufferType;
@@ -201,6 +252,7 @@ private:
     SingleLineModel *ssModel;
     xLightsFrame *frame;
 public:
+    void GetMixedColor(int x, int y, xlColor& c, const std::vector<bool> & validLayers, int EffectPeriod);
     void GetNodeChannelValues(size_t nodenum, unsigned char *buf);
     void SetNodeChannelValues(size_t nodenum, const unsigned char *buf);
     xlColor GetNodeColor(size_t nodenum) const;
@@ -208,6 +260,8 @@ public:
     int NodeStartChannel(size_t nodenum) const;
     int GetNodeCount() const;
     int GetChanCountPerNode() const;
+    MixTypes GetMixType(int layer) const;
+    bool IsCanvasMix(int layer) const;
 
     bool IsVariableSubBuffer(int layer) const;
     void PrepareVariableSubBuffer(int EffectPeriod, int layer);
@@ -239,9 +293,9 @@ public:
     void SetLayer(int newlayer, int period, bool ResetState);
     void SetTimes(int layer, int startTime, int endTime);
 
-    void CalcOutput(int EffectPeriod, const std::vector<bool> &validLayers);
+    void CalcOutput(int EffectPeriod, const std::vector<bool> &validLayers, int saveLayer = 0);
     void SetColors(int layer, const unsigned char *fdata);    
-    void GetColors(unsigned char *fdata, const std::list<NodeRange> &restrictRange);
+    void GetColors(unsigned char *fdata, const std::vector<bool> &restrictRange);
 };
 typedef std::unique_ptr<PixelBufferClass> PixelBufferClassPtr;
 

@@ -1,13 +1,11 @@
-#include "wx/wx.h"
-#include "wx/sizer.h"
+#include <wx/wx.h>
+#include <wx/sizer.h>
+#include <wx/artprov.h>
+
 #ifdef __WXMAC__
- #include "OpenGL/gl.h"
+    #include "OpenGL/gl.h"
 #else
-//#ifdef _MSC_VER
-//#include "GL/glut.h"
-//#else
-#include <GL/gl.h>
-//#endif
+    #include <GL/gl.h>
 #endif
 
 #include "ModelPreview.h"
@@ -18,18 +16,16 @@
 #include "ColorManager.h"
 #include "LayoutGroup.h"
 #include "xLightsMain.h"
-#include <wx/artprov.h>
+
+#include <log4cpp/Category.hh>
 
 BEGIN_EVENT_TABLE(ModelPreview, xlGLCanvas)
-EVT_MOTION(ModelPreview::mouseMoved)
-EVT_LEFT_DOWN(ModelPreview::mouseLeftDown)
-EVT_LEFT_UP(ModelPreview::mouseLeftUp)
-EVT_LEAVE_WINDOW(ModelPreview::mouseLeftWindow)
-EVT_RIGHT_DOWN(ModelPreview::rightClick)
-//EVT_KEY_DOWN(ModelPreview::keyPressed)
-//EVT_KEY_UP(ModelPreview::keyReleased)
-//EVT_MOUSEWHEEL(ModelPreview::mouseWheelMoved)
-EVT_PAINT(ModelPreview::render)
+    EVT_MOTION(ModelPreview::mouseMoved)
+    EVT_LEFT_DOWN(ModelPreview::mouseLeftDown)
+    EVT_LEFT_UP(ModelPreview::mouseLeftUp)
+    EVT_LEAVE_WINDOW(ModelPreview::mouseLeftWindow)
+    EVT_RIGHT_DOWN(ModelPreview::rightClick)
+    EVT_PAINT(ModelPreview::render)
 END_EVENT_TABLE()
 
 void ModelPreview::mouseMoved(wxMouseEvent& event) {
@@ -57,9 +53,9 @@ void ModelPreview::mouseLeftWindow(wxMouseEvent& event) {
     event.Skip (); // continue the event
 }
 
-void ModelPreview::render( wxPaintEvent& event )
+void ModelPreview::render(wxPaintEvent& event)
 {
-    if(mIsDrawing) return;
+    if (mIsDrawing) return;
 
     //if(!mIsInitialized) { InitializeGLCanvas(); }
     //SetCurrentGLContext();
@@ -67,8 +63,9 @@ void ModelPreview::render( wxPaintEvent& event )
 
     if (_model != nullptr) {
         _model->DisplayEffectOnWindow(this, 2);
-    } else {
-        if(!StartDrawing(mPointSize)) return;
+    }
+    else {
+        if (!StartDrawing(mPointSize)) return;
         Render();
         EndDrawing();
     }
@@ -76,25 +73,33 @@ void ModelPreview::render( wxPaintEvent& event )
 
 void ModelPreview::Render()
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
     if (PreviewModels != nullptr)
     {
         bool isModelSelected = false;
         for (int i = 0; i < PreviewModels->size(); ++i) {
+            if ((*PreviewModels)[i] == nullptr)
+            {
+                logger_base.crit("*PreviewModels[%d] is nullptr ... this is not going to end well.", i);
+            }
             if (((*PreviewModels)[i])->Selected || ((*PreviewModels)[i])->GroupSelected) {
                 isModelSelected = true;
                 break;
             }
         }
 
-        for (int i=0; i<PreviewModels->size(); ++i) {
-			const xlColor *color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_DEFAULT);
-			if (((*PreviewModels)[i])->Selected) {
-				color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_SELECTED);
-			} else if (((*PreviewModels)[i])->GroupSelected) {
-				color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_SELECTED);
-			} else if (((*PreviewModels)[i])->Overlapping && isModelSelected) {
-				color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_OVERLAP);
-			}
+        for (int i = 0; i < PreviewModels->size(); ++i) {
+            const xlColor *color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_DEFAULT);
+            if (((*PreviewModels)[i])->Selected) {
+                color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_SELECTED);
+            }
+            else if (((*PreviewModels)[i])->GroupSelected) {
+                color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_SELECTED);
+            }
+            else if (((*PreviewModels)[i])->Overlapping && isModelSelected) {
+                color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_OVERLAP);
+            }
             if (!allowSelected) {
                 color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_MODEL_DEFAULT);
             }
@@ -103,32 +108,32 @@ void ModelPreview::Render()
     }
 }
 
-void ModelPreview::Render(const unsigned char *data) {
+void ModelPreview::Render(const unsigned char *data, bool swapBuffers/*=true*/) {
     if (StartDrawing(mPointSize)) {
         if (PreviewModels != nullptr) {
-            for (int m=0; m<PreviewModels->size(); m++) {
-                int NodeCnt=(*PreviewModels)[m]->GetNodeCount();
-                for(size_t n=0; n<NodeCnt; ++n) {
+            for (int m = 0; m < PreviewModels->size(); m++) {
+                int NodeCnt = (*PreviewModels)[m]->GetNodeCount();
+                for (size_t n = 0; n < NodeCnt; ++n) {
                     int start = (*PreviewModels)[m]->NodeStartChannel(n);
                     (*PreviewModels)[m]->SetNodeChannelValues(n, &data[start]);
                 }
                 (*PreviewModels)[m]->DisplayModelOnWindow(this, accumulator);
             }
         }
-        EndDrawing();
+        EndDrawing(swapBuffers);
     }
 }
 
 void ModelPreview::mouseWheelMoved(wxMouseEvent& event) {}
 
 void ModelPreview::rightClick(wxMouseEvent& event) {
-    if( allowPreviewChange && xlights != nullptr) {
+    if (allowPreviewChange && xlights != nullptr) {
         wxMenu mnuSelectPreview;
-        mnuSelectPreview.Append(1,"House Preview");
+        mnuSelectPreview.Append(1, "House Preview");
         int index = 2;
-        for (auto it = LayoutGroups->begin(); it != LayoutGroups->end(); it++) {
+        for (auto it = LayoutGroups->begin(); it != LayoutGroups->end(); ++it) {
             LayoutGroup* grp = (LayoutGroup*)(*it);
-            mnuSelectPreview.Append(index++,grp->GetName());
+            mnuSelectPreview.Append(index++, grp->GetName());
         }
         mnuSelectPreview.Connect(wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&ModelPreview::OnPopup, nullptr, this);
         PopupMenu(&mnuSelectPreview);
@@ -138,14 +143,15 @@ void ModelPreview::rightClick(wxMouseEvent& event) {
 void ModelPreview::OnPopup(wxCommandEvent& event)
 {
     int id = event.GetId() - 1;
-    if(id == 0) {
+    if (id == 0) {
         SetModels(*HouseModels);
         SetBackgroundBrightness(xlights->GetDefaultPreviewBackgroundBrightness());
         SetbackgroundImage(xlights->GetDefaultPreviewBackgroundImage());
-    } else if (id > 0 && id <= LayoutGroups->size()) {
-        SetModels( (*LayoutGroups)[id-1]->GetModels());
-        SetBackgroundBrightness((*LayoutGroups)[id-1]->GetBackgroundBrightness());
-        SetbackgroundImage((*LayoutGroups)[id-1]->GetBackgroundImage());
+    }
+    else if (id > 0 && id <= LayoutGroups->size()) {
+        SetModels((*LayoutGroups)[id - 1]->GetModels());
+        SetBackgroundBrightness((*LayoutGroups)[id - 1]->GetBackgroundBrightness());
+        SetbackgroundImage((*LayoutGroups)[id - 1]->GetBackgroundImage());
     }
     Refresh();
     Update();
@@ -166,8 +172,9 @@ ModelPreview::ModelPreview(wxPanel* parent, xLightsFrame* xlights_, std::vector<
     sprite = nullptr;
     _model = nullptr;
 }
+
 ModelPreview::ModelPreview(wxPanel* parent)
-: xlGLCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, "ModelPreview", true), PreviewModels(nullptr), allowSelected(false), image(nullptr)
+    : xlGLCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, "ModelPreview", true), PreviewModels(nullptr), allowSelected(false), image(nullptr)
 {
     _model = nullptr;
     maxVertexCount = 5000;
@@ -178,6 +185,7 @@ ModelPreview::ModelPreview(wxPanel* parent)
     sprite = nullptr;
     xlights = nullptr;
 }
+
 ModelPreview::~ModelPreview()
 {
     if (image) {
@@ -196,11 +204,13 @@ void ModelPreview::SetCanvasSize(int width,int height)
 {
     SetVirtualCanvasSize(width, height);
 }
+
 void ModelPreview::SetVirtualCanvasSize(int width, int height) {
     virtualWidth = width;
     virtualHeight = height;
 }
-void ModelPreview::InitializePreview(wxString img,int brightness)
+
+void ModelPreview::InitializePreview(wxString img, int brightness)
 {
     if (img != mBackgroundImage) {
         if (image) {
@@ -216,23 +226,24 @@ void ModelPreview::InitializePreview(wxString img,int brightness)
             sprite = nullptr;
         }
         mBackgroundImage = img;
-        mBackgroundImageExists = wxFileExists(mBackgroundImage)&&wxIsReadable(mBackgroundImage)?true:false;
+        mBackgroundImageExists = wxFileExists(mBackgroundImage) && wxIsReadable(mBackgroundImage) ? true : false;
     }
     mBackgroundBrightness = brightness;
 }
 
 void ModelPreview::InitializeGLCanvas()
 {
-    if(!IsShownOnScreen()) return;
+    if (!IsShownOnScreen()) return;
     SetCurrentGLContext();
 
     if (allowSelected) {
-        LOG_GL_ERRORV(glClearColor(0.8f, 0.8f, 0.8f, 1.0f)); // Black Background
+        wxColor c = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
+        LOG_GL_ERRORV(glClearColor(c.Red()/255.0f, c.Green()/255.0f, c.Blue()/255.0, 1.0f)); // Black Background
     } else {
         LOG_GL_ERRORV(glClearColor(0.0, 0.0, 0.0, 1.0f)); // Black Background
     }
     LOG_GL_ERRORV(glEnable(GL_BLEND));
-    LOG_GL_ERRORV(glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA));
+    LOG_GL_ERRORV(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
     mIsInitialized = true;
 }
@@ -240,6 +251,7 @@ void ModelPreview::InitializeGLCanvas()
 void ModelPreview::SetOrigin()
 {
 }
+
 void ModelPreview::SetScaleBackgroundImage(bool b) {
     scaleImage = b;
     Refresh();
@@ -268,11 +280,10 @@ void ModelPreview::SetbackgroundImage(wxString img)
 
 void ModelPreview::SetBackgroundBrightness(int brightness)
 {
-   mBackgroundBrightness = brightness;
-   if(mBackgroundBrightness < 0 || mBackgroundBrightness > 100)
-   {
+    mBackgroundBrightness = brightness;
+    if(mBackgroundBrightness < 0 || mBackgroundBrightness > 100) {
         mBackgroundBrightness = 100;
-   }
+    }
 }
 
 void ModelPreview::SetPointSize(wxDouble pointSize)
@@ -280,6 +291,7 @@ void ModelPreview::SetPointSize(wxDouble pointSize)
     mPointSize = pointSize;
     LOG_GL_ERRORV(glPointSize( mPointSize ));
 }
+
 double ModelPreview::calcPixelSize(double i) {
     double d = translateToBacking(i * currentPixelScaleFactor);
     if (d < 1.0) {
@@ -293,37 +305,64 @@ bool ModelPreview::GetActive()
     return mPreviewPane->GetActive();
 }
 
+void ModelPreview::render(const wxSize& size/*wxSize(0,0)*/)
+{
+    wxPaintEvent dummyEvent;
+    wxSize origSize(0, 0);
+    wxSize origVirtSize(virtualWidth, virtualHeight);
+    if (size != wxSize(0, 0)) {
+        origSize = wxSize(mWindowWidth, mWindowHeight);
+        mWindowWidth = ((float)size.GetWidth() / GetContentScaleFactor());
+        mWindowHeight = ((float)size.GetHeight() / GetContentScaleFactor());
+        float mult = float(mWindowWidth) / origSize.GetWidth();
+        virtualWidth = int(mult * origVirtSize.GetWidth());
+        virtualHeight = int(mult * origVirtSize.GetHeight());
+    }
+
+    render(dummyEvent);
+
+    if (origSize != wxSize(0, 0)) {
+        mWindowWidth = origSize.GetWidth();
+        mWindowHeight = origSize.GetHeight();
+        virtualWidth = origVirtSize.GetWidth();
+        virtualHeight = origVirtSize.GetHeight();
+    }
+}
+
 void ModelPreview::SetActive(bool show) {
-    if( show ) {
+    if (show) {
         mPreviewPane->Show();
-    } else {
+    }
+    else {
         mPreviewPane->Hide();
     }
 }
 
 bool ModelPreview::StartDrawing(wxDouble pointSize)
 {
-    if(!IsShownOnScreen()) return false;
-    if(!mIsInitialized) { InitializeGLCanvas(); }
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
+    if (!IsShownOnScreen()) return false;
+    if (!mIsInitialized) { InitializeGLCanvas(); }
     mIsInitialized = true;
     mPointSize = pointSize;
     mIsDrawing = true;
     SetCurrentGLContext();
     LOG_GL_ERRORV(glClear(GL_COLOR_BUFFER_BIT));
-    prepare2DViewport(0,0,mWindowWidth, mWindowHeight);
+    prepare2DViewport(0, 0, mWindowWidth, mWindowHeight);
 
     LOG_GL_ERRORV(glPointSize(translateToBacking(mPointSize)));
     DrawGLUtils::PushMatrix();
     // Rotate Axis and translate
-    DrawGLUtils::Rotate(180,0,0,1);
-    DrawGLUtils::Rotate(180,0,1,0);
+    DrawGLUtils::Rotate(180, 0, 0, 1);
+    DrawGLUtils::Rotate(180, 0, 1, 0);
     accumulator.PreAlloc(maxVertexCount);
     currentPixelScaleFactor = 1.0;
     if (!allowSelected && virtualWidth > 0 && virtualHeight > 0
         && (virtualWidth != mWindowWidth || virtualHeight != mWindowHeight)) {
         int i = (int)mWindowHeight;
-        DrawGLUtils::Translate(0,-i,0);
-        double scaleh= double(mWindowHeight) / double(virtualHeight);
+        DrawGLUtils::Translate(0, -i, 0);
+        double scaleh = double(mWindowHeight) / double(virtualHeight);
         double scalew = double(mWindowWidth) / double(virtualWidth);
         DrawGLUtils::Scale(scalew, scaleh, 1.0);
 
@@ -342,12 +381,14 @@ bool ModelPreview::StartDrawing(wxDouble pointSize)
         accumulator.AddRect(0, 0, virtualWidth, virtualHeight, xlBLACK);
         accumulator.Finish(GL_TRIANGLES);
     }
-    if(mBackgroundImageExists)
-    {
-        if (image == nullptr)
-        {
-           image = new Image(mBackgroundImage);
-           sprite = new xLightsDrawable(image);
+
+    if (mBackgroundImageExists) {
+        if (image == nullptr) {
+            logger_base.debug("Loading background image file %s for preview %s.",
+                              (const char *)mBackgroundImage.c_str(),
+                              (const char *)GetName().c_str());
+            image = new Image(mBackgroundImage);
+            sprite = new xLightsDrawable(image);
         }
         float scaleh = 1.0;
         float scalew = 1.0;
@@ -365,12 +406,12 @@ bool ModelPreview::StartDrawing(wxDouble pointSize)
         accumulator.PreAllocTexture(6);
         float tx1 = 0;
         float tx2 = image->tex_coord_x;
-        accumulator.AddTextureVertex(0, 0, tx1, -0.5/(image->textureHeight));
-        accumulator.AddTextureVertex(virtualWidth * scalew, 0, tx2, -0.5/(image->textureHeight));
+        accumulator.AddTextureVertex(0, 0, tx1, -0.5 / (image->textureHeight));
+        accumulator.AddTextureVertex(virtualWidth * scalew, 0, tx2, -0.5 / (image->textureHeight));
         accumulator.AddTextureVertex(0, virtualHeight * scaleh, tx1, image->tex_coord_y);
 
         accumulator.AddTextureVertex(0, virtualHeight * scaleh, tx1, image->tex_coord_y);
-        accumulator.AddTextureVertex(virtualWidth * scalew, 0, tx2, -0.5/(image->textureHeight));
+        accumulator.AddTextureVertex(virtualWidth * scalew, 0, tx2, -0.5 / (image->textureHeight));
         accumulator.AddTextureVertex(virtualWidth * scalew, virtualHeight *scaleh, tx2, image->tex_coord_y);
 
         int i = mBackgroundBrightness * 255 / 100;
@@ -379,14 +420,17 @@ bool ModelPreview::StartDrawing(wxDouble pointSize)
     return true;
 }
 
-void ModelPreview::EndDrawing()
+void ModelPreview::EndDrawing(bool swapBuffers/*=true*/)
 {
     if (accumulator.count > maxVertexCount) {
-        maxVertexCount= accumulator.count;
+        maxVertexCount = accumulator.count;
     }
     DrawGLUtils::Draw(accumulator);
     DrawGLUtils::PopMatrix();
-    LOG_GL_ERRORV(SwapBuffers());
+    if (swapBuffers)
+    {
+        LOG_GL_ERRORV(SwapBuffers());
+    }
     accumulator.Reset();
     mIsDrawing = false;
 }

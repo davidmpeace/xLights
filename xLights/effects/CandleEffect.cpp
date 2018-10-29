@@ -8,14 +8,13 @@
 #include "../UtilClasses.h"
 #include "../AudioManager.h"
 #include "../models/Model.h"
-#include "../SequenceCheck.h"
+#include "../UtilFunctions.h"
 
 #include "../../include/candle-16.xpm"
 #include "../../include/candle-24.xpm"
 #include "../../include/candle-32.xpm"
 #include "../../include/candle-48.xpm"
 #include "../../include/candle-64.xpm"
-#include <UtilFunctions.h>
 
 CandleEffect::CandleEffect(int id) : RenderableEffect(id, "Candle", candle_16, candle_24, candle_32, candle_48, candle_64)
 {
@@ -79,7 +78,7 @@ static CandleRenderCache* GetCache(RenderBuffer &buffer, int id) {
     return cache;
 }
 
-void CandleEffect::SetDefaultParameters(Model *cls) {
+void CandleEffect::SetDefaultParameters() {
     CandlePanel *fp = (CandlePanel*)panel;
     if (fp == nullptr) {
         return;
@@ -160,10 +159,10 @@ void InitialiseState(int node, std::map<int, CandleState*>& states)
 void CandleEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
 
     float oset = buffer.GetEffectTimeIntervalPosition();
-    int flameAgility = GetValueCurveInt("Candle_FlameAgility", 2, SettingsMap, oset, CANDLE_AGILITY_MIN, CANDLE_AGILITY_MAX);
-    int windCalmness = GetValueCurveInt("Candle_WindCalmness", 2, SettingsMap, oset, CANDLE_WINDCALMNESS_MIN, CANDLE_WINDCALMNESS_MAX);
-    int windVariability = GetValueCurveInt("Candle_WindVariability", 5, SettingsMap, oset, CANDLE_WINDVARIABILITY_MIN, CANDLE_WINDVARIABILITY_MAX);
-    int windBaseline = GetValueCurveInt("Candle_WindBaseline", 30, SettingsMap, oset, CANDLE_WINDBASELINE_MIN, CANDLE_WINDBASELINE_MAX);
+    int flameAgility = GetValueCurveInt("Candle_FlameAgility", 2, SettingsMap, oset, CANDLE_AGILITY_MIN, CANDLE_AGILITY_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int windCalmness = GetValueCurveInt("Candle_WindCalmness", 2, SettingsMap, oset, CANDLE_WINDCALMNESS_MIN, CANDLE_WINDCALMNESS_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int windVariability = GetValueCurveInt("Candle_WindVariability", 5, SettingsMap, oset, CANDLE_WINDVARIABILITY_MIN, CANDLE_WINDVARIABILITY_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int windBaseline = GetValueCurveInt("Candle_WindBaseline", 30, SettingsMap, oset, CANDLE_WINDBASELINE_MIN, CANDLE_WINDBASELINE_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     bool perNode = SettingsMap.GetBool("CHECKBOX_PerNode", false);
 
     CandleRenderCache *cache = GetCache(buffer, id);

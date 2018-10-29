@@ -7,16 +7,16 @@
 #include <wx/dataview.h>
 
 //(*Headers(xLightsImportChannelMapDialog)
-#include <wx/listctrl.h>
-#include <wx/sizer.h>
-#include <wx/stattext.h>
-#include <wx/checklst.h>
-#include <wx/checkbox.h>
-#include <wx/splitter.h>
-#include <wx/spinctrl.h>
-#include <wx/panel.h>
 #include <wx/button.h>
+#include <wx/checkbox.h>
+#include <wx/checklst.h>
 #include <wx/dialog.h>
+#include <wx/listctrl.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/spinctrl.h>
+#include <wx/splitter.h>
+#include <wx/stattext.h>
 //*)
 
 #include <map>
@@ -24,6 +24,7 @@
 #include "Color.h"
 #include <wx/arrstr.h>
 #include <wx/filename.h>
+#include <list>
 
 class SequenceElements;
 class xLightsFrame;
@@ -54,7 +55,7 @@ class xLightsImportModelNode : wxDataViewTreeStoreNode
 public:
     xLightsImportModelNode(xLightsImportModelNode* parent,
         const wxString &model, const wxString &strand, const wxString &node,
-        const wxString &mapping, const wxColor& color = *wxWHITE) : wxDataViewTreeStoreNode(parent, "XXX")
+        const wxString &mapping, const bool mappingExists, const wxColor& color = *wxWHITE) : wxDataViewTreeStoreNode(parent, "XXX")
     {
         m_parent = parent;
 
@@ -64,13 +65,14 @@ public:
         _mapping = mapping;
         _color = color;
         _group = false;
+        _mappingExists = mappingExists;
 
         m_container = false;
     }
 
     xLightsImportModelNode(xLightsImportModelNode* parent,
         const wxString &model, const wxString &strand,
-        const wxString &mapping, const wxColor& color = *wxWHITE) : wxDataViewTreeStoreNode(parent, "XXX")
+        const wxString &mapping, const bool mappingExists, const wxColor& color = *wxWHITE) : wxDataViewTreeStoreNode(parent, "XXX")
     {
         m_parent = parent;
 
@@ -80,13 +82,14 @@ public:
         _mapping = mapping;
         _color = color;
         _group = false;
+        _mappingExists = mappingExists;
 
         m_container = true;
     }
 
     xLightsImportModelNode(xLightsImportModelNode* parent,
         const wxString &model,
-        const wxString &mapping, const wxColor& color = *wxWHITE, const bool isGroup = false) : wxDataViewTreeStoreNode(parent, "XXX")
+        const wxString &mapping, const bool mappingExists, const wxColor& color = *wxWHITE, const bool isGroup = false) : wxDataViewTreeStoreNode(parent, "XXX")
     {
         m_parent = parent;
 
@@ -96,6 +99,7 @@ public:
         _mapping = mapping;
         _color = color;
         _group = isGroup;
+        _mappingExists = mappingExists;
 
         m_container = !isGroup;
     }
@@ -113,6 +117,7 @@ public:
 
     void ClearMapping()
     {
+        _mappingExists = true;
         _mapping = "";
         _color = *wxWHITE;
         size_t count = m_children.GetCount();
@@ -181,6 +186,7 @@ public:     // public to avoid getters/setters
     wxString                _mapping;
     wxColor                 _color;
     bool                    _group;
+    bool                    _mappingExists;
 
     // TODO/FIXME:
     // the GTK version of wxDVC (in particular wxDataViewCtrlInternal::ItemAdded)
@@ -213,9 +219,10 @@ public:
         }
     }
 
-
     virtual bool GetAttr(const wxDataViewItem &item, unsigned int col, wxDataViewItemAttr &attr) const override;
+    virtual int Compare(const wxDataViewItem& item1, const wxDataViewItem& item2, unsigned int column, bool ascending) const override;
 
+    void SetMappingExists(const wxDataViewItem &item, bool exists);
     void Insert(xLightsImportModelNode* child, unsigned int n)
     {
         m_children.Insert(child, n);
@@ -286,6 +293,24 @@ private:
     xLightsImportModelNodePtrArray   m_children;
 };
 
+class StashedMapping
+{
+public:
+    wxString _model;
+    wxString _strand;
+    wxString _node;
+    wxString _mapping;
+    wxColor _color;
+    StashedMapping(wxString model, wxString strand, wxString node, wxString mapping, wxColor color)
+    {
+        _model = model;
+        _strand = strand;
+        _node = node;
+        _mapping = mapping;
+        _color = color;
+    }
+};
+
 class xLightsImportChannelMapDialog: public wxDialog
 {
     xLightsImportModelNode* TreeContainsModel(std::string model, std::string strand = "", std::string node = "");
@@ -293,6 +318,10 @@ class xLightsImportChannelMapDialog: public wxDialog
     void OnSelectionChanged(wxDataViewEvent& event);
     void OnValueChanged(wxDataViewEvent& event);
     void OnItemActivated(wxDataViewEvent& event);
+    
+    void OnDragPossible(wxDataViewEvent& event);
+    void OnDragDrop(wxDataViewEvent& event);
+
     void OnBeginDrag(wxDataViewEvent& event);
     void Unmap(const wxDataViewItem& item);
     void Map(const wxDataViewItem& item, const std::string& mapping);
@@ -301,6 +330,9 @@ class xLightsImportChannelMapDialog: public wxDialog
     void SetCCROff();
     void PopulateAvailable(bool ccr);
     void MarkUsed();
+    std::list<StashedMapping*> _stashedMappings;
+    StashedMapping* GetStashedMapping(wxString modelName, wxString strandName, wxString nodeName);
+    bool AnyStashedMappingExists(wxString modelName, wxString strandName);
 
     bool _dirty;
     wxFileName _filename;
@@ -318,26 +350,26 @@ class xLightsImportChannelMapDialog: public wxDialog
         wxDataViewItem GetNextTreeItem(const wxDataViewItem item) const;
         wxDataViewItem GetPriorTreeItem(const wxDataViewItem item) const;
         bool InitImport();
-        xLightsImportTreeModel *dataModel;
+        xLightsImportTreeModel *_dataModel;
 
 		//(*Declarations(xLightsImportChannelMapDialog)
-		wxFlexGridSizer* Sizer_TimeAdjust;
-		wxSpinCtrl* TimeAdjustSpinCtrl;
-		wxButton* Button_Ok;
-		wxFlexGridSizer* Sizer2;
 		wxButton* Button_AutoMap;
-		wxPanel* Panel1;
-		wxFlexGridSizer* OldSizer;
-		wxCheckListBox* TimingTrackListBox;
 		wxButton* Button_Cancel;
-		wxStaticText* StaticText_TimeAdjust;
-		wxStaticBoxSizer* TimingTrackPanel;
+		wxButton* Button_Ok;
 		wxCheckBox* CheckBox_MapCCRStrand;
-		wxPanel* Panel2;
-		wxFlexGridSizer* SizerMap;
-		wxSplitterWindow* SplitterWindow1;
-		wxListCtrl* ListCtrl_Available;
+		wxCheckListBox* TimingTrackListBox;
+		wxFlexGridSizer* OldSizer;
 		wxFlexGridSizer* Sizer1;
+		wxFlexGridSizer* Sizer2;
+		wxFlexGridSizer* SizerMap;
+		wxFlexGridSizer* Sizer_TimeAdjust;
+		wxListCtrl* ListCtrl_Available;
+		wxPanel* Panel1;
+		wxPanel* Panel2;
+		wxSpinCtrl* TimeAdjustSpinCtrl;
+		wxSplitterWindow* SplitterWindow1;
+		wxStaticBoxSizer* TimingTrackPanel;
+		wxStaticText* StaticText_TimeAdjust;
 		//*)
 
         SequenceElements *mSequenceElements;
@@ -382,6 +414,7 @@ protected:
 		void OnListCtrl_AvailableColumnClick(wxListEvent& event);
 		void OnCheckBox_MapCCRStrandClick(wxCommandEvent& event);
 		void OnButton_AutoMapClick(wxCommandEvent& event);
+		void OnListCtrl_AvailableItemActivated(wxListEvent& event);
 		//*)
 
         void OnDrop(wxCommandEvent& event);

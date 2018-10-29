@@ -6,9 +6,9 @@
 
 class wxXmlNode;
 class wxWindow;
-class VideoReader;
 class PlayerWindow;
-struct AVFrame;
+class VideoReader;
+class CachedVideoReader;
 
 class PlayListItemVideo : public PlayListItem
 {
@@ -18,15 +18,20 @@ protected:
     std::string _videoFile;
 	wxPoint _origin;
 	wxSize _size;
-    VideoReader* _videoReader;
+    bool _suppressVirtualMatrix;
     bool _topMost;
+    bool _cacheVideo;
+    bool _loopVideo;
+    VideoReader* _videoReader;
+    CachedVideoReader* _cachedVideoReader;
     size_t _durationMS;
     PlayerWindow* _window;
     #pragma endregion Member Variables
+    int _fadeInMS;
+    int _fadeOutMS;
 
-    void OpenFiles();
+    void OpenFiles(bool doCache);
     void CloseFiles();
-    wxImage CreateImageFromFrame(AVFrame* frame);
 
 public:
 
@@ -39,7 +44,13 @@ public:
 
     #pragma region Getters and Setters
     bool GetTopMost() const { return _topMost; }
+    bool GetCacheVideo() const { return _cacheVideo; }
+    bool GetLoopVideo() const { return _loopVideo; }
     void SetTopmost(bool topmost) { if (_topMost != topmost) { _topMost = topmost; _changeCount++; } }
+    void SetCacheVideo(bool cacheVideo) { if (_cacheVideo != cacheVideo) { _cacheVideo = cacheVideo; _changeCount++; } }
+    void SetLoopVideo(bool loopVideo) { if (_loopVideo != loopVideo) { _loopVideo = loopVideo; _changeCount++; } }
+    bool GetSuppressVirtualMatrix() const { return _suppressVirtualMatrix; }
+    void SetSuppressVirtualMatrix(bool suppressVirtualMatrix) { if (_suppressVirtualMatrix != suppressVirtualMatrix) { _suppressVirtualMatrix = suppressVirtualMatrix; _changeCount++; } }
     virtual size_t GetDurationMS() const override;
     virtual std::string GetNameNoTime() const override;
     void SetLocation(wxPoint pt, wxSize size) { if (_origin != pt || _size != size) { _origin = pt; _size = size; _changeCount++; } }
@@ -47,17 +58,21 @@ public:
     std::string GetVideoFile() const { return _videoFile; }
     wxPoint GetPosition() const { return _origin; }
     wxSize GetSize() const { return _size; }
-    virtual std::string GetSyncItemMedia() const override { return GetVideoFile(); }
+    virtual std::string GetSyncItemMedia() override { return GetVideoFile(); }
     static bool IsVideo(const std::string& ext);
     virtual std::string GetTitle() const override;
-    virtual std::list<std::string> GetMissingFiles() const override;
-    #pragma endregion Getters and Setters
+    virtual std::list<std::string> GetMissingFiles() override;
+    int GetFadeInMS() const { return _fadeInMS; }
+    void SetFadeInMS(const int fadeInMS) { if (_fadeInMS != fadeInMS) { _fadeInMS = fadeInMS; _changeCount++; } }
+    int GetFadeOutMS() const { return _fadeOutMS; }
+    void SetFadeOutMS(const int fadeOutMS) { if (_fadeOutMS != fadeOutMS) { _fadeOutMS = fadeOutMS; _changeCount++; } }
+#pragma endregion Getters and Setters
 
     virtual wxXmlNode* Save() override;
     void Load(wxXmlNode* node) override;
 
     #pragma region Playing
-    virtual void Start() override;
+    virtual void Start(long stepLengthMS) override;
     virtual void Stop() override;
     virtual void Frame(wxByte* buffer, size_t size, size_t ms, size_t framems, bool outputframe) override;
     virtual void Suspend(bool suspend) override;

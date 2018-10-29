@@ -1,19 +1,17 @@
 #ifndef ONPANEL_H
 #define ONPANEL_H
 
-
 //(*Headers(OnPanel)
 #include <wx/panel.h>
-class wxCheckBox;
-class wxTextCtrl;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
+class wxCheckBox;
 class wxFlexGridSizer;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
 
-#include "../ValueCurveButton.h"
-
+#include "../BulkEditControls.h"
 
 class OnPanel: public wxPanel
 {
@@ -23,28 +21,36 @@ class OnPanel: public wxPanel
 		virtual ~OnPanel();
 
 		//(*Declarations(OnPanel)
-		wxCheckBox* CheckBoxShimmer;
-		wxTextCtrl* TextCtrlEnd;
-		wxSlider* Slider_On_Transparency;
-		wxSlider* SliderStart;
-		wxSlider* SliderEnd;
-		ValueCurveButton* BitmapButton_On_Transparency;
-		wxTextCtrl* TextCtrlCycles;
-		wxTextCtrl* TextCtrlStart;
-		wxSlider* SliderCycles;
-		wxTextCtrl* TextCtrlOnTransparency;
+		BulkEditCheckBox* CheckBoxShimmer;
+		BulkEditSlider* SliderEnd;
+		BulkEditSlider* SliderStart;
+		BulkEditSlider* Slider_On_Transparency;
+		BulkEditSliderF1* SliderCycles;
+		BulkEditTextCtrl* TextCtrlEnd;
+		BulkEditTextCtrl* TextCtrlOnTransparency;
+		BulkEditTextCtrl* TextCtrlStart;
+		BulkEditTextCtrlF1* TextCtrlCycles;
+		BulkEditValueCurveButton* BitmapButton_On_Transparency;
+		wxStaticText* StaticText113;
+		wxStaticText* StaticText114;
+		wxStaticText* StaticText137;
+		wxStaticText* StaticText174;
 		//*)
 
 	protected:
 
 		//(*Identifiers(OnPanel)
+		static const long ID_STATICTEXT_Eff_On_Start;
 		static const long IDD_SLIDER_Eff_On_Start;
 		static const long ID_TEXTCTRL_Eff_On_Start;
+		static const long ID_STATICTEXT_Eff_On_End;
 		static const long IDD_SLIDER_Eff_On_End;
 		static const long ID_TEXTCTRL_Eff_On_End;
+		static const long ID_STATICTEXT_On_Transparency;
 		static const long IDD_SLIDER_On_Transparency;
 		static const long ID_VALUECURVE_On_Transparency;
 		static const long ID_TEXTCTRL_On_Transparency;
+		static const long ID_STATICTEXT_On_Cycles;
 		static const long IDD_SLIDER_On_Cycles;
 		static const long ID_TEXTCTRL_On_Cycles;
 		static const long ID_CHECKBOX_On_Shimmer;
@@ -52,21 +58,11 @@ class OnPanel: public wxPanel
 
 	private:
 
-		//(*Handlers(OnPanel)
-    void UpdateLinkedSliderFloat(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-    void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-    void UpdateLinkedSlider360(wxCommandEvent& event);
-    void UpdateLinkedTextCtrl(wxScrollEvent& event);
-    void UpdateLinkedSlider(wxCommandEvent& event);
-    void OnLockButtonClick(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-    void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
-    void OnVCButtonClick(wxCommandEvent& event);
-    void OnVCChanged(wxCommandEvent& event);
-    void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
-    //*)
+	    //(*Handlers(OnPanel)
+        void OnLockButtonClick(wxCommandEvent& event);
+        void OnVCButtonClick(wxCommandEvent& event);
+        void OnVCChanged(wxCommandEvent& event);
+        //*)
 
 		DECLARE_EVENT_TABLE()
 };

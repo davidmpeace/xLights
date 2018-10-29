@@ -1,8 +1,8 @@
 #include "SeqElementMismatchDialog.h"
 
 //(*InternalHeaders(SeqElementMismatchDialog)
-#include <wx/intl.h>
 #include <wx/button.h>
+#include <wx/intl.h>
 #include <wx/string.h>
 //*)
 
@@ -22,8 +22,8 @@ END_EVENT_TABLE()
 SeqElementMismatchDialog::SeqElementMismatchDialog(wxWindow* parent,wxWindowID id,const wxPoint& pos,const wxSize& size)
 {
     //(*Initialize(SeqElementMismatchDialog)
-    wxStaticText* StaticText1;
     wxFlexGridSizer* FlexGridSizer1;
+    wxStaticText* StaticText1;
     wxStdDialogButtonSizer* StdDialogButtonSizer1;
 
     Create(parent, id, _("Sequence Element Mismatch"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE, _T("id"));
@@ -53,7 +53,10 @@ SeqElementMismatchDialog::SeqElementMismatchDialog(wxWindow* parent,wxWindowID i
     SetSizer(FlexGridSizer1);
     FlexGridSizer1->Fit(this);
     FlexGridSizer1->SetSizeHints(this);
+
+    Connect(ID_CHOICE1,wxEVT_COMMAND_CHOICE_SELECTED,(wxObjectEventFunction)&SeqElementMismatchDialog::OnChoiceModelsSelect);
     //*)
+    SetEscapeId(wxID_CANCEL);
 }
 
 SeqElementMismatchDialog::~SeqElementMismatchDialog()
@@ -68,3 +71,8 @@ void SeqElementMismatchDialog::SetMessage(const wxString& message)
 }
 
 */
+
+void SeqElementMismatchDialog::OnChoiceModelsSelect(wxCommandEvent& event)
+{
+    RadioButtonRename->SetValue(true);
+}

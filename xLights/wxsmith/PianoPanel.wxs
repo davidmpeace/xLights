@@ -10,7 +10,7 @@
 					<cols>3</cols>
 					<growablecols>1</growablecols>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT1" variable="StaticText1" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Piano_Type" variable="StaticText1" member="yes">
 							<label>Type</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -18,7 +18,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxChoice" name="ID_CHOICE_Piano_Type" variable="Choice_Piano_Type" member="yes">
+						<object class="wxChoice" name="ID_CHOICE_Piano_Type" subclass="BulkEditChoice" variable="Choice_Piano_Type" member="yes">
 							<content>
 								<item>True Piano</item>
 								<item>Bars</item>
@@ -35,7 +35,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT2" variable="StaticText2" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Piano_StartMIDI" variable="StaticText2" member="yes">
 							<label>Start MIDI Channel [0-127]</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -43,7 +43,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSpinCtrl" name="ID_SPINCTRL_Piano_StartMIDI" variable="SpinCtrl_Piano_StartMIDI" member="yes">
+						<object class="wxSpinCtrl" name="ID_SPINCTRL_Piano_StartMIDI" subclass="BulkEditSpinCtrl" variable="SpinCtrl_Piano_StartMIDI" member="yes">
 							<value>60</value>
 							<max>127</max>
 							<handler function="OnSpinCtrl_Piano_StartMIDIChange" entry="EVT_SPINCTRL" />
@@ -52,19 +52,13 @@
 						<border>2</border>
 						<option>1</option>
 					</object>
-					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Piano_StartMIDI" variable="BitmapButton_Piano_StartMIDI" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
-							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
-						</object>
+					<object class="spacer">
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-						<border>2</border>
+						<border>5</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT_Piano_NumKeys" variable="StaticText_Piano_NumKeys" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Piano_EndMIDI" variable="StaticText_Piano_NumKeys" member="yes">
 							<label>End MIDI Channel</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -72,7 +66,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSpinCtrl" name="ID_SPINCTRL_Piano_EndMIDI" variable="SpinCtrl_Piano_EndMIDI" member="yes">
+						<object class="wxSpinCtrl" name="ID_SPINCTRL_Piano_EndMIDI" subclass="BulkEditSpinCtrl" variable="SpinCtrl_Piano_EndMIDI" member="yes">
 							<value>72</value>
 							<max>127</max>
 							<handler function="OnSpinCtrl_Piano_EndMIDIChange" entry="EVT_SPINCTRL" />
@@ -81,11 +75,26 @@
 						<border>2</border>
 						<option>1</option>
 					</object>
+					<object class="spacer">
+						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+						<border>5</border>
+						<option>1</option>
+					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Piano_EndMIDI" variable="BitmapButton_Piano_EndMIDI" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
+						<object class="wxCheckBox" name="ID_CHECKBOX_Piano_ShowSharps" subclass="BulkEditCheckBox" variable="CheckBox_Piano_ShowSharps" member="yes">
+							<label>Show Sharps and Flats</label>
+							<checked>1</checked>
+						</object>
+						<flag>wxALL|wxEXPAND</flag>
+						<border>2</border>
+						<option>1</option>
+					</object>
+					<object class="sizeritem">
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_Piano_ShowSharps" variable="BitmapButton_Piano_ShowSharps" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
@@ -98,27 +107,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxCheckBox" name="ID_CHECKBOX_Piano_ShowSharps" variable="CheckBox_Piano_ShowSharps" member="yes">
-							<label>Show Sharps and Flats</label>
-							<checked>1</checked>
-						</object>
-						<flag>wxALL|wxEXPAND</flag>
-						<border>2</border>
-						<option>1</option>
-					</object>
-					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Piano_ShowSharps" variable="BitmapButton_Piano_ShowSharps" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
-							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
-						</object>
-						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-						<border>2</border>
-						<option>1</option>
-					</object>
-					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT8" variable="StaticText8" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Piano_MIDITrack_APPLYLAST" variable="StaticText8" member="yes">
 							<label>Track</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -126,7 +115,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxChoice" name="ID_CHOICE_Piano_MIDITrack_APPLYLAST" variable="Choice_Piano_MIDITrack_APPLYLAST" member="yes" />
+						<object class="wxChoice" name="ID_CHOICE_Piano_MIDITrack_APPLYLAST" subclass="BulkEditChoice" variable="Choice_Piano_MIDITrack_APPLYLAST" member="yes" />
 						<flag>wxALL|wxEXPAND</flag>
 						<border>2</border>
 						<option>1</option>
@@ -145,7 +134,7 @@
 					<cols>4</cols>
 					<growablecols>1</growablecols>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT7" variable="StaticText7" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Piano_Scale" variable="StaticText7" member="yes">
 							<label>Vertical Scale</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -157,17 +146,16 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="ID_SLIDER_Piano_Scale" variable="Slider_Piano_Scale" member="yes">
+								<object class="wxSlider" name="ID_SLIDER_Piano_Scale" subclass="BulkEditSlider" variable="Slider_Piano_Scale" member="yes">
 									<value>100</value>
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Piano_Scale" subclass="ValueCurveButton" variable="BitmapButton_Piano_ScaleVC" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Piano_Scale" subclass="BulkEditValueCurveButton" variable="BitmapButton_Piano_ScaleVC" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -177,32 +165,24 @@
 							</object>
 						</object>
 						<flag>wxALL|wxEXPAND</flag>
-						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Piano_Scale" variable="TextCtrl_Piano_Scale" member="yes">
+						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Piano_Scale" subclass="BulkEditTextCtrl" variable="TextCtrl_Piano_Scale" member="yes">
 							<value>100</value>
-							<size>44,24</size>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
+							<size>25,-1d</size>
 						</object>
 						<flag>wxALL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
-					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Piano_Scale" variable="BitmapButton_Piano_scale" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
-							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
-						</object>
+					<object class="spacer">
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-						<border>2</border>
+						<border>5</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT9" variable="StaticText9" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Piano_XOffset" variable="StaticText9" member="yes">
 							<label>Horizontal Offset</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -210,30 +190,21 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSlider" name="ID_SLIDER_Piano_XOffset" variable="Slider_Piano_XOffset" member="yes">
-							<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
-						</object>
+						<object class="wxSlider" name="ID_SLIDER_Piano_XOffset" subclass="BulkEditSlider" variable="Slider_Piano_XOffset" member="yes" />
 						<flag>wxALL|wxEXPAND</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Piano_XOffset" variable="TextCtrl_Piano_XOffset" member="yes">
+						<object class="wxTextCtrl" name="IDD_TEXTCTRL_Piano_XOffset" subclass="BulkEditTextCtrl" variable="TextCtrl_Piano_XOffset" member="yes">
 							<value>0</value>
-							<size>44,24</size>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
+							<size>25,-1d</size>
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
-					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Piano_XOffset" variable="BitmapButton_Piano_XOffset" member="yes">
-							<bitmap code="padlock16x16_blue_xpm" />
-							<size>13,13</size>
-							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
-							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
-						</object>
+					<object class="spacer">
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>5</border>
 						<option>1</option>

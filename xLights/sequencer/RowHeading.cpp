@@ -1,11 +1,20 @@
+#include <wx/wx.h>
+#include <wx/brush.h>
+#include <wx/numdlg.h>
+
 #include "RowHeading.h"
-#include "wx/wx.h"
-#include "wx/brush.h"
-#include "../xLightsMain.h"
 #include "../xLightsVersion.h"
 #include "../BitmapCache.h"
-#include <wx/numdlg.h>
 #include "models/ModelGroup.h"
+#include "../SelectTimingsDialog.h"
+#include "models/SubModel.h"
+#include "ColorManager.h"
+#include "SequenceElements.h"
+#include "../xLightsMain.h"
+#include "NewTimingDialog.h"
+#include "VAMPPluginDialog.h"
+
+#include <log4cpp/Category.hh>
 
 #define ICON_SPACE 25
 
@@ -33,12 +42,19 @@ const long RowHeading::ID_ROW_MNU_EXPORT_RENDERED_MODEL = wxNewId();
 const long RowHeading::ID_ROW_MNU_EDIT_DISPLAY_ELEMENTS = wxNewId();
 const long RowHeading::ID_ROW_MNU_TOGGLE_STRANDS = wxNewId();
 const long RowHeading::ID_ROW_MNU_SHOW_EFFECTS = wxNewId();
-const long RowHeading::ID_ROW_MNU_COLLAPSEALL = wxNewId();
+const long RowHeading::ID_ROW_MNU_COLLAPSEALLMODELS = wxNewId();
+const long RowHeading::ID_ROW_MNU_COLLAPSEALLLAYERS = wxNewId();
 const long RowHeading::ID_ROW_MNU_TOGGLE_NODES = wxNewId();
 const long RowHeading::ID_ROW_MNU_CONVERT_TO_EFFECTS = wxNewId();
 const long RowHeading::ID_ROW_MNU_PROMOTE_EFFECTS = wxNewId();
 const long RowHeading::ID_ROW_MNU_COPY_ROW = wxNewId();
+const long RowHeading::ID_ROW_MNU_COPY_MODEL = wxNewId();
 const long RowHeading::ID_ROW_MNU_PASTE_ROW = wxNewId();
+const long RowHeading::ID_ROW_MNU_PASTE_MODEL = wxNewId();
+const long RowHeading::ID_ROW_MNU_DELETE_ROW_EFFECTS = wxNewId();
+const long RowHeading::ID_ROW_MNU_DELETE_MODEL_EFFECTS = wxNewId();
+const long RowHeading::ID_ROW_MNU_SELECT_ROW_EFFECTS = wxNewId();
+const long RowHeading::ID_ROW_MNU_SELECT_MODEL_EFFECTS = wxNewId();
 
 // Timing Track popup menu
 const long RowHeading::ID_ROW_MNU_ADD_TIMING_TRACK = wxNewId();
@@ -58,10 +74,19 @@ RowHeading::RowHeading(MainSequencer* parent, wxWindowID id, const wxPoint &pos,
                        long style, const wxString &name):
                        wxWindow((wxWindow*)parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
 {
+    log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    logger_base.debug("                Creating RowHeading");
+
     DOUBLE_BUFFER(this);
     wxString tooltip;
-    papagayo_icon = BitmapCache::GetPapgayoIcon(tooltip, 16, false);
-    model_group_icon = BitmapCache::GetModelGroupIcon(tooltip, 16, false);
+#ifdef __WXOSX__
+    bool exact = false;
+#else
+    bool exact = true;
+#endif
+    papagayo_icon = BitmapCache::GetPapgayoIcon(tooltip, 16, exact);
+    papagayox_icon = BitmapCache::GetPapgayoXIcon(tooltip, 16, exact);
+    model_group_icon = BitmapCache::GetModelGroupIcon(tooltip, 16, exact);
     mCanPaste = false;
 }
 
@@ -77,17 +102,23 @@ void RowHeading::ProcessTooltip(wxMouseEvent& event)
         Element* e = mSequenceElements->GetVisibleRowInformation(mSelectedRow)->element;
         if (e != nullptr)
         {
+            wxString layers;
+            if (e->GetType() != ELEMENT_TYPE_TIMING && e->GetEffectLayerCount() > 1)
+            {
+                layers = wxString::Format(" [%d]", (int)e->GetEffectLayerCount());
+            }
+
             wxClientDC dc(this);
-            wxSize size = dc.GetTextExtent(e->GetName());
+            wxSize size = dc.GetTextExtent(e->GetName() + layers);
 
             // Only set tooltip if the text looks too big to display correctly
             if (size.x > getWidth() - DEFAULT_ROW_HEADING_MARGIN - ICON_SPACE)
             {
                 auto s1 = GetToolTipText().ToStdString();
                 auto s2 = e->GetName();
-                if (GetToolTipText() != e->GetName())
+                if (GetToolTipText() != e->GetName() + layers)
                 {
-                    SetToolTip(e->GetName());
+                    SetToolTip(e->GetName() + layers);
                 }
             }
             else
@@ -158,6 +189,41 @@ void RowHeading::mouseLeftDown( wxMouseEvent& event)
     }
 }
 
+void RowHeading::ToggleExpand(Element* element)
+{
+    if (element->GetType() == ELEMENT_TYPE_MODEL) {
+        ModelElement *me = dynamic_cast<ModelElement *>(element);
+        me->ShowStrands(!me->ShowStrands());
+        wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
+        eventRowHeaderChanged.SetString(element->GetModelName());
+        wxPostEvent(GetParent(), eventRowHeaderChanged);
+    }
+    else if (element->GetType() == ELEMENT_TYPE_SUBMODEL) {
+
+    }
+    else if (element->GetType() == ELEMENT_TYPE_STRAND) {
+        StrandElement *se = dynamic_cast<StrandElement *>(element);
+        se->ShowNodes(!se->ShowNodes());
+
+        wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
+        eventRowHeaderChanged.SetString(element->GetName());
+        wxPostEvent(GetParent(), eventRowHeaderChanged);
+    }
+    else if (element->GetType() == ELEMENT_TYPE_TIMING) {
+        if (element->GetEffectLayerCount() > 1) {
+            if (element->GetCollapsed()) {
+                element->SetCollapsed(false);
+            }
+            else {
+                element->SetCollapsed(true);
+            }
+            wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
+            eventRowHeaderChanged.SetString(element->GetName());
+            wxPostEvent(GetParent(), eventRowHeaderChanged);
+        }
+    }
+}
+
 void RowHeading::leftDoubleClick(wxMouseEvent& event)
 {
     mSelectedRow = event.GetY()/DEFAULT_ROW_HEADING_HEIGHT;
@@ -167,34 +233,9 @@ void RowHeading::leftDoubleClick(wxMouseEvent& event)
     Row_Information_Struct *ri =  mSequenceElements->GetVisibleRowInformation(mSelectedRow);
     Element* element = ri->element;
 
-    if (element->GetType() == ELEMENT_TYPE_MODEL) {
-        ModelElement *me = dynamic_cast<ModelElement *>(element);
-        me->ShowStrands(!me->ShowStrands());
-        wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
-        eventRowHeaderChanged.SetString(element->GetModelName());
-        wxPostEvent(GetParent(), eventRowHeaderChanged);
-    } else if (element->GetType() == ELEMENT_TYPE_SUBMODEL) {
-
-    } else if (element->GetType() == ELEMENT_TYPE_STRAND) {
-        StrandElement *se = dynamic_cast<StrandElement *>(element);
-        se->ShowNodes(!se->ShowNodes());
-
-        wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
-        eventRowHeaderChanged.SetString(element->GetName());
-        wxPostEvent(GetParent(), eventRowHeaderChanged);
-    } else if (element->GetType() == ELEMENT_TYPE_TIMING) {
-        if (element->GetEffectLayerCount() > 1) {
-            if(element->GetCollapsed()) {
-                element->SetCollapsed(false);
-            } else {
-                element->SetCollapsed(true);
-            }
-            wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
-            eventRowHeaderChanged.SetString(element->GetName());
-            wxPostEvent(GetParent(), eventRowHeaderChanged);
-        }
-    }
+    ToggleExpand(element);
 }
+
 void RowHeading::rightClick( wxMouseEvent& event)
 {
     wxMenu mnuLayer;
@@ -223,16 +264,12 @@ void RowHeading::rightClick( wxMouseEvent& event)
             }
             mnuLayer.AppendSeparator();
         }
-        mnuLayer.Append(ID_ROW_MNU_PLAY_MODEL,"Play Model");
-        mnuLayer.Append(ID_ROW_MNU_EXPORT_MODEL,"Export Model");
-        mnuLayer.Append(ID_ROW_MNU_EXPORT_RENDERED_MODEL, "Render and Export Model");
-        mnuLayer.AppendSeparator();
         bool canPromote = false;
         ModelElement *me = dynamic_cast<ModelElement *>(element);
         if (element->GetType()==ELEMENT_TYPE_STRAND || element->GetType()==ELEMENT_TYPE_SUBMODEL) {
             me = dynamic_cast<SubModelElement *>(element)->GetModelElement();
         }
-        if (me->GetSubModelCount() > 0) {
+        if (me->GetSubModelAndStrandCount() > 0) {
             if (element->GetType() != ELEMENT_TYPE_SUBMODEL) {
                 canPromote = true;
             }
@@ -244,7 +281,8 @@ void RowHeading::rightClick( wxMouseEvent& event)
             mnuLayer.Append(ID_ROW_MNU_TOGGLE_STRANDS,"Toggle Models");
         }
         mnuLayer.Append(ID_ROW_MNU_SHOW_EFFECTS, "Show All Effects");
-        mnuLayer.Append(ID_ROW_MNU_COLLAPSEALL, "Collapse All");
+        mnuLayer.Append(ID_ROW_MNU_COLLAPSEALLMODELS, "Collapse All Models");
+        mnuLayer.Append(ID_ROW_MNU_COLLAPSEALLLAYERS, "Collapse All Layers");
         if (ri->nodeIndex > -1) {
             StrandElement *se = dynamic_cast<StrandElement*>(element);
             if (se && se->GetNodeLayer(ri->nodeIndex)->GetEffectCount() == 0) {
@@ -255,11 +293,28 @@ void RowHeading::rightClick( wxMouseEvent& event)
             mnuLayer.Append(ID_ROW_MNU_PROMOTE_EFFECTS, "Promote Node Effects");
         }
         mnuLayer.AppendSeparator();
-        mnuLayer.Append(ID_ROW_MNU_COPY_ROW,"Copy Row");
-        wxMenuItem* menu_paste = mnuLayer.Append(ID_ROW_MNU_PASTE_ROW,"Paste Row");
+
+        wxMenu* rowMenu = new wxMenu();
+        wxMenu* modelMenu = new wxMenu();
+        modelMenu->Append(ID_ROW_MNU_PLAY_MODEL, "Play");
+        modelMenu->Append(ID_ROW_MNU_EXPORT_MODEL, "Export");
+        modelMenu->Append(ID_ROW_MNU_EXPORT_RENDERED_MODEL, "Render and Export");
+        rowMenu->Append(ID_ROW_MNU_SELECT_ROW_EFFECTS, "Select Effects");
+        modelMenu->Append(ID_ROW_MNU_SELECT_MODEL_EFFECTS, "Select Effects");
+        rowMenu->Append(ID_ROW_MNU_COPY_ROW, "Copy Effects");
+        modelMenu->Append(ID_ROW_MNU_COPY_MODEL, "Copy Effects");
+        wxMenuItem* menu_paste = rowMenu->Append(ID_ROW_MNU_PASTE_ROW, "Paste Effects");
+        wxMenuItem* menu_pastem = modelMenu->Append(ID_ROW_MNU_PASTE_MODEL, "Paste Effects");
         if (!mCanPaste) {
             menu_paste->Enable(false);
+            menu_pastem->Enable(false);
         }
+        rowMenu->Append(ID_ROW_MNU_DELETE_ROW_EFFECTS, "Delete Effects");
+        modelMenu->Append(ID_ROW_MNU_DELETE_MODEL_EFFECTS, "Delete Effects");
+        mnuLayer.AppendSubMenu(modelMenu, "Model");
+        mnuLayer.AppendSubMenu(rowMenu, "Row");
+        rowMenu->Connect(wxEVT_MENU, (wxObjectEventFunction)&RowHeading::OnLayerPopup, nullptr, this);
+        modelMenu->Connect(wxEVT_MENU, (wxObjectEventFunction)&RowHeading::OnLayerPopup, nullptr, this);
     }
     else
     {
@@ -294,12 +349,11 @@ void RowHeading::rightClick( wxMouseEvent& event)
 void RowHeading::OnLayerPopup(wxCommandEvent& event)
 {
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
-    Row_Information_Struct *ri = mSequenceElements->GetVisibleRowInformation(mSelectedRow);
 
+    Row_Information_Struct *ri = mSequenceElements->GetVisibleRowInformation(mSelectedRow);
     if (ri == nullptr || mSequenceElements == nullptr) return;
 
     Element* element = ri->element;
-
     if (element == nullptr) return;
 
     int layer_index = ri->layerIndex;
@@ -349,77 +403,84 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
     }
     else if (id == ID_ROW_MNU_DELETE_LAYER)
     {
-        int layerIndex = mSequenceElements->GetVisibleRowInformation(mSelectedRow)->layerIndex;
-
-        int answer = wxYES;
-
-        // only prompt the user if there are effects on the layer
-        if (element->GetEffectLayer(layerIndex)->GetEffectCount() > 0)
+        logger_base.debug("RowHeading::OnLayerPopup Deleting layer.");
+        if (mSequenceElements->GetVisibleRowInformation(mSelectedRow) != nullptr)
         {
-            wxString prompt = wxString::Format("Layer contains one or more effects. Are you sure you want to delete 'Layer %d' of '%s'?",
-                layerIndex + 1, element->GetModelName());
-            wxString caption = "Confirm Layer Deletion";
+            int layerIndex = mSequenceElements->GetVisibleRowInformation(mSelectedRow)->layerIndex;
 
-            answer = wxMessageBox(prompt, caption, wxYES_NO);
-        }
+            int answer = wxYES;
 
-        if(answer == wxYES)
-        {
-            element->RemoveEffectLayer(layerIndex);
-            wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
-            wxPostEvent(GetParent(), eventRowHeaderChanged);
+            // only prompt the user if there are effects on the layer
+            if (element->GetEffectLayer(layerIndex)->GetEffectCount() > 0)
+            {
+                wxString prompt = wxString::Format("Layer contains one or more effects. Are you sure you want to delete 'Layer %d' of '%s'?",
+                    layerIndex + 1, element->GetModelName());
+                wxString caption = "Confirm Layer Deletion";
+
+                answer = wxMessageBox(prompt, caption, wxYES_NO);
+            }
+
+            if (answer == wxYES)
+            {
+                element->RemoveEffectLayer(layerIndex);
+                wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
+                wxPostEvent(GetParent(), eventRowHeaderChanged);
+            }
         }
     }
 	else if (id == ID_ROW_MNU_DELETE_LAYERS)
 	{
-		int layerIndex = mSequenceElements->GetVisibleRowInformation(mSelectedRow)->layerIndex;
-		int bottomLayer = element->GetEffectLayerCount();
+        logger_base.debug("RowHeading::OnLayerPopup Deleting layers.");
+        if (mSequenceElements->GetVisibleRowInformation(mSelectedRow) != nullptr)
+        {
+            int layerIndex = mSequenceElements->GetVisibleRowInformation(mSelectedRow)->layerIndex;
+            int bottomLayer = element->GetEffectLayerCount();
 
-		int numtoDelete = wxGetNumberFromUser("Enter number of layers to delete", "Layers", "Delete multiple layers", bottomLayer - layerIndex, 1, bottomLayer - layerIndex, this);
+            int numtoDelete = wxGetNumberFromUser("Enter number of layers to delete", "Layers", "Delete multiple layers", bottomLayer - layerIndex, 1, bottomLayer - layerIndex, this);
 
 
-		if (numtoDelete > 0)
-		{
-			int startDeleteLayer = layerIndex + (numtoDelete - 1);
+            if (numtoDelete > 0)
+            {
+                int startDeleteLayer = layerIndex + (numtoDelete - 1);
 
-			bool containsEffects = false;
-			bool deleteLayers = true;
-			for (int deleteLayer = startDeleteLayer; deleteLayer >= layerIndex; deleteLayer--)
-			{
-				//Check for effects
-				if (element->GetEffectLayer(deleteLayer)->GetEffectCount() > 0)
-				{
-					containsEffects = true;
-					break;
-				}
-			}
+                bool containsEffects = false;
+                bool deleteLayers = true;
+                for (int deleteLayer = startDeleteLayer; deleteLayer >= layerIndex; deleteLayer--)
+                {
+                    //Check for effects
+                    if (element->GetEffectLayer(deleteLayer)->GetEffectCount() > 0)
+                    {
+                        containsEffects = true;
+                        break;
+                    }
+                }
 
-			if (containsEffects == true)
-			{
-				wxString prompt = wxString::Format("One or more layers contain effects.  Delete?");
-				wxString caption = "Confirm Layer Deletion";
+                if (containsEffects == true)
+                {
+                    wxString prompt = wxString::Format("One or more layers contain effects.  Delete?");
+                    wxString caption = "Confirm Layer Deletion";
 
-				int answer = wxMessageBox(prompt, caption, wxYES_NO);
-				if (answer == wxNO)
-				{
-					deleteLayers = false;
-				}
-			}
-			if (deleteLayers == true)
-			{
-				for (int deleteLayer = startDeleteLayer; deleteLayer >= layerIndex; deleteLayer--)
-				{
-					element->RemoveEffectLayer(deleteLayer);
-				}
+                    int answer = wxMessageBox(prompt, caption, wxYES_NO);
+                    if (answer == wxNO)
+                    {
+                        deleteLayers = false;
+                    }
+                }
+                if (deleteLayers == true)
+                {
+                    for (int deleteLayer = startDeleteLayer; deleteLayer >= layerIndex; deleteLayer--)
+                    {
+                        element->RemoveEffectLayer(deleteLayer);
+                    }
 
-				//Add a new layer if the topmost layer was removed
-				if(layerIndex==0)element->AddEffectLayer();
+                    //Add a new layer if the topmost layer was removed
+                    if (layerIndex == 0)element->AddEffectLayer();
 
-				wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
-				wxPostEvent(GetParent(), eventRowHeaderChanged);
-			}
-
-		}
+                    wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
+                    wxPostEvent(GetParent(), eventRowHeaderChanged);
+                }
+            }
+        }
 	}
     else if (id == ID_ROW_MNU_DELETE_UNUSEDLAYERS)
     {
@@ -453,36 +514,83 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
     }
     else if(id == ID_ROW_MNU_ADD_TIMING_TRACK)
     {
-        std::string name = wxGetTextFromUser("What is name of new timing track?", "Timing Track Name").ToStdString();
-        if( mSequenceElements->ElementExists(name) )
+        bool timing_added = false;
+        xLightsXmlFile* xml_file;
+        xml_file = mSequenceElements->GetXLightsFrame()->CurrentSeqXmlFile;
+        NewTimingDialog dialog(this);
+        dialog.Fit();
+        if(xml_file->GetFrequency() < 40)
         {
-            wxMessageBox("Timing name already exists in sequence as a model or another timing.", "ERROR");
+            dialog.RemoveChoice("25ms");
         }
-        else if(name.size()>0)
+        if(xml_file->GetFrequency() < 20)
         {
-            // Deactivate active timing mark so new one is selected;
-            mSequenceElements->DeactivateAllTimingElements();
-            int timingCount = mSequenceElements->GetNumberOfTimingElements();
-            Element* e = mSequenceElements->AddElement(timingCount,name,
-                                                       "timing",true,false,true,false);
-            e->AddEffectLayer();
+            dialog.RemoveChoice("50ms");
+        }
 
-            int adjViews = (mSequenceElements->GetCurrentView() == MASTER_VIEW) ? -1 : -2;
-            if (mSequenceElements->GetViewCount() + adjViews > 0 && mSequenceElements->GetCurrentView() == MASTER_VIEW)
+        VAMPPluginDialog vamp(this);
+        std::list<std::string> plugins;
+        if (xml_file->HasAudioMedia())
+        {
+            plugins = xml_file->GetMedia()->GetVamp()->GetAvailablePlugins(xml_file->GetMedia());
+            for (std::list<std::string>::const_iterator it = plugins.begin(); it != plugins.end(); ++it)
             {
-                if (wxMessageBox("Do you want to add this timing track to all views?", "Add to all views.", wxYES_NO) == wxYES)
+                dialog.Choice_New_Fixed_Timing->Append(*it);
+            }
+        }
+
+        dialog.Fit();
+
+        wxString name = "";
+        if (dialog.ShowModal() == wxID_OK)
+        {
+            std::string selected_timing = dialog.GetTiming().ToStdString();
+            if (std::find(plugins.begin(), plugins.end(), selected_timing) != plugins.end())
+            {
+                name = vamp.ProcessPlugin(xml_file, mSequenceElements->GetXLightsFrame(), selected_timing, xml_file->GetMedia());
+                if( name != "" ) {
+                    timing_added = true;
+                }
+            }
+            else if( !xml_file->TimingAlreadyExists(selected_timing, mSequenceElements->GetXLightsFrame()) )
+            {
+                name = selected_timing;
+                if (selected_timing == "Metronome")
                 {
-                    mSequenceElements->AddTimingToAllViews(name);
+                    int base_timing = xml_file->GetFrameMS();
+                    wxNumberEntryDialog dlg(this, "Enter metronome timing", "Milliseconds", "Metronome timing", base_timing, base_timing, 60000);
+                    if (dlg.ShowModal() == wxID_OK)
+                    {
+                        int ms = (dlg.GetValue() + base_timing / 2) / base_timing * base_timing;
+
+                        if (ms != dlg.GetValue())
+                        {
+                            wxString msg = wxString::Format("Timing adjusted to match sequence timing %dms -> %dms", dlg.GetValue(), ms);
+                            wxMessageBox(msg);
+                        }
+                        wxString ttn = wxString::Format("%dms Metronome", ms);
+                        if (!xml_file->TimingAlreadyExists(ttn.ToStdString(), mSequenceElements->GetXLightsFrame()))
+                        {
+                            xml_file->AddFixedTimingSection(ttn.ToStdString(), mSequenceElements->GetXLightsFrame());
+                            timing_added = true;
+                        }
+                    }
                 }
                 else
                 {
-                    mSequenceElements->AddTimingToCurrentView(name);
+                    xml_file->AddFixedTimingSection(selected_timing, mSequenceElements->GetXLightsFrame());
+                    timing_added = true;
                 }
             }
             else
             {
-                mSequenceElements->AddTimingToCurrentView(name);
+                wxMessageBox(wxString::Format("Fixed Timing section %s already exists!", selected_timing), "Error", wxICON_ERROR | wxOK);
             }
+        }
+        dialog.Destroy();
+
+        if(timing_added)
+        {
             wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
             wxPostEvent(GetParent(), eventRowHeaderChanged);
         }
@@ -527,27 +635,63 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
         wxString filename = wxFileSelector(_("Choose output file"), wxEmptyString, element->GetModelName(), wxEmptyString, filetypes, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
         if (filename.IsEmpty()) return;
         wxFileName fn(filename);
-        static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
         TimingElement *te = dynamic_cast<TimingElement *>(element);
         if (fn.GetExt().Lower() == "xtiming")
         {
-            wxFile f(filename);
-            logger_base.info("Saving to xtiming file %s.", (const char *)filename.c_str());
-            if (!f.Create(filename, true) || !f.IsOpened())
+            SelectTimingsDialog dlg(this);
+
+            for (int i = 0; i < mSequenceElements->GetNumberOfTimingElements(); i++)
             {
-                logger_base.info("Unable to create file %s. Error %d\n", (const char *)filename.c_str(), f.GetLastError());
-                wxMessageBox(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()));
-                return;
+                TimingElement* te2 = mSequenceElements->GetTimingElement(i);
+                dlg.CheckListBox_Timings->Insert(te2->GetName(), i);
+                if (te2->GetName() == element->GetName())
+                {
+                    dlg.CheckListBox_Timings->Check(i);
+                }
             }
-            wxString name = wxFileName(filename).GetName();
-            wxString td = wxString(te->GetExport().c_str());
-            wxString v = xlights_version_string;
-            f.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<timing ");
-            f.Write(wxString::Format("name=\"%s\" ", name));
-            f.Write(wxString::Format("SourceVersion=\"%s\">\n", v));
-            f.Write(td);
-            f.Write("</timing>\n");
-            f.Close();
+
+            if (mSequenceElements->GetNumberOfTimingElements() == 1  || dlg.ShowModal() == wxID_OK)
+            {
+                wxArrayInt sel;
+                dlg.CheckListBox_Timings->GetCheckedItems(sel);
+
+                if (sel.size() > 0)
+                {
+                    wxFile f(filename);
+                    logger_base.info("Saving to xtiming file %s.", (const char *)filename.c_str());
+                    if (!f.Create(filename, true) || !f.IsOpened())
+                    {
+                        logger_base.info("Unable to create file %s. Error %d\n", (const char *)filename.c_str(), f.GetLastError());
+                        wxMessageBox(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()));
+                        return;
+                    }
+                    wxString v = xlights_version_string;
+                    f.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+                    if (sel.size() > 1)
+                    {
+                        f.Write("<timings>\n");
+                    }
+                    for (size_t i = 0; i < dlg.CheckListBox_Timings->GetCount(); i++)
+                    {
+                        if (dlg.CheckListBox_Timings->IsChecked(i))
+                        {
+                            TimingElement *tee = dynamic_cast<TimingElement *>(mSequenceElements->GetElement(dlg.CheckListBox_Timings->GetString(i).ToStdString()));
+
+                            wxString td = wxString(tee->GetExport().c_str());
+                            f.Write("<timing ");
+                            f.Write(wxString::Format("name=\"%s\" ", tee->GetName()));
+                            f.Write(wxString::Format("SourceVersion=\"%s\">\n", v));
+                            f.Write(td);
+                            f.Write("</timing>\n");
+                        }
+                    }
+                    if (sel.size() > 1)
+                    {
+                        f.Write("</timings>\n");
+                    }
+                    f.Close();
+                }
+            }
         }
         else if (fn.GetExt().Lower() == "pgo")
         {
@@ -601,8 +745,73 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
         copyRowEvent.SetInt(mSelectedRow);
         wxPostEvent(GetParent(), copyRowEvent);
         mCanPaste = true;
+    } else if (id == ID_ROW_MNU_COPY_MODEL) {
+        wxCommandEvent copyRowEvent(EVT_COPY_MODEL_EFFECTS);
+        copyRowEvent.SetInt(mSelectedRow);
+        copyRowEvent.SetString("All");
+        wxPostEvent(GetParent(), copyRowEvent);
+        mCanPaste = true;
+    } else if (id == ID_ROW_MNU_DELETE_ROW_EFFECTS) {
+        wxCommandEvent eventUnSelected(EVT_UNSELECTED_EFFECT);
+        m_parent->ProcessWindowEvent(eventUnSelected);
+        mSequenceElements->get_undo_mgr().CreateUndoStep();
+        if (layer_index < element->GetEffectLayerCount())
+        {
+            if (ri->nodeIndex == -1)
+            {
+                element->GetEffectLayer(layer_index)->RemoveAllEffects(&mSequenceElements->get_undo_mgr());
+            }
+            else
+            {
+                StrandElement* se = (StrandElement*)element;
+                NodeLayer* nl = se->GetNodeLayer(ri->nodeIndex, false);
+                if (nl != nullptr)
+                {
+                    nl->RemoveAllEffects(&mSequenceElements->get_undo_mgr());
+                }
+            }
+        }
+    }
+    else if (id == ID_ROW_MNU_SELECT_ROW_EFFECTS) {
+        if (layer_index < element->GetEffectLayerCount())
+        {
+            if (ri->nodeIndex == -1)
+            {
+                element->GetEffectLayer(layer_index)->SelectAllEffects();
+            }
+            else
+            {
+                StrandElement* se = (StrandElement*)element;
+                NodeLayer* nl = se->GetNodeLayer(ri->nodeIndex, false);
+                if (nl != nullptr)
+                {
+                    nl->SelectAllEffects();
+                }
+            }
+        }
+    } else if (id == ID_ROW_MNU_SELECT_MODEL_EFFECTS) {
+        for (int i = 0; i < element->GetEffectLayerCount(); i++)
+        {
+            element->GetEffectLayer(i)->SelectAllEffects();
+        }
+    } else if (id == ID_ROW_MNU_DELETE_MODEL_EFFECTS) {
+        wxCommandEvent eventUnSelected(EVT_UNSELECTED_EFFECT);
+        m_parent->ProcessWindowEvent(eventUnSelected);
+        mSequenceElements->get_undo_mgr().CreateUndoStep();
+        for (int i = 0; i < element->GetEffectLayerCount(); ++i)
+        {
+            while (element->GetEffectLayer(i)->GetEffectCount() > 0)
+            {
+                element->GetEffectLayer(i)->RemoveAllEffects(&mSequenceElements->get_undo_mgr());
+            }
+        }
     } else if (id == ID_ROW_MNU_PASTE_ROW) {
         wxCommandEvent pasteRowEvent(EVT_PASTE_MODEL_EFFECTS);
+        pasteRowEvent.SetInt(mSelectedRow);
+        wxPostEvent(GetParent(), pasteRowEvent);
+    } else if (id == ID_ROW_MNU_PASTE_MODEL) {
+        wxCommandEvent pasteRowEvent(EVT_PASTE_MODEL_EFFECTS);
+        pasteRowEvent.SetString("All");
         pasteRowEvent.SetInt(mSelectedRow);
         wxPostEvent(GetParent(), pasteRowEvent);
     } else if(id==ID_ROW_MNU_EDIT_DISPLAY_ELEMENTS) {
@@ -612,7 +821,7 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
     else if (id == ID_ROW_MNU_TOGGLE_STRANDS) {
         ModelElement *me = dynamic_cast<ModelElement *>(element);
         if (me == nullptr) {
-            StrandElement *se = dynamic_cast<StrandElement *>(element);
+            SubModelElement *se = dynamic_cast<SubModelElement *>(element);
             me = se->GetModelElement();
         }
         if (me != nullptr)
@@ -639,11 +848,11 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
             }
         }
     }
-    else if (id == ID_ROW_MNU_COLLAPSEALL) {
-        logger_base.debug("RowHeading::OnLayerPopup Collapse all.");
+    else if (id == ID_ROW_MNU_COLLAPSEALLMODELS) {
+        logger_base.debug("RowHeading::OnLayerPopup Collapse all models.");
         int view = mSequenceElements->GetCurrentView();
 
-        for (int i = 0;  i < mSequenceElements->GetElementCount(view); ++i)
+        for (int i = 0; i < mSequenceElements->GetElementCount(view); ++i)
         {
             Element* e = mSequenceElements->GetElement(i, view);
             if (e->GetType() != ELEMENT_TYPE_TIMING)
@@ -657,11 +866,25 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
         }
         wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
         wxPostEvent(GetParent(), eventRowHeaderChanged);
-    } else if (id == ID_ROW_MNU_TOGGLE_NODES) {
-        StrandElement *se = dynamic_cast<StrandElement *>(element);
-        se->ShowNodes(!se->ShowNodes());
+    }  else if (id == ID_ROW_MNU_COLLAPSEALLLAYERS) {
+        logger_base.debug("RowHeading::OnLayerPopup Collapse all layers.");
+
+        int view = mSequenceElements->GetCurrentView();
+        for (int i = 0; i < mSequenceElements->GetElementCount(view); ++i)
+        {
+            Element* e = mSequenceElements->GetElement(i, view);
+            e->SetCollapsed(true);
+        }
         wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
         wxPostEvent(GetParent(), eventRowHeaderChanged);
+    } else if (id == ID_ROW_MNU_TOGGLE_NODES) {
+        StrandElement *se = dynamic_cast<StrandElement *>(element);
+        if (se != nullptr)
+        {
+            se->ShowNodes(!se->ShowNodes());
+            wxCommandEvent eventRowHeaderChanged(EVT_ROW_HEADINGS_CHANGED);
+            wxPostEvent(GetParent(), eventRowHeaderChanged);
+        }
     } else if (id == ID_ROW_MNU_CONVERT_TO_EFFECTS) {
         wxCommandEvent evt(EVT_CONVERT_DATA_TO_EFFECTS);
         evt.SetClientData(element);
@@ -689,6 +912,19 @@ bool RowHeading::ExpandElementIfEffects(Element* e)
     if (e == nullptr) return false;
 
     bool hasEffects = false;
+
+	if (e->GetCollapsed())
+	{
+		for (int layer = 0; layer<e->GetEffectLayerCount(); layer++)
+		{
+			EffectLayer* el = e->GetEffectLayer(layer);
+			if (el->GetEffectCount() > 0)
+			{
+				e->SetCollapsed(false);
+				break;
+			}
+		}
+	}
 
     if (e->GetType() == ELEMENT_TYPE_MODEL)
     {
@@ -719,7 +955,7 @@ bool RowHeading::ExpandElementIfEffects(Element* e)
             {
                 hasEffects |= ExpandElementIfEffects(me->GetStrand(i));
             }
-            for (int i = 0; i < me->GetSubModelCount(); ++i)
+            for (int i = 0; i < me->GetSubModelAndStrandCount(); ++i)
             {
                 hasEffects |= ExpandElementIfEffects(me->GetSubModel(i));
             }
@@ -751,7 +987,7 @@ bool RowHeading::ExpandElementIfEffects(Element* e)
     return hasEffects;
 }
 
-bool RowHeading::ModelInView(const std::string& model, int view)
+bool RowHeading::ModelInView(const std::string& model, int view) const
 {
     for (int j = 0; j < mSequenceElements->GetElementCount(view); ++j)
     {
@@ -853,26 +1089,39 @@ void RowHeading::Draw()
 {
     wxClientDC dc(this);
     wxCoord w,h;
-    wxPen penOutline(wxColor(32,32,32), .1);
     dc.GetSize(&w,&h);
-    wxBrush brush(ColorManager::instance()->GetColor(ColorManager::COLOR_ROW_HEADER).asWxColor(),wxBRUSHSTYLE_SOLID);
+    xlColor rowHeaderCol = ColorManager::instance()->GetColor(ColorManager::COLOR_ROW_HEADER);
+    xlColor outlineCol(32, 32, 32);
+    if ((rowHeaderCol.Red() + rowHeaderCol.Blue() + rowHeaderCol.Green()) < 128) {
+        outlineCol.Set(211, 211, 211);
+    }
+    wxPen penOutline(outlineCol.asWxColor(), 0.1);
+
+    wxBrush brush(rowHeaderCol.asWxColor(), wxBRUSHSTYLE_SOLID);
     dc.SetBrush(brush);
     dc.SetPen(penOutline);
-    int row=0;
-    int startY = 0,endY = 0;
-    for(int i =0;i< mSequenceElements->GetVisibleRowInformationSize();i++)
+    int row = 0;
+    int endY = 0;
+
+    for (int i = 0; i< mSequenceElements->GetVisibleRowInformationSize(); i++)
     {
         Row_Information_Struct* rowInfo = mSequenceElements->GetVisibleRowInformation(i);
         wxString prefix;
+        wxString layers;
         if (rowInfo->submodel) {
             prefix = "  ";
         }
+        if (rowInfo->element->GetType() != ELEMENT_TYPE_TIMING && rowInfo->element->GetEffectLayerCount() > 1)
+        {
+            layers = wxString::Format(" [%d]", (int)rowInfo->element->GetEffectLayerCount());
+        }
         wxBrush brush2(GetHeaderColor(rowInfo).asWxColor(),wxBRUSHSTYLE_SOLID);
         dc.SetBrush(brush2);
-        startY = DEFAULT_ROW_HEADING_HEIGHT*row;
+        int startY = DEFAULT_ROW_HEADING_HEIGHT*row;
         endY = DEFAULT_ROW_HEADING_HEIGHT*(row+1);
         dc.SetBackgroundMode(wxTRANSPARENT);
         dc.DrawRectangle(0,startY,w,DEFAULT_ROW_HEADING_HEIGHT);
+        dc.SetTextForeground(ColorManager::instance()->GetColor(ColorManager::COLOR_ROW_HEADER_TEXT).asWxColor());
         if(rowInfo->layerIndex > 0 || rowInfo->strandIndex >= 0)   // If effect layer = 0
         {
             dc.SetPen(*wxLIGHT_GREY_PEN);
@@ -885,27 +1134,71 @@ void RowHeading::Draw()
                 if (name == "") {
                     if (rowInfo->nodeIndex >= 0) {
                         name = wxString::Format("Node %d", rowInfo->nodeIndex + 1);
+                        layers = "";
                     } else {
                         name = wxString::Format("Strand %d", rowInfo->strandIndex + 1);
                     }
-
                 }
                 if (rowInfo->nodeIndex >= 0) {
-                    dc.DrawLabel(prefix + "     " + name,r,wxALIGN_CENTER_VERTICAL|wxALIGN_LEFT);
+                    dc.DrawLabel(prefix + "     " + name + layers,r,wxALIGN_CENTER_VERTICAL|wxALIGN_LEFT);
                 } else if (rowInfo->layerIndex == 0) {
-                    dc.DrawLabel(prefix + "  " + name,r,wxALIGN_CENTER_VERTICAL|wxALIGN_LEFT);
+                    dc.DrawLabel(prefix + "  " + name + layers,r,wxALIGN_CENTER_VERTICAL|wxALIGN_LEFT);
                 }
+                else
+                {
+                    dc.SetPen(*wxBLUE_PEN);
+                    wxString lay = wxString::Format("   [%d]", rowInfo->layerIndex + 1);
+                    dc.DrawLabel(lay, r, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+                }
+            }
+            else
+            {
+                wxRect r(DEFAULT_ROW_HEADING_MARGIN, startY, w - DEFAULT_ROW_HEADING_MARGIN, DEFAULT_ROW_HEADING_HEIGHT);
+                dc.SetPen(*wxBLUE_PEN);
+                wxString lay = wxString::Format("   [%d]", rowInfo->layerIndex + 1);
+                dc.DrawLabel(lay, r, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
             }
             dc.SetPen(penOutline);
             dc.SetBrush(brush2);
         }
         else        // Draw label
         {
+            auto name = rowInfo->element->GetName();
             if (rowInfo->element->GetType() == ELEMENT_TYPE_SUBMODEL) {
                 prefix += "  ";
+
+                // find the parent row so we can work out its type
+                int toprow = mSequenceElements->GetFirstVisibleModelRow();
+                int parent = toprow + rowInfo->RowNumber;
+                bool done = false;
+                while (!done && parent >= 0)
+                {
+                    auto maybeParent = mSequenceElements->GetRowInformationFromRow(parent);
+                    if (maybeParent != nullptr && maybeParent->element->GetType() == ELEMENT_TYPE_MODEL && !maybeParent->submodel)
+                    {
+                        done = true;
+                    }
+                    else
+                    {
+                        parent--;
+                    }
+                }
+
+                if (done)
+                {
+                    Model* pm = mSequenceElements->GetXLightsFrame()->AllModels[mSequenceElements->GetRowInformationFromRow(parent)->element->GetModelName()];
+                    if (pm != nullptr && pm->GetDisplayAs() == "ModelGroup")
+                    {
+                        name = rowInfo->element->GetFullName();
+                        if (prefix.size() >= 3)
+                        {
+                            prefix = prefix.substr(3);
+                        }
+                    }
+                }
             }
             wxRect r(DEFAULT_ROW_HEADING_MARGIN,startY,w-DEFAULT_ROW_HEADING_MARGIN,DEFAULT_ROW_HEADING_HEIGHT);
-            dc.DrawLabel(prefix + rowInfo->element->GetName(),r,wxALIGN_CENTER_VERTICAL|wxALIGN_LEFT);
+            dc.DrawLabel(prefix + name + layers,r,wxALIGN_CENTER_VERTICAL|wxALIGN_LEFT);
         }
 
         if (rowInfo->element->GetType() != ELEMENT_TYPE_TIMING)
@@ -983,7 +1276,11 @@ void RowHeading::Draw()
                 }
                 dc.SetPen(penOutline);
                 dc.SetBrush(brush2);
-                if(rowInfo->element->GetEffectLayerCount() > 1)
+                if(rowInfo->element->GetEffectLayerCount() == 2)
+                {
+                    dc.DrawBitmap(papagayox_icon, getWidth() - ICON_SPACE, startY + 3, true);
+                }
+                else if(rowInfo->element->GetEffectLayerCount() > 2)
                 {
                     dc.DrawBitmap(papagayo_icon, getWidth() - ICON_SPACE, startY + 3, true);
                 }

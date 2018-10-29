@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <wxsmith>
 	<object class="wxFrame" name="xScheduleFrame">
-		<title>xLights Scheduler</title>
+		<title>xSchedule</title>
 		<handler function="OnResize" entry="EVT_SIZE" />
 		<object class="wxFlexGridSizer" variable="FlexGridSizer1" member="yes">
 			<cols>1</cols>
@@ -85,6 +85,7 @@
 						<object class="sizeritem">
 							<object class="Custom" name="ID_CUSTOM1" subclass="BrightnessControl" variable="Brightness" member="yes">
 								<creating_code>$(THIS) = new $(CLASS)($(PARENT),$(ID),$(POS),$(SIZE),$(STYLE),wxDefaultValidator,$(NAME));</creating_code>
+								<style>ZERO</style>
 								<size>32,32</size>
 							</object>
 							<flag>wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
@@ -104,6 +105,7 @@
 						<object class="sizeritem">
 							<object class="Custom" name="ID_CUSTOM2" subclass="VolumeDisplay" variable="Custom_Volume" member="yes">
 								<creating_code>$(THIS) = new $(CLASS)($(PARENT),$(ID),$(POS),$(SIZE),$(STYLE),wxDefaultValidator,$(NAME));</creating_code>
+								<style>ZERO</style>
 								<size>32,32</size>
 								<handler function="OnCustom_VolumeLeftDown" entry="EVT_LEFT_DOWN" />
 							</object>
@@ -128,7 +130,6 @@
 			</object>
 			<object class="sizeritem">
 				<object class="wxSplitterWindow" name="ID_SPLITTERWINDOW1" variable="SplitterWindow1" member="yes">
-					<minsize>10</minsize>
 					<orientation>vertical</orientation>
 					<size>52,39</size>
 					<minsize>10,10</minsize>
@@ -138,66 +139,98 @@
 							<growablecols>0</growablecols>
 							<growablerows>0</growablerows>
 							<object class="sizeritem">
-								<object class="wxTreeCtrl" name="ID_TREECTRL1" variable="TreeCtrl_PlayListsSchedules" member="yes">
-									<image_list>&lt;none&gt;</image_list>
-									<tree_items>
-										<item>TreeCtrl_PlayListsSchedules</item>
-										<item>&lt;none&gt;</item>
-									</tree_items>
-									<items_text>
-										<item2>TreeCtrl_PlayListsSchedules</item2>
-										<item2>&lt;none&gt;</item2>
-									</items_text>
-									<minsize>300,300</minsize>
-									<handler function="OnTreeCtrl_PlayListsSchedulesItemActivated" entry="EVT_TREE_ITEM_ACTIVATED" />
-									<handler function="OnTreeCtrl_PlayListsSchedulesSelectionChanged" entry="EVT_TREE_SEL_CHANGED" />
-									<handler function="OnTreeCtrl_PlayListsSchedulesKeyDown" entry="EVT_TREE_KEY_DOWN" />
-									<handler function="OnTreeCtrl_PlayListsSchedulesItemMenu" entry="EVT_TREE_ITEM_MENU" />
+								<object class="wxSplitterWindow" name="ID_SPLITTERWINDOW2" variable="SplitterWindow2" member="yes">
+									<minsize>10,10</minsize>
+									<object class="wxPanel" name="ID_PANEL6" variable="Panel6" member="yes">
+										<object class="wxFlexGridSizer" variable="FlexGridSizer7" member="no">
+											<cols>1</cols>
+											<growablecols>0</growablecols>
+											<growablerows>0</growablerows>
+											<object class="sizeritem">
+												<object class="wxTreeCtrl" name="ID_TREECTRL1" variable="TreeCtrl_PlayListsSchedules" member="yes">
+													<image_list>&lt;none&gt;</image_list>
+													<tree_items>
+														<item>TreeCtrl_PlayListsSchedules</item>
+														<item>&lt;none&gt;</item>
+													</tree_items>
+													<items_text>
+														<item2>TreeCtrl_PlayListsSchedules</item2>
+														<item2>&lt;none&gt;</item2>
+													</items_text>
+													<minsize>300,300</minsize>
+													<handler function="OnTreeCtrl_PlayListsSchedulesItemActivated" entry="EVT_TREE_ITEM_ACTIVATED" />
+													<handler function="OnTreeCtrl_PlayListsSchedulesSelectionChanged" entry="EVT_TREE_SEL_CHANGED" />
+													<handler function="OnTreeCtrl_PlayListsSchedulesKeyDown" entry="EVT_TREE_KEY_DOWN" />
+													<handler function="OnTreeCtrl_PlayListsSchedulesItemMenu" entry="EVT_TREE_ITEM_MENU" />
+												</object>
+												<flag>wxALL|wxEXPAND|wxFIXED_MINSIZE</flag>
+												<border>5</border>
+												<option>1</option>
+											</object>
+											<object class="sizeritem">
+												<object class="wxBoxSizer" variable="BoxSizer1" member="no">
+													<object class="sizeritem">
+														<object class="wxButton" name="ID_BUTTON1" variable="Button_Add" member="yes">
+															<label>Add</label>
+															<handler function="OnButton_AddClick" entry="EVT_BUTTON" />
+														</object>
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="sizeritem">
+														<object class="wxButton" name="ID_BUTTON2" variable="Button_Edit" member="yes">
+															<label>Edit</label>
+															<handler function="OnButton_EditClick" entry="EVT_BUTTON" />
+														</object>
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="sizeritem">
+														<object class="wxButton" name="ID_BUTTON3" variable="Button_Delete" member="yes">
+															<label>Delete</label>
+															<handler function="OnButton_DeleteClick" entry="EVT_BUTTON" />
+														</object>
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+													<object class="sizeritem">
+														<object class="wxButton" name="ID_BUTTON4" variable="Button_Schedule" member="yes">
+															<label>Schedule</label>
+															<handler function="OnButton_ScheduleClick" entry="EVT_BUTTON" />
+														</object>
+														<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+														<border>5</border>
+														<option>1</option>
+													</object>
+												</object>
+												<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<option>1</option>
+											</object>
+										</object>
+									</object>
+									<object class="wxPanel" name="ID_PANEL7" variable="Panel7" member="yes">
+										<object class="wxFlexGridSizer" variable="FlexGridSizer8" member="no">
+											<cols>1</cols>
+											<growablecols>0</growablecols>
+											<growablerows>0</growablerows>
+											<object class="sizeritem">
+												<object class="wxListView" name="ID_LISTVIEW2" variable="ListView_Ping" member="yes">
+													<style>wxLC_REPORT|wxLC_SINGLE_SEL|wxLC_NO_SORT_HEADER|wxVSCROLL</style>
+													<handler function="OnListView_PingItemActivated" entry="EVT_LIST_ITEM_ACTIVATED" />
+													<handler function="OnListView_PingItemRClick" entry="EVT_LIST_ITEM_RIGHT_CLICK" />
+												</object>
+												<flag>wxALL|wxEXPAND</flag>
+												<border>5</border>
+												<option>1</option>
+											</object>
+										</object>
+									</object>
 								</object>
-								<flag>wxALL|wxEXPAND|wxFIXED_MINSIZE</flag>
-								<border>5</border>
-								<option>1</option>
-							</object>
-							<object class="sizeritem">
-								<object class="wxBoxSizer" variable="BoxSizer1" member="no">
-									<object class="sizeritem">
-										<object class="wxButton" name="ID_BUTTON1" variable="Button_Add" member="yes">
-											<label>Add</label>
-											<handler function="OnButton_AddClick" entry="EVT_BUTTON" />
-										</object>
-										<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-										<border>5</border>
-										<option>1</option>
-									</object>
-									<object class="sizeritem">
-										<object class="wxButton" name="ID_BUTTON2" variable="Button_Edit" member="yes">
-											<label>Edit</label>
-											<handler function="OnButton_EditClick" entry="EVT_BUTTON" />
-										</object>
-										<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-										<border>5</border>
-										<option>1</option>
-									</object>
-									<object class="sizeritem">
-										<object class="wxButton" name="ID_BUTTON3" variable="Button_Delete" member="yes">
-											<label>Delete</label>
-											<handler function="OnButton_DeleteClick" entry="EVT_BUTTON" />
-										</object>
-										<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-										<border>5</border>
-										<option>1</option>
-									</object>
-									<object class="sizeritem">
-										<object class="wxButton" name="ID_BUTTON4" variable="Button_Schedule" member="yes">
-											<label>Schedule</label>
-											<handler function="OnButton_ScheduleClick" entry="EVT_BUTTON" />
-										</object>
-										<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
-										<border>5</border>
-										<option>1</option>
-									</object>
-								</object>
-								<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+								<flag>wxALL|wxEXPAND</flag>
 								<border>5</border>
 								<option>1</option>
 							</object>
@@ -235,7 +268,7 @@
 				<object class="wxPanel" name="ID_PANEL4" variable="Panel4" member="yes">
 					<style>wxRAISED_BORDER|wxTAB_TRAVERSAL</style>
 					<object class="wxFlexGridSizer" variable="FlexGridSizer6" member="no">
-						<cols>2</cols>
+						<cols>6</cols>
 						<growablecols>1</growablecols>
 						<object class="sizeritem">
 							<object class="wxStaticText" name="ID_STATICTEXT1" variable="StaticText_ShowDir" member="yes">
@@ -246,10 +279,43 @@
 							<option>1</option>
 						</object>
 						<object class="sizeritem">
+							<object class="wxStaticText" name="ID_STATICTEXT3" variable="StaticText_IP" member="yes">
+								<label></label>
+							</object>
+							<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+							<border>5</border>
+							<option>1</option>
+						</object>
+						<object class="sizeritem">
+							<object class="wxStaticText" name="ID_STATICTEXT4" variable="StaticText_PacketsPerSec" member="yes">
+								<label>Packets/Sec: 0          </label>
+							</object>
+							<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+							<border>5</border>
+							<option>1</option>
+						</object>
+						<object class="sizeritem">
+							<object class="wxStaticText" name="ID_STATICTEXT5" variable="StaticText2" member="yes">
+								<label></label>
+							</object>
+							<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
+							<border>5</border>
+							<option>1</option>
+						</object>
+						<object class="sizeritem">
 							<object class="wxStaticText" name="ID_STATICTEXT2" variable="StaticText_Time" member="yes">
 								<label></label>
 							</object>
 							<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+							<border>5</border>
+							<option>1</option>
+						</object>
+						<object class="sizeritem">
+							<object class="wxStaticBitmap" name="ID_STATICBITMAP1" variable="StaticBitmap_WebIcon" member="yes">
+								<size>24,24</size>
+								<style>0</style>
+							</object>
+							<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 							<border>5</border>
 							<option>1</option>
 						</object>
@@ -300,6 +366,10 @@
 					<label>&amp;Virtual Matrices</label>
 					<handler function="OnMenuItem_VirtualMatricesSelected" entry="EVT_MENU" />
 				</object>
+				<object class="wxMenuItem" name="ID_MNU_EDITEVENTS" variable="MenuItem_EditEvents" member="yes">
+					<label>&amp;Events</label>
+					<handler function="OnMenuItem_EditEventsSelected" entry="EVT_MENU" />
+				</object>
 				<object class="wxMenuItem" name="ID_MNU_OPTIONS" variable="MenuItem_Options" member="yes">
 					<label>&amp;Options</label>
 					<handler function="OnMenuItem_OptionsSelected" entry="EVT_MENU" />
@@ -323,6 +393,11 @@
 					<label>Import xLights Playlist</label>
 					<handler function="OnMenuItem_ImportxLightsSelected" entry="EVT_MENU" />
 				</object>
+				<object class="wxMenuItem" name="ID_MNU_CRASH" variable="MenuItem_Crash" member="yes">
+					<label>Crash</label>
+					<help>Crash xSchedule</help>
+					<handler function="OnMenuItem_CrashSelected" entry="EVT_MENU" />
+				</object>
 			</object>
 			<object class="wxMenu" variable="Menu4" member="yes">
 				<label>&amp;Modes</label>
@@ -336,10 +411,63 @@
 					<handler function="OnMenuItem_FPPMasterSelected" entry="EVT_MENU" />
 					<radio>1</radio>
 				</object>
+				<object class="wxMenuItem" name="ID_MNU_OSCMASTER" variable="MenuItem_OSCMaster" member="yes">
+					<label>OSC Master</label>
+					<handler function="OnMenuItem_OSCMasterSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_OSCFPPMASTER" variable="MenuItem_FPPOSCMaster" member="yes">
+					<label>FPP + OSC Master</label>
+					<handler function="OnMenuItem_FPPOSCMasterSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="IDM_MNU_ARTNETMASTER" variable="MenuItem_ARTNetTimeCodeMaster" member="yes">
+					<label>ARTNet Timecode Master</label>
+					<handler function="OnMenuItem_ARTNetTimeCodeMasterSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="MNU_MIDITIMECODE_MASTER" variable="MenuItem_MIDITimeCodeMaster" member="yes">
+					<label>MIDI Timecode Master</label>
+					<handler function="OnMenuItem_MIDITimeCodeMasterSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
 				<object class="wxMenuItem" name="ID_MNU_FPPREMOTE" variable="MenuItem_FPPRemote" member="yes">
 					<label>FPP Remote</label>
 					<handler function="OnMenuItem_FPPRemoteSelected" entry="EVT_MENU" />
 					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_OSCREMOTE" variable="MenuItem_OSCRemote" member="yes">
+					<label>OSC Remote</label>
+					<handler function="OnMenuItem_OSCRemoteSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_ARTNETTIMECODESLAVE" variable="MenuItem_ARTNetTimeCodeSlave" member="yes">
+					<label>ARTNet Timecode Slave</label>
+					<handler function="OnMenuItem_ARTNetTimeCodeSlaveSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="MNU_MIDITIMECODEREMOTE" variable="MenuItem_MIDITimeCodeSlave" member="yes">
+					<label>MIDI Timecode Slave</label>
+					<handler function="OnMenuItem_MIDITimeCodeSlaveSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_FPPUNICASTREMOTE" variable="MenuItem_FPPUnicastRemote" member="yes">
+					<label>FPP Unicast Remote</label>
+					<handler function="OnMenuItem_FPPUnicastRemoteSelected" entry="EVT_MENU" />
+					<radio>1</radio>
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_EDITFPPREMOTE" variable="MenuItem_EditFPPRemotes" member="yes">
+					<label>Edit FPP Remotes</label>
+					<help>Edit remotes to unicast sync packets to</help>
+					<handler function="OnMenuItem_EditFPPRemotesSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="ID_MNU_OSCOPTION" variable="MenuItem_ConfigureOSC" member="yes">
+					<label>Configure OSC</label>
+					<handler function="OnMenuItem_ConfigureOSCSelected" entry="EVT_MENU" />
+				</object>
+				<object class="wxMenuItem" name="MNU_CONFIGUREMIDITIMECODE" variable="MenuItem5MenuItem_ConfigureMIDITimecode" member="yes">
+					<label>Configure MIDI Timecode</label>
+					<handler function="OnMenuItem5MenuItem_ConfigureMIDITimecodeSelected" entry="EVT_MENU" />
 				</object>
 			</object>
 			<object class="wxMenu" variable="Menu2" member="no">
@@ -364,7 +492,7 @@
 			<interval>500000</interval>
 			<handler function="On_timerTrigger" entry="EVT_TIMER" />
 		</object>
-		<object class="wxTimer" name="ID_TIMER2" variable="_timerSchedule" member="yes">
+		<object class="wxTimer" name="ID_TIMER2" subclass="xLightsTimer" variable="_timerSchedule" member="yes">
 			<interval>50000</interval>
 			<handler function="On_timerScheduleTrigger" entry="EVT_TIMER" />
 		</object>

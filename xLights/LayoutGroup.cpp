@@ -1,4 +1,3 @@
-
 #include <wx/wx.h>
 #include <wx/xml/xml.h>
 
@@ -6,6 +5,9 @@
 #include "xLightsMain.h"
 #include "models/Model.h"
 #include "PreviewPane.h"
+#include "ModelPreview.h"
+
+#include <log4cpp/Category.hh>
 
 LayoutGroup::LayoutGroup(const std::string & name, xLightsFrame* xl, wxXmlNode *node)
 : mName(name), mScaleBackgroundImage(false), mBackgroundBrightness(100), mPreviewHidden(true), mPreviewCreated(false),
@@ -102,7 +104,7 @@ wxXmlNode* LayoutGroup::GetLayoutGroupXml() const {
 void LayoutGroup::SetModels(std::vector<Model*> &models)
 {
     previewModels.clear();
-    for (auto it = models.begin(); it != models.end(); it++) {
+    for (auto it = models.begin(); it != models.end(); ++it) {
         previewModels.push_back(*it);
     }
 }
@@ -141,6 +143,7 @@ void LayoutGroup::RemoveFromPreviewMenu(wxMenu* preview_menu)
     }
     mModelPreview = nullptr;
     mPreviewCreated = false;
+    mMenuItemPreview = nullptr;
 }
 
 void LayoutGroup::ShowPreview(bool show)

@@ -1,16 +1,17 @@
-#include "LMSImportChannelMapDialog.h"
-#include "sequencer/SequenceElements.h"
-#include "xLightsMain.h"
-#include "models/Model.h"
-
-#include <wx/wfstream.h>
-#include <wx/txtstrm.h>
-#include <wx/msgdlg.h>
-
 //(*InternalHeaders(LMSImportChannelMapDialog)
 #include <wx/intl.h>
 #include <wx/string.h>
 //*)
+
+#include <wx/wfstream.h>
+#include <wx/txtstrm.h>
+#include <wx/msgdlg.h>
+#include <wx/colordlg.h>
+
+#include "LMSImportChannelMapDialog.h"
+#include "sequencer/SequenceElements.h"
+#include "xLightsMain.h"
+#include "models/Model.h"
 
 //(*IdInit(LMSImportChannelMapDialog)
 const long LMSImportChannelMapDialog::ID_CHOICE1 = wxNewId();
@@ -121,6 +122,8 @@ LMSImportChannelMapDialog::LMSImportChannelMapDialog(wxWindow* parent, const wxF
     }
 
     _dirty = false;
+
+    SetEscapeId(Button_Cancel->GetId());
 }
 
 LMSImportChannelMapDialog::~LMSImportChannelMapDialog()
@@ -132,7 +135,7 @@ LMSImportChannelMapDialog::~LMSImportChannelMapDialog()
 
 static wxArrayString Convert(const std::vector<std::string> arr) {
     wxArrayString ret;
-    for (auto it = arr.begin(); it != arr.end(); it++) {
+    for (auto it = arr.begin(); it != arr.end(); ++it) {
         ret.push_back(*it);
     }
     return ret;
@@ -140,7 +143,7 @@ static wxArrayString Convert(const std::vector<std::string> arr) {
 void LMSImportChannelMapDialog::Init(bool allModels) {
     allowAddModels = allModels;
     if (allModels) {
-        for (auto it = xlights->AllModels.begin(); it != xlights->AllModels.end(); it++) {
+        for (auto it = xlights->AllModels.begin(); it != xlights->AllModels.end(); ++it) {
             ModelsChoice->Append(it->first);
         }
     } else {

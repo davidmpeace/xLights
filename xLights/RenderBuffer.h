@@ -28,6 +28,7 @@
 #include <map>
 #include <list>
 #include <vector>
+#include <atomic>
 #include <wx/colour.h>
 #include <wx/dcclient.h>
 #include <wx/dcmemory.h>
@@ -135,6 +136,7 @@ public:
     void DrawText(const wxString &msg, int x, int y, double rotation);
     void DrawText(const wxString &msg, int x, int y);
     void GetTextExtent(const wxString &msg, double *width, double *height);
+    void GetTextExtents(const wxString &msg, wxArrayDouble &extents);
 
 private:
     wxString fontName;
@@ -392,6 +394,9 @@ public:
     RenderBuffer(RenderBuffer& buffer);
     void InitBuffer(int newBufferHt, int newBufferWi, int newModelBufferHt, int newModelBufferWi, const std::string& bufferTransform);
     AudioManager* GetMedia();
+    Model* GetModel() const;
+    Model* GetPermissiveModel() const; // gets the model even if it is a submodel/strand
+    std::string GetModelName() const;
 
     void Clear();
     void SetPalette(xlColorVector& newcolors, xlColorCurveVector& newcc);
@@ -403,13 +408,18 @@ public:
     void SetEffectDuration(int startMsec, int endMsec);
     void GetEffectPeriods(int& curEffStartPer, int& curEffEndPer);  // nobody wants endPer?
     void SetFrameTimeInMs(int i);
+    long GetStartTimeMS() const { return curEffStartPer * frameTimeInMs; }
+    long GetEndTimeMS() const { return curEffEndPer * frameTimeInMs; }
 
     const xlColor &GetPixel(int x, int y);
     void GetPixel(int x, int y, xlColor &color);
     void SetPixel(int x, int y, const xlColor &color, bool wrap = false);
     void SetPixel(int x, int y, const HSVValue& hsv, bool wrap = false);
+    void SetNodePixel(int nodeNum, const xlColor &color);
+    void CopyNodeColorsToPixels(std::vector<bool> &done);
+    
     void CopyPixel(int srcx, int srcy, int destx, int desty);
-    void ProcessPixel(int x, int y, const xlColor &color, bool wrap_x);
+    void ProcessPixel(int x, int y, const xlColor &color, bool wrap_x = false, bool wrap_y = false);
 
     void ClearTempBuf();
     const xlColor &GetTempPixelRGB(int x, int y);
@@ -436,7 +446,7 @@ public:
     void Get2ColorBlend(int coloridx1, int coloridx2, float ratio, xlColor &color);
     void Get2ColorBlend(xlColor& color, xlColor color2, float ratio);
     void Get2ColorAlphaBlend(const xlColor& c1, const xlColor& c2, float ratio, xlColor &color);
-    void GetMultiColorBlend(float n, bool circular, xlColor &color);
+    void GetMultiColorBlend(float n, bool circular, xlColor &color, int reserveColors = 0);
     void SetRangeColor(const HSVValue& hsv1, const HSVValue& hsv2, HSVValue& newhsv);
     double RandomRange(double num1, double num2);
     void Color2HSV(const xlColor& color, HSVValue& hsv);
@@ -486,9 +496,9 @@ public:
     int tempInt;
     int tempInt2;
 
-    std::vector<NodeBaseClassPtr> Nodes;
-
 private:
+    friend class PixelBufferClass;
+    std::vector<NodeBaseClassPtr> Nodes;
     PathDrawingContext *_pathDrawingContext;
     TextDrawingContext *_textDrawingContext;
 };

@@ -8,9 +8,7 @@
 #include <wx/spinctrl.h>
 
 //(*InternalHeaders(EffectsPanel)
-#include <wx/bitmap.h>
 #include <wx/intl.h>
-#include <wx/image.h>
 #include <wx/string.h>
 //*)
 
@@ -25,13 +23,10 @@
 #include "../include/padlock16x16-blue.xpm" //-DJ
 
 #include "effects/EffectPanelUtils.h"
+#include <log4cpp/Category.hh>
 
 //(*IdInit(EffectsPanel)
 const long EffectsPanel::ID_CHOICEBOOK1 = wxNewId();
-const long EffectsPanel::ID_BITMAPBUTTON_CHOICEBOOK1 = wxNewId();
-const long EffectsPanel::ID_BITMAPBUTTON87 = wxNewId();
-const long EffectsPanel::ID_BITMAPBUTTON1 = wxNewId();
-const long EffectsPanel::ID_BITMAPBUTTON88 = wxNewId();
 //*)
 
 BEGIN_EVENT_TABLE(EffectsPanel,wxPanel)
@@ -43,39 +38,22 @@ END_EVENT_TABLE()
 EffectsPanel::EffectsPanel(wxWindow *parent, EffectManager *manager) : effectManager(manager)
 {
     //(*Initialize(EffectsPanel)
-    wxFlexGridSizer* FlexGridSizer8;
-    wxFlexGridSizer* FlexGridSizer6;
     wxFlexGridSizer* FlexGridSizer1;
 
     Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("wxID_ANY"));
-    FlexGridSizer1 = new wxFlexGridSizer(0, 2, 0, 0);
+    FlexGridSizer1 = new wxFlexGridSizer(1, 1, 0, 0);
     FlexGridSizer1->AddGrowableCol(0);
+    FlexGridSizer1->AddGrowableRow(0);
     EffectChoicebook = new wxChoicebook(this, ID_CHOICEBOOK1, wxDefaultPosition, wxDefaultSize, 0, _T("ID_CHOICEBOOK1"));
     FlexGridSizer1->Add(EffectChoicebook, 1, wxRIGHT|wxEXPAND, 2);
-    FlexGridSizer8 = new wxFlexGridSizer(0, 1, 0, 0);
-    FlexGridSizer6 = new wxFlexGridSizer(0, 2, 0, 0);
-    BitmapButton_LayerEffect = new wxBitmapButton(this, ID_BITMAPBUTTON_CHOICEBOOK1, padlock16x16_blue_xpm, wxDefaultPosition, wxSize(13,13), wxBU_AUTODRAW|wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON_CHOICEBOOK1"));
-    FlexGridSizer6->Add(BitmapButton_LayerEffect, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 1);
-    BitmapButton_normal = new wxBitmapButton(this, ID_BITMAPBUTTON87, padlock16x16_green_xpm, wxDefaultPosition, wxSize(13,13), wxBU_AUTODRAW|wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON87"));
-    BitmapButton_normal->Hide();
-    FlexGridSizer6->Add(BitmapButton_normal, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 1);
-    BitmapButton_locked = new wxBitmapButton(this, ID_BITMAPBUTTON1, padlock16x16_red_xpm, wxDefaultPosition, wxSize(13,13), wxBU_AUTODRAW|wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON1"));
-    BitmapButton_locked->Hide();
-    FlexGridSizer6->Add(BitmapButton_locked, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 1);
-    BitmapButton_random = new wxBitmapButton(this, ID_BITMAPBUTTON88, padlock16x16_blue_xpm, wxDefaultPosition, wxSize(13,13), wxBU_AUTODRAW|wxNO_BORDER, wxDefaultValidator, _T("ID_BITMAPBUTTON88"));
-    BitmapButton_random->Hide();
-    FlexGridSizer6->Add(BitmapButton_random, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 1);
-    FlexGridSizer8->Add(FlexGridSizer6, 1, wxALL|wxEXPAND, 1);
-    FlexGridSizer1->Add(FlexGridSizer8, 1, wxEXPAND, 2);
     SetSizer(FlexGridSizer1);
     FlexGridSizer1->Fit(this);
     FlexGridSizer1->SetSizeHints(this);
 
     Connect(ID_CHOICEBOOK1,wxEVT_COMMAND_CHOICEBOOK_PAGE_CHANGED,(wxObjectEventFunction)&EffectsPanel::EffectSelected);
-    Connect(ID_BITMAPBUTTON_CHOICEBOOK1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&EffectsPanel::OnLockButtonClick);
     //*)
 
-    this->SetName("Effect");
+    SetName("Effect");
 
     for (auto it = effectManager->begin(); it != effectManager->end(); ++it) {
         RenderableEffect *p = *it;
@@ -106,7 +84,7 @@ EffectsPanel::~EffectsPanel()
 void EffectsPanel::SetDefaultEffectValues(Model *cls, AudioManager* audio, const wxString &name) {
     RenderableEffect *eff = effectManager->GetEffect(name.ToStdString());
     if (eff != nullptr) {
-        eff->SetDefaultParameters(cls);
+        eff->SetDefaultParameters();
 	}
 }
 void EffectsPanel::SetSequenceElements(SequenceElements *els) {
@@ -134,9 +112,23 @@ int EffectsPanel::GetRandomSliderValue(wxSlider* slider)
     return slider->GetValue();
 }
 
+wxWindow* EffectsPanel::GetWindowPanel(wxWindow* w) {
+    wxWindowList &ChildList = w->GetChildren();
+    for ( wxWindowList::iterator it = ChildList.begin(); it != ChildList.end(); ++it )
+    {
+        wxWindow *ChildWin = *it;
+        wxString ChildName = ChildWin->GetName();
+        if (ChildName.StartsWith("ID_PANEL")) {
+            return ChildWin;
+        }
+    }
+    return w;
+}
+
 wxString EffectsPanel::GetRandomEffectStringFromWindow(wxWindow *w, const wxString &prefix) {
     wxWindowList &ChildList = w->GetChildren();
     wxString s;
+
     for ( wxWindowList::iterator it = ChildList.begin(); it != ChildList.end(); ++it )
     {
         wxWindow *ChildWin = *it;
@@ -174,6 +166,9 @@ wxString EffectsPanel::GetRandomEffectStringFromWindow(wxWindow *w, const wxStri
 			s += AttrName + wxString::Format(wxT("%i"), v);
 		} else if (ChildName.StartsWith("ID_CHOICE")) {
             wxChoice* ctrl=(wxChoice*)ChildWin;
+            if (ctrl->GetCount() <= 0) {
+                continue;
+            }
             s += AttrName + ctrl->GetString(isRandom(ctrl)? rand()%ctrl->GetCount(): ctrl->GetSelection()); //-DJ
         } else if (ChildName.StartsWith("ID_CHECKBOX")) {
             if(ChildName.Contains("Spirograph_Animate")) {
@@ -190,6 +185,12 @@ wxString EffectsPanel::GetRandomEffectStringFromWindow(wxWindow *w, const wxStri
             int i = rand() % notebook->GetPageCount();
             s += AttrName+notebook->GetPageText(i);
             s += GetRandomEffectStringFromWindow(notebook->GetPage(i), prefix);
+        } else if (ChildName.StartsWith("ID_VALUECURVE")) {
+//            if (rand()%2 == 1) { // choose to do a valuecurve or not
+//                wxWindow *valuveCurveWin = GetWindowPanel(ChildWin);
+//                // TODO(craig) need to build the value curve settings
+//                s += GetRandomValueCurveFromWindow(valuveCurveWin, prefix);
+//            }
         }
     }
     return s;
@@ -210,7 +211,8 @@ wxString EffectsPanel::GetRandomEffectString(int effidx)
 
     // get effect controls
     wxWindow *window = EffectChoicebook->GetPage(effidx);
-    s += GetRandomEffectStringFromWindow(window, prefix);
+    wxWindow *wPanel = GetWindowPanel(window);
+    s += GetRandomEffectStringFromWindow(wPanel, prefix);
 
     return s;
 }
@@ -256,7 +258,13 @@ void EffectsPanel::setlock(wxButton* button) //, EditState& islocked)
 //#define isRandom(ctl)  (buttonState[std::string(ctl->GetName())] == Random)
 bool EffectsPanel::isRandom_(wxControl* ctl, const char*debug)
 {
-    return !EffectPanelUtils::IsLocked(std::string(ctl->GetName()));
+    if (!EffectPanelUtils::IsLockable(ctl)) {
+        return false;
+    }
+    if (!EffectPanelUtils::IsLocked(std::string(ctl->GetName()))) {
+        return true;
+    }
+    return false;
 }
 bool EffectsPanel::isRandom_(void)
 {

@@ -1,6 +1,7 @@
 #include "MatrixDialog.h"
 #include "xScheduleMain.h"
 #include "ScheduleManager.h"
+#include "../xLights/outputs/OutputManager.h"
 
 //(*InternalHeaders(MatrixDialog)
 #include <wx/intl.h>
@@ -17,7 +18,8 @@ const long MatrixDialog::ID_SPINCTRL2 = wxNewId();
 const long MatrixDialog::ID_STATICTEXT2 = wxNewId();
 const long MatrixDialog::ID_SPINCTRL3 = wxNewId();
 const long MatrixDialog::ID_STATICTEXT3 = wxNewId();
-const long MatrixDialog::ID_SPINCTRL4 = wxNewId();
+const long MatrixDialog::ID_TEXTCTRL2 = wxNewId();
+const long MatrixDialog::ID_STATICTEXT8 = wxNewId();
 const long MatrixDialog::ID_STATICTEXT5 = wxNewId();
 const long MatrixDialog::ID_CHOICE1 = wxNewId();
 const long MatrixDialog::ID_STATICTEXT6 = wxNewId();
@@ -31,28 +33,14 @@ BEGIN_EVENT_TABLE(MatrixDialog,wxDialog)
 	//*)
 END_EVENT_TABLE()
 
-void MatrixDialog::SetChoiceFromString(wxChoice* choice, std::string value)
+MatrixDialog::MatrixDialog(wxWindow* parent, OutputManager* outputManager, std::string& name, std::string& orientation, std::string& startingLocation, int& stringLength, int& strings, int& strandsPerString, std::string& startChannel, wxWindowID id,const wxPoint& pos,const wxSize& size) : _name(name), _stringLength(stringLength), _strings(strings), _strandsPerString(strandsPerString), _startChannel(startChannel), _orientation(orientation), _startingLocation(startingLocation)
 {
-    int sel = choice->GetSelection();
+    _outputManager = outputManager;
 
-    choice->SetSelection(-1);
-    for (size_t i = 0; i < choice->GetCount(); i++)
-    {
-        if (choice->GetString(i) == value)
-        {
-            choice->SetSelection(i);
-            return;
-        }
-    }
-
-    choice->SetSelection(sel);
-}
-
-MatrixDialog::MatrixDialog(wxWindow* parent, std::string& name, std::string& orientation, std::string& startingLocation, int& stringLength, int& strings, int& strandsPerString, long& startChannel, wxWindowID id,const wxPoint& pos,const wxSize& size) : _name(name), _orientation(orientation), _startChannel(startChannel), _startingLocation(startingLocation), _strandsPerString(strandsPerString), _strings(strings), _stringLength(stringLength)
-{
 	//(*Initialize(MatrixDialog)
 	wxBoxSizer* BoxSizer1;
 	wxFlexGridSizer* FlexGridSizer1;
+	wxFlexGridSizer* FlexGridSizer2;
 
 	Create(parent, id, _("Matrix Configuration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE, _T("id"));
 	SetClientSize(wxDefaultSize);
@@ -70,19 +58,23 @@ MatrixDialog::MatrixDialog(wxWindow* parent, std::string& name, std::string& ori
 	FlexGridSizer1->Add(SpinCtrl_Strings, 1, wxALL|wxEXPAND, 5);
 	StaticText4 = new wxStaticText(this, ID_STATICTEXT4, _("String Length:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT4"));
 	FlexGridSizer1->Add(StaticText4, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
-	SpinCtrl_StringLength = new wxSpinCtrl(this, ID_SPINCTRL2, _T("150"), wxDefaultPosition, wxDefaultSize, 0, 1, 1024, 150, _T("ID_SPINCTRL2"));
+	SpinCtrl_StringLength = new wxSpinCtrl(this, ID_SPINCTRL2, _T("150"), wxDefaultPosition, wxDefaultSize, 0, 1, 65535, 150, _T("ID_SPINCTRL2"));
 	SpinCtrl_StringLength->SetValue(_T("150"));
 	FlexGridSizer1->Add(SpinCtrl_StringLength, 1, wxALL|wxEXPAND, 5);
 	StaticText2 = new wxStaticText(this, ID_STATICTEXT2, _("Strands Per String:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT2"));
 	FlexGridSizer1->Add(StaticText2, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
-	SpinCtrl_StrandsPerString = new wxSpinCtrl(this, ID_SPINCTRL3, _T("1"), wxDefaultPosition, wxDefaultSize, 0, 0, 64, 1, _T("ID_SPINCTRL3"));
+	SpinCtrl_StrandsPerString = new wxSpinCtrl(this, ID_SPINCTRL3, _T("1"), wxDefaultPosition, wxDefaultSize, 0, 1, 8192, 1, _T("ID_SPINCTRL3"));
 	SpinCtrl_StrandsPerString->SetValue(_T("1"));
 	FlexGridSizer1->Add(SpinCtrl_StrandsPerString, 1, wxALL|wxEXPAND, 5);
 	StaticText3 = new wxStaticText(this, ID_STATICTEXT3, _("Start Channel:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT3"));
 	FlexGridSizer1->Add(StaticText3, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
-	SpinCtrl_StartChannel = new wxSpinCtrl(this, ID_SPINCTRL4, _T("1"), wxDefaultPosition, wxDefaultSize, 0, 1, 100, 1, _T("ID_SPINCTRL4"));
-	SpinCtrl_StartChannel->SetValue(_T("1"));
-	FlexGridSizer1->Add(SpinCtrl_StartChannel, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer2 = new wxFlexGridSizer(0, 2, 0, 0);
+	FlexGridSizer2->AddGrowableCol(0);
+	TextCtrl_StartChannel = new wxTextCtrl(this, ID_TEXTCTRL2, _("1"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_TEXTCTRL2"));
+	FlexGridSizer2->Add(TextCtrl_StartChannel, 1, wxALL|wxEXPAND, 5);
+	StaticText8 = new wxStaticText(this, ID_STATICTEXT8, _("1"), wxDefaultPosition, wxSize(60,-1), 0, _T("ID_STATICTEXT8"));
+	FlexGridSizer2->Add(StaticText8, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(FlexGridSizer2, 1, wxALL|wxEXPAND, 5);
 	StaticText5 = new wxStaticText(this, ID_STATICTEXT5, _("Start Location:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT5"));
 	FlexGridSizer1->Add(StaticText5, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	Choice_StartLocation = new wxChoice(this, ID_CHOICE1, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE1"));
@@ -109,17 +101,15 @@ MatrixDialog::MatrixDialog(wxWindow* parent, std::string& name, std::string& ori
 	FlexGridSizer1->Fit(this);
 	FlexGridSizer1->SetSizeHints(this);
 
+	Connect(ID_TEXTCTRL2,wxEVT_COMMAND_TEXT_UPDATED,(wxObjectEventFunction)&MatrixDialog::OnTextCtrl_StartChannelText);
 	Connect(ID_BUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&MatrixDialog::OnButton_OkClick);
 	Connect(ID_BUTTON2,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&MatrixDialog::OnButton_CancelClick);
 	//*)
 
-    long channels = xScheduleFrame::GetScheduleManager()->GetTotalChannels();
-    SpinCtrl_StartChannel->SetRange(1, channels);
-
     TextCtrl_Name->SetValue(_name);
-    SetChoiceFromString(Choice_Orientation, _orientation);
-    SetChoiceFromString(Choice_StartLocation, _startingLocation);
-    SpinCtrl_StartChannel->SetValue(_startChannel);
+    Choice_Orientation->SetStringSelection(_orientation);
+    Choice_StartLocation->SetStringSelection(_startingLocation);
+    TextCtrl_StartChannel->SetValue(_startChannel);
     SpinCtrl_StrandsPerString->SetValue(_strandsPerString);
     SpinCtrl_StringLength->SetValue(_stringLength);
     SpinCtrl_Strings->SetValue(_strings);
@@ -136,7 +126,7 @@ void MatrixDialog::OnButton_OkClick(wxCommandEvent& event)
     _name = TextCtrl_Name->GetValue().ToStdString();
     _orientation = Choice_Orientation->GetStringSelection().ToStdString();
     _startingLocation = Choice_StartLocation->GetStringSelection().ToStdString();
-    _startChannel = SpinCtrl_StartChannel->GetValue();
+    _startChannel = TextCtrl_StartChannel->GetValue();
     _strandsPerString = SpinCtrl_StrandsPerString->GetValue();
     _stringLength = SpinCtrl_StringLength->GetValue();
     _strings = SpinCtrl_Strings->GetValue();
@@ -147,4 +137,30 @@ void MatrixDialog::OnButton_OkClick(wxCommandEvent& event)
 void MatrixDialog::OnButton_CancelClick(wxCommandEvent& event)
 {
     EndDialog(wxID_CANCEL);
+}
+
+void MatrixDialog::OnTextCtrl_StartChannelText(wxCommandEvent& event)
+{
+    long sc = _outputManager->DecodeStartChannel(TextCtrl_StartChannel->GetValue().ToStdString());
+    if (sc == 0 || sc > xScheduleFrame::GetScheduleManager()->GetTotalChannels())
+    {
+        StaticText8->SetLabel("Invalid");
+    }
+    else
+    {
+        StaticText8->SetLabel(wxString::Format("%ld", (long)sc));
+    }
+    ValidateWindow();
+}
+
+void MatrixDialog::ValidateWindow()
+{
+    if (StaticText8->GetLabel() == "Invalid")
+    {
+        Button_Ok->Enable(false);
+    }
+    else
+    {
+        Button_Ok->Enable(true);
+    }
 }

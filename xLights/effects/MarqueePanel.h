@@ -3,17 +3,19 @@
 
 //(*Headers(MarqueePanel)
 #include <wx/panel.h>
-class wxGridBagSizer;
-class wxCheckBox;
-class wxTextCtrl;
-class wxNotebookEvent;
-class wxStaticLine;
-class wxNotebook;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
+class wxCheckBox;
 class wxFlexGridSizer;
+class wxGridBagSizer;
+class wxNotebook;
+class wxNotebookEvent;
+class wxSlider;
+class wxStaticLine;
+class wxStaticText;
+class wxTextCtrl;
 //*)
+
+#include "../BulkEditControls.h"
 
 class MarqueePanel: public wxPanel
 {
@@ -23,68 +25,110 @@ class MarqueePanel: public wxPanel
 		virtual ~MarqueePanel();
 
 		//(*Declarations(MarqueePanel)
-		wxSlider* Slider_MarqueeXC;
-		wxCheckBox* CheckBox_Marquee_WrapX;
-		wxSlider* Slider_Marquee_Speed;
-		wxBitmapButton* BitmapButton_Marquee_ScaleY;
-		wxPanel* Panel_Marquee_Settings;
-		wxBitmapButton* BitmapButton_Marquee_Start;
-		wxSlider* Slider_Marquee_Stagger;
-		wxSlider* Slider_Marquee_Start;
-		wxSlider* Slider_Marquee_ScaleY;
-		wxSlider* Slider_Marquee_Band_Size;
-		wxSlider* Slider_MarqueeYC;
+		BulkEditCheckBox* CheckBox1;
+		BulkEditCheckBox* CheckBox_Marquee_PixelOffsets;
+		BulkEditCheckBox* CheckBox_Marquee_Reverse;
+		BulkEditCheckBox* CheckBox_Marquee_WrapX;
+		BulkEditSlider* Slider_MarqueeXC;
+		BulkEditSlider* Slider_MarqueeYC;
+		BulkEditSlider* Slider_Marquee_Band_Size;
+		BulkEditSlider* Slider_Marquee_ScaleX;
+		BulkEditSlider* Slider_Marquee_ScaleY;
+		BulkEditSlider* Slider_Marquee_Skip_Size;
+		BulkEditSlider* Slider_Marquee_Speed;
+		BulkEditSlider* Slider_Marquee_Stagger;
+		BulkEditSlider* Slider_Marquee_Start;
+		BulkEditSlider* Slider_Marquee_Thickness;
+		BulkEditValueCurveButton* BitmapButton_MarqueeXCVC;
+		BulkEditValueCurveButton* BitmapButton_MarqueeYCVC;
+		BulkEditValueCurveButton* BitmapButton_Marquee_Band_SizeVC;
+		BulkEditValueCurveButton* BitmapButton_Marquee_ScaleXVC;
+		BulkEditValueCurveButton* BitmapButton_Marquee_ScaleYVC;
+		BulkEditValueCurveButton* BitmapButton_Marquee_Skip_SizeVC;
+		BulkEditValueCurveButton* BitmapButton_Marquee_SpeedVC;
+		BulkEditValueCurveButton* BitmapButton_Marquee_StaggerVC;
+		BulkEditValueCurveButton* BitmapButton_Marquee_StartVC;
+		BulkEditValueCurveButton* BitmapButton_Marquee_ThicknessVC;
 		wxNotebook* Notebook_Marquee;
-		wxCheckBox* CheckBox_Marquee_PixelOffsets;
-		wxStaticLine* StaticLine1;
-		wxSlider* Slider_Marquee_Skip_Size;
-		wxCheckBox* CheckBox_Marquee_Reverse;
-		wxBitmapButton* BitmapButton_Marquee_ScaleX;
-		wxSlider* Slider_Marquee_Thickness;
-		wxBitmapButton* BitmapButton_Marquee_Stagger;
-		wxBitmapButton* BitmapButton_Marquee_Speed;
 		wxPanel* Panel_Marquee_Position;
-		wxSlider* Slider_Marquee_ScaleX;
-		wxBitmapButton* BitmapButton_Marquee_Thickness;
-		wxBitmapButton* BitmapButton_Marquee_Skip_Size;
+		wxPanel* Panel_Marquee_Settings;
+		wxStaticLine* StaticLine1;
+		wxStaticText* StaticText116;
+		wxStaticText* StaticText194;
+		wxStaticText* StaticText195;
+		wxStaticText* StaticText196;
+		wxStaticText* StaticText198;
+		wxStaticText* StaticText199;
+		wxStaticText* StaticText200;
+		wxStaticText* StaticText201;
+		wxStaticText* StaticText244;
+		wxStaticText* StaticText62;
+		xlLockButton* BitmapButton_Marquee_ScaleX;
+		xlLockButton* BitmapButton_Marquee_ScaleY;
+		xlLockButton* BitmapButton_Marquee_Skip_Size;
+		xlLockButton* BitmapButton_Marquee_Speed;
+		xlLockButton* BitmapButton_Marquee_Stagger;
+		xlLockButton* BitmapButton_Marquee_Start;
+		xlLockButton* BitmapButton_Marquee_Thickness;
 		//*)
 
 	protected:
 
 		//(*Identifiers(MarqueePanel)
+		static const long ID_STATICTEXT_Marquee_Band_Size;
 		static const long ID_SLIDER_Marquee_Band_Size;
+		static const long ID_VALUECURVE_Marquee_Band_Size;
 		static const long IDD_TEXTCTRL_Marquee_Band_Size;
 		static const long ID_BITMAPBUTTON_SLIDER_Marquee_Band_Size;
+		static const long ID_STATICTEXT_Marquee_Skip_Size;
 		static const long ID_SLIDER_Marquee_Skip_Size;
+		static const long ID_VALUECURVE_Marquee_Skip_Size;
 		static const long IDD_TEXTCTRL_Marquee_Skip_Size;
 		static const long ID_BITMAPBUTTON_SLIDER_Marquee_Skip_Size;
+		static const long ID_STATICTEXT_Marquee_Thickness;
 		static const long ID_SLIDER_Marquee_Thickness;
+		static const long ID_VALUECURVE_Marquee_Thickness;
 		static const long IDD_TEXTCTRL_Marquee_Thickness;
 		static const long ID_BITMAPBUTTON_SLIDER_Marquee_Thickness;
+		static const long ID_STATICTEXT_Marquee_Stagger;
 		static const long ID_SLIDER_Marquee_Stagger;
+		static const long ID_VALUECURVE_Marquee_Stagger;
 		static const long IDD_TEXTCTRL_Marquee_Stagger;
 		static const long ID_BITMAPBUTTON_SLIDER_Marquee_Stagger;
+		static const long ID_STATICTEXT_Marquee_Speed;
 		static const long ID_SLIDER_Marquee_Speed;
+		static const long ID_VALUECURVE_Marquee_Speed;
 		static const long IDD_TEXTCTRL_Marquee_Speed;
 		static const long ID_BITMAPBUTTON_SLIDER_Marquee_Speed;
+		static const long ID_STATICTEXT_Marquee_Start;
 		static const long ID_SLIDER_Marquee_Start;
+		static const long ID_VALUECURVE_Marquee_Start;
 		static const long IDD_TEXTCTRL_Marquee_Start;
 		static const long ID_BITMAPBUTTON_SLIDER_Marquee_Start;
 		static const long ID_CHECKBOX_Marquee_Reverse;
 		static const long ID_PANEL_Marquee_Settings;
+		static const long ID_STATICTEXT_Marquee_ScaleX;
 		static const long ID_SLIDER_Marquee_ScaleX;
+		static const long ID_VALUECURVE_Marquee_ScaleX;
 		static const long IDD_TEXTCTRL_Marquee_ScaleX;
 		static const long ID_BITMAPBUTTON_SLIDER_Marquee_ScaleX;
+		static const long ID_STATICTEXT_Marquee_ScaleY;
 		static const long ID_SLIDER_Marquee_ScaleY;
+		static const long ID_VALUECURVE_Marquee_ScaleY;
 		static const long IDD_TEXTCTRL_Marquee_ScaleY;
 		static const long ID_BITMAPBUTTON_SLIDER_Marquee_ScaleY;
 		static const long ID_STATICLINE1;
 		static const long ID_CHECKBOX_Marquee_PixelOffsets;
+		static const long ID_STATICTEXT_MarqueeXC;
 		static const long ID_SLIDER_MarqueeXC;
 		static const long ID_CHECKBOX_Marquee_WrapX;
 		static const long IDD_TEXTCTRL_MarqueeXC;
+		static const long ID_VALUECURVE_MarqueeXC;
+		static const long ID_STATICTEXT_MarqueeYC;
 		static const long IDD_TEXTCTRL_MarqueeYC;
 		static const long ID_SLIDER_MarqueeYC;
+		static const long ID_VALUECURVE_MarqueeYC;
+		static const long ID_CHECKBOX_Marquee_WrapY;
 		static const long ID_PANEL_Marquee_Position;
 		static const long ID_NOTEBOOK_Marquee;
 		//*)
@@ -92,19 +136,9 @@ class MarqueePanel: public wxPanel
 	public:
 
 		//(*Handlers(MarqueePanel)
-    void UpdateLinkedSliderFloat(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-    void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-    void UpdateLinkedSlider360(wxCommandEvent& event);
-    void UpdateLinkedTextCtrl(wxScrollEvent& event);
-    void UpdateLinkedSlider(wxCommandEvent& event);
     void OnLockButtonClick(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-    void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
     void OnVCButtonClick(wxCommandEvent& event);
     void OnVCChanged(wxCommandEvent& event);
-    void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
     //*)
 
 		DECLARE_EVENT_TABLE()

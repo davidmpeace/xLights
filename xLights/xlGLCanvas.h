@@ -4,6 +4,8 @@
 #include "wx/glcanvas.h"
 #include "DrawGLUtils.h"
 
+class wxImage;
+
 
 class xlGLCanvas
     : public wxGLCanvas
@@ -13,7 +15,7 @@ class xlGLCanvas
                    const wxSize &size=wxDefaultSize,
                    long style=0,
                    const wxString &name=wxPanelNameStr,
-                   bool coreProfile = false);
+                   bool coreProfile = true);
         virtual ~xlGLCanvas();
 
         void SetCurrentGLContext();
@@ -24,6 +26,27 @@ class xlGLCanvas
         double translateToBacking(double x);
 
         void DisplayWarning(const wxString &msg);
+
+		  // Grab a copy of the front buffer (at window dimensions by default); it's the
+		  // caller's responsibility to delete the image when done with it
+		  wxImage *GrabImage( wxSize size = wxSize(0,0) );
+
+		  virtual void render( const wxSize& = wxSize(0,0) ) {};
+
+		  class CaptureHelper
+		  {
+		  public:
+			  // note: width & height without content-scale factor
+			  CaptureHelper(int i_width, int i_height, double i_contentScaleFactor) : width(i_width), height(i_height), contentScaleFactor(i_contentScaleFactor), tmpBuf(nullptr) {};
+			  virtual ~CaptureHelper();
+
+			  bool ToRGB(unsigned char *buf, unsigned int bufSize, bool padToEvenDims=false);
+		  protected:
+			  const int width;
+			  const int height;
+			  const double contentScaleFactor;
+			  unsigned char *tmpBuf;
+		  };
     protected:
       	DECLARE_EVENT_TABLE()
 
@@ -46,6 +69,7 @@ class xlGLCanvas
         virtual bool UsesAddVertex() {return true;}
 
         DrawGLUtils::xlGLCacheInfo *cache;
+
     private:
         wxGLContext* m_context;
         bool m_coreProfile;

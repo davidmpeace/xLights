@@ -30,10 +30,18 @@ const long ScheduleDialog::ID_CHECKBOX5 = wxNewId();
 const long ScheduleDialog::ID_CHECKBOX4 = wxNewId();
 const long ScheduleDialog::ID_CHECKBOX3 = wxNewId();
 const long ScheduleDialog::ID_CHECKBOX2 = wxNewId();
+const long ScheduleDialog::ID_STATICTEXT16 = wxNewId();
+const long ScheduleDialog::ID_SPINCTRL3 = wxNewId();
+const long ScheduleDialog::ID_STATICTEXT17 = wxNewId();
+const long ScheduleDialog::ID_SPINCTRL4 = wxNewId();
+const long ScheduleDialog::ID_STATICTEXT18 = wxNewId();
 const long ScheduleDialog::ID_STATICTEXT12 = wxNewId();
 const long ScheduleDialog::ID_TEXTCTRL2 = wxNewId();
 const long ScheduleDialog::ID_STATICTEXT11 = wxNewId();
 const long ScheduleDialog::ID_TEXTCTRL1 = wxNewId();
+const long ScheduleDialog::ID_CHECKBOX12 = wxNewId();
+const long ScheduleDialog::ID_STATICTEXT19 = wxNewId();
+const long ScheduleDialog::ID_CHOICE1 = wxNewId();
 const long ScheduleDialog::ID_CHECKBOX9 = wxNewId();
 const long ScheduleDialog::ID_STATICTEXT13 = wxNewId();
 const long ScheduleDialog::ID_SPINCTRL1 = wxNewId();
@@ -54,9 +62,10 @@ ScheduleDialog::ScheduleDialog(wxWindow* parent, Schedule* schedule, wxWindowID 
     _schedule = schedule;
 
 	//(*Initialize(ScheduleDialog)
-	wxFlexGridSizer* FlexGridSizer3;
-	wxFlexGridSizer* FlexGridSizer2;
 	wxFlexGridSizer* FlexGridSizer1;
+	wxFlexGridSizer* FlexGridSizer2;
+	wxFlexGridSizer* FlexGridSizer3;
+	wxFlexGridSizer* FlexGridSizer4;
 
 	Create(parent, id, _("Schedule Playlist"), wxDefaultPosition, wxDefaultSize, wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX, _T("id"));
 	SetClientSize(wxDefaultSize);
@@ -120,7 +129,21 @@ ScheduleDialog::ScheduleDialog(wxWindow* parent, Schedule* schedule, wxWindowID 
 	CheckBox_Sun = new wxCheckBox(this, ID_CHECKBOX2, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX2"));
 	CheckBox_Sun->SetValue(false);
 	FlexGridSizer2->Add(CheckBox_Sun, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	FlexGridSizer1->Add(FlexGridSizer2, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(FlexGridSizer2, 1, wxALL|wxEXPAND, 5);
+	StaticText16 = new wxStaticText(this, ID_STATICTEXT16, _("Every nth day"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT16"));
+	FlexGridSizer1->Add(StaticText16, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer4 = new wxFlexGridSizer(0, 4, 0, 0);
+	SpinCtrl_NthDay = new wxSpinCtrl(this, ID_SPINCTRL3, _T("1"), wxDefaultPosition, wxDefaultSize, 0, 1, 14, 1, _T("ID_SPINCTRL3"));
+	SpinCtrl_NthDay->SetValue(_T("1"));
+	FlexGridSizer4->Add(SpinCtrl_NthDay, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	StaticText17 = new wxStaticText(this, ID_STATICTEXT17, _("Offset"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT17"));
+	FlexGridSizer4->Add(StaticText17, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	SpinCtrl_NthDayOffset = new wxSpinCtrl(this, ID_SPINCTRL4, _T("0"), wxDefaultPosition, wxDefaultSize, 0, 0, 13, 0, _T("ID_SPINCTRL4"));
+	SpinCtrl_NthDayOffset->SetValue(_T("0"));
+	FlexGridSizer4->Add(SpinCtrl_NthDayOffset, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	StaticText_NextDay = new wxStaticText(this, ID_STATICTEXT18, _("2000-01-01"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT18"));
+	FlexGridSizer4->Add(StaticText_NextDay, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer1->Add(FlexGridSizer4, 1, wxALL|wxEXPAND, 5);
 	StaticText12 = new wxStaticText(this, ID_STATICTEXT12, _("On Time:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT12"));
 	FlexGridSizer1->Add(StaticText12, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	TextCtrl_OnTime = new wxTextCtrl(this, ID_TEXTCTRL2, _("19:00"), wxDefaultPosition, wxDefaultSize, wxTE_RIGHT, wxDefaultValidator, _T("ID_TEXTCTRL2"));
@@ -129,6 +152,20 @@ ScheduleDialog::ScheduleDialog(wxWindow* parent, Schedule* schedule, wxWindowID 
 	FlexGridSizer1->Add(StaticText11, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	TextCtrl_OffTime = new wxTextCtrl(this, ID_TEXTCTRL1, _("22:00"), wxDefaultPosition, wxDefaultSize, wxTE_RIGHT, wxDefaultValidator, _T("ID_TEXTCTRL1"));
 	FlexGridSizer1->Add(TextCtrl_OffTime, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer1->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	CheckBox_GracefullyInterrupt = new wxCheckBox(this, ID_CHECKBOX12, _("Gracefully interupt any lower priority playing schedule"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX12"));
+	CheckBox_GracefullyInterrupt->SetValue(false);
+	FlexGridSizer1->Add(CheckBox_GracefullyInterrupt, 1, wxALL|wxEXPAND, 5);
+	StaticText18 = new wxStaticText(this, ID_STATICTEXT19, _("Refire frequency:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT19"));
+	FlexGridSizer1->Add(StaticText18, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	Choice_FireFrequency = new wxChoice(this, ID_CHOICE1, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE1"));
+	Choice_FireFrequency->SetSelection( Choice_FireFrequency->Append(_("Fire once")) );
+	Choice_FireFrequency->Append(_("Fire every hour"));
+	Choice_FireFrequency->Append(_("Fire every 30 minutes"));
+	Choice_FireFrequency->Append(_("Fire every 20 minutes"));
+	Choice_FireFrequency->Append(_("Fire every 15 minutes"));
+	Choice_FireFrequency->Append(_("Fire every 10 minutes"));
+	FlexGridSizer1->Add(Choice_FireFrequency, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer1->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	CheckBox_Loop = new wxCheckBox(this, ID_CHECKBOX9, _("Loop"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX9"));
 	CheckBox_Loop->SetValue(false);
@@ -169,11 +206,17 @@ ScheduleDialog::ScheduleDialog(wxWindow* parent, Schedule* schedule, wxWindowID 
 	Connect(ID_CHECKBOX4,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&ScheduleDialog::OnCheckBox_DOWClick);
 	Connect(ID_CHECKBOX3,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&ScheduleDialog::OnCheckBox_DOWClick);
 	Connect(ID_CHECKBOX2,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&ScheduleDialog::OnCheckBox_DOWClick);
+	Connect(ID_SPINCTRL3,wxEVT_COMMAND_SPINCTRL_UPDATED,(wxObjectEventFunction)&ScheduleDialog::OnSpinCtrl_NthDayChange);
+	Connect(ID_SPINCTRL4,wxEVT_COMMAND_SPINCTRL_UPDATED,(wxObjectEventFunction)&ScheduleDialog::OnSpinCtrl_NthDayOffsetChange);
 	Connect(ID_TEXTCTRL2,wxEVT_COMMAND_TEXT_UPDATED,(wxObjectEventFunction)&ScheduleDialog::OnTextCtrl_OnTimeText);
 	Connect(ID_TEXTCTRL1,wxEVT_COMMAND_TEXT_UPDATED,(wxObjectEventFunction)&ScheduleDialog::OnTextCtrl_OffTimeText);
+	Connect(ID_CHOICE1,wxEVT_COMMAND_CHOICE_SELECTED,(wxObjectEventFunction)&ScheduleDialog::OnChoice_FireFrequencySelect);
 	Connect(ID_BUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&ScheduleDialog::OnButton_OkClick);
 	Connect(ID_BUTTON2,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&ScheduleDialog::OnButton_CancelClick);
 	//*)
+
+    Connect(ID_TEXTCTRL1, wxEVT_KILL_FOCUS, (wxObjectEventFunction)&ScheduleDialog::OnTextCtrl_OffKillFocus);
+    Connect(ID_TEXTCTRL2, wxEVT_KILL_FOCUS, (wxObjectEventFunction)&ScheduleDialog::OnTextCtrl_OnKillFocus);
 
     TextCtrl_Name->SetValue(schedule->GetName());
     TextCtrl_OnTime->SetValue(schedule->GetStartTimeAsString());
@@ -184,6 +227,7 @@ ScheduleDialog::ScheduleDialog(wxWindow* parent, Schedule* schedule, wxWindowID 
     DatePickerCtrl_End->SetValue(schedule->GetEndDate());
     CheckBox_EveryYear->SetValue(schedule->GetEveryYear());
     CheckBox_Loop->SetValue(schedule->GetLoop());
+    CheckBox_GracefullyInterrupt->SetValue(schedule->GetGracefullyInterrupt());
     CheckBox_Shuffle->SetValue(schedule->GetRandom());
     CheckBox_Mon->SetValue(schedule->IsOnDOW("Mon"));
     CheckBox_Tue->SetValue(schedule->IsOnDOW("Tue"));
@@ -193,8 +237,17 @@ ScheduleDialog::ScheduleDialog(wxWindow* parent, Schedule* schedule, wxWindowID 
     CheckBox_Sat->SetValue(schedule->IsOnDOW("Sat"));
     CheckBox_Sun->SetValue(schedule->IsOnDOW("Sun"));
     CheckBox_Enabled->SetValue(schedule->GetEnabled());
+    SpinCtrl_NthDay->SetValue(schedule->GetNthDay());
+    SpinCtrl_NthDayOffset->SetValue(schedule->GetNthDayOffset());
+    Choice_FireFrequency->SetStringSelection(schedule->GetFireFrequency());
+
+    Choice_FireFrequency->SetToolTip("Times are relative to schedule start time.");
 
     SetEscapeId(Button_Cancel->GetId());
+
+#ifdef _DEBUG
+    Choice_FireFrequency->Append(_("Fire every 2 minutes"));
+#endif
 
     ValidateWindow();
 }
@@ -204,12 +257,15 @@ ScheduleDialog::~ScheduleDialog()
 	//(*Destroy(ScheduleDialog)
 	//*)
     _schedule->SetName(TextCtrl_Name->GetValue().ToStdString());
+    _schedule->SetNthDay(SpinCtrl_NthDay->GetValue());
+    _schedule->SetNthDayOffset(SpinCtrl_NthDayOffset->GetValue());
     _schedule->SetStartTime(TextCtrl_OnTime->GetValue().ToStdString());
     _schedule->SetEndTime(TextCtrl_OffTime->GetValue().ToStdString());
     _schedule->SetPriority(SpinCtrl_Priority->GetValue());
     _schedule->SetLoops(SpinCtrl_MaxLoops->GetValue());
     _schedule->SetStartDate(DatePickerCtrl_Start->GetValue());
     _schedule->SetEndDate(DatePickerCtrl_End->GetValue());
+    _schedule->SetGracefullyInterrupt(CheckBox_GracefullyInterrupt->GetValue());
     _schedule->SetEveryYear(CheckBox_EveryYear->GetValue());
     _schedule->SetLoop(CheckBox_Loop->GetValue());
     _schedule->SetRandom(CheckBox_Shuffle->GetValue());
@@ -221,10 +277,24 @@ ScheduleDialog::~ScheduleDialog()
         CheckBox_Sat->GetValue(),
         CheckBox_Sun->GetValue());
     _schedule->SetEnabled(CheckBox_Enabled->GetValue());
+    _schedule->SetFireFrequency(Choice_FireFrequency->GetStringSelection());
 }
 
 void ScheduleDialog::ValidateWindow()
 {
+    if (Choice_FireFrequency->GetStringSelection() == "Fire once")
+    {
+        SpinCtrl_MaxLoops->Enable();
+        CheckBox_Loop->Enable();
+    }
+    else
+    {
+        SpinCtrl_MaxLoops->SetValue(0);
+        CheckBox_Loop->SetValue(false);
+        SpinCtrl_MaxLoops->Disable();
+        CheckBox_Loop->Disable();
+    }
+
     if (TextCtrl_Name->GetValue() != "" &&
         DatePickerCtrl_Start->GetValue() <= DatePickerCtrl_End->GetValue() &&
         (CheckBox_Mon->GetValue() ||
@@ -242,6 +312,8 @@ void ScheduleDialog::ValidateWindow()
     {
         Button_Ok->Enable(false);
     }
+
+    StaticText_NextDay->SetLabel(Schedule::GetNextNthDay(SpinCtrl_NthDay->GetValue(), SpinCtrl_NthDayOffset->GetValue()));
 }
 
 
@@ -283,4 +355,46 @@ void ScheduleDialog::OnCheckBox_DOWClick(wxCommandEvent& event)
 void ScheduleDialog::OnTextCtrl_NameText(wxCommandEvent& event)
 {
     ValidateWindow();
+}
+
+void ScheduleDialog::OnSpinCtrl_NthDayChange(wxSpinEvent& event)
+{
+    SpinCtrl_NthDayOffset->SetRange(0, SpinCtrl_NthDay->GetValue() - 1);
+    if (SpinCtrl_NthDayOffset->GetValue() > SpinCtrl_NthDayOffset->GetMax())
+    {
+        SpinCtrl_NthDayOffset->SetValue(SpinCtrl_NthDayOffset->GetMax());
+    }
+    ValidateWindow();
+}
+
+void ScheduleDialog::OnSpinCtrl_NthDayOffsetChange(wxSpinEvent& event)
+{
+    ValidateWindow();
+}
+
+void ScheduleDialog::OnChoice_FireFrequencySelect(wxCommandEvent& event)
+{
+    ValidateWindow();
+}
+
+void ScheduleDialog::OnTextCtrl_OnKillFocus(wxFocusEvent& event)
+{
+    wxDateTime dt;
+    dt.ParseFormat(TextCtrl_OnTime->GetValue(), "%H:%M:%S");
+    if (dt.GetSecond() != 0)
+    {
+        dt.SetSecond(0);
+        TextCtrl_OnTime->SetValue(dt.Format("%H:%M:%S"));
+    }
+}
+
+void ScheduleDialog::OnTextCtrl_OffKillFocus(wxFocusEvent& event)
+{
+    wxDateTime dt;
+    dt.ParseFormat(TextCtrl_OffTime->GetValue(), "%H:%M:%S");
+    if (dt.GetSecond() != 0)
+    {
+        dt.SetSecond(0);
+        TextCtrl_OffTime->SetValue(dt.Format("%H:%M:%S"));
+    }
 }

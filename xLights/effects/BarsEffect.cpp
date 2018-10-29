@@ -58,7 +58,7 @@ static inline int GetDirection(const std::string & DirectionString) {
     return 0;
 }
 
-void BarsEffect::SetDefaultParameters(Model *cls) {
+void BarsEffect::SetDefaultParameters() {
     BarsPanel *bp = (BarsPanel*)panel;
     if (bp == nullptr) {
         return;
@@ -92,8 +92,8 @@ void BarsEffect::GetSpatialColor(xlColor& color, size_t colorIndex, float x, flo
             if (show3d) color.alpha = 255.0 * double(BarHt - n%BarHt - 1) / BarHt;
         }
         else {
-            HSVValue hsv = color.asHSV();
             if (gradient) buffer.Get2ColorBlend(color, color2, pct);
+            HSVValue hsv = color.asHSV();
             if (highlight && n % BarHt == 0) hsv.saturation = 0.0;
             if (show3d) hsv.value *= double(BarHt - n%BarHt - 1) / BarHt;
             color = hsv;
@@ -104,17 +104,16 @@ void BarsEffect::GetSpatialColor(xlColor& color, size_t colorIndex, float x, flo
 void BarsEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
 
     float offset = buffer.GetEffectTimeIntervalPosition();
-    int PaletteRepeat = GetValueCurveInt("Bars_BarCount", 1, SettingsMap, offset, BARCOUNT_MIN, BARCOUNT_MAX);
-    double cycles = GetValueCurveDouble("Bars_Cycles", 1.0, SettingsMap, offset, BARCYCLES_MIN, BARCYCLES_MAX, 10);
+    int PaletteRepeat = GetValueCurveInt("Bars_BarCount", 1, SettingsMap, offset, BARCOUNT_MIN, BARCOUNT_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    double cycles = GetValueCurveDouble("Bars_Cycles", 1.0, SettingsMap, offset, BARCYCLES_MIN, BARCYCLES_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS(), 10);
     double position = buffer.GetEffectTimeIntervalPosition(cycles);
-    double Center = GetValueCurveDouble("Bars_Center", 0, SettingsMap, position, BARCENTER_MIN, BARCENTER_MAX);
+    double Center = GetValueCurveDouble("Bars_Center", 0, SettingsMap, position, BARCENTER_MIN, BARCENTER_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     int Direction = GetDirection(SettingsMap["CHOICE_Bars_Direction"]);
     bool Highlight = SettingsMap.GetBool("CHECKBOX_Bars_Highlight", false);
     bool Show3D = SettingsMap.GetBool("CHECKBOX_Bars_3D", false);
     bool Gradient = SettingsMap.GetBool("CHECKBOX_Bars_Gradient", false);
 
     int x,y,n,ColorIdx;
-    HSVValue hsv;
     size_t colorcnt = buffer.GetColorCount();
     int BarCount = PaletteRepeat * colorcnt;
 
@@ -124,7 +123,7 @@ void BarsEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &
 
     if (Direction < 4 || Direction == 8 || Direction == 9)
     {
-        int BarHt = buffer.BufferHt/BarCount+1;
+        int BarHt = (int)std::ceil((float)buffer.BufferHt / (float)BarCount);
         if(BarHt<1) BarHt=1;
         int NewCenter = buffer.BufferHt * (100 + Center) / 200;
         int BlockHt=colorcnt * BarHt;
@@ -149,8 +148,9 @@ void BarsEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &
                 if (Highlight && n % BarHt == 0) color = xlWHITE;
                 if (Show3D) color.alpha = 255.0 * double(BarHt - n%BarHt - 1) / BarHt;
             } else {
-                buffer.palette.GetHSV(ColorIdx, hsv);
+                buffer.palette.GetColor(ColorIdx, color);
                 if (Gradient) buffer.Get2ColorBlend(ColorIdx, color2, pct, color);
+                HSVValue hsv = color.asHSV();
                 if (Highlight && n % BarHt == 0) hsv.saturation=0.0;
                 if (Show3D) hsv.value *= double(BarHt - n%BarHt - 1) / BarHt;
                 color = hsv;
@@ -205,7 +205,7 @@ void BarsEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &
         if( Direction == 13 ) {
             std::swap(width, height);
         }
-        int BarWi = width/BarCount+1;
+        int BarWi = (int)std::ceil((float)width / (float)BarCount);
         if(BarWi<1) BarWi=1;
         int NewCenter = (width * (100.0 + Center) / 200.0 - width/2);
         int BlockWi=colorcnt * BarWi;
@@ -224,8 +224,9 @@ void BarsEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &
                 if (Show3D) color.alpha = 255.0 * double(BarWi - n%BarWi - 1) / BarWi;
 
             } else {
-                buffer.palette.GetHSV(ColorIdx, hsv);
+                buffer.palette.GetColor(ColorIdx, color);
                 if (Gradient) buffer.Get2ColorBlend(ColorIdx, color2, pct, color);
+                HSVValue hsv = color.asHSV();
                 if (Highlight && n % BarWi == 0) hsv.saturation=0.0;
                 if (Show3D) hsv.value *= double(BarWi - n%BarWi - 1) / BarWi;
                 color = hsv;
@@ -245,7 +246,7 @@ void BarsEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &
     }
     else
     {
-        int BarWi = buffer.BufferWi/BarCount+1;
+        int BarWi = (int)std::ceil((float)buffer.BufferWi / (float)BarCount);
         if(BarWi<1) BarWi=1;
         int NewCenter = buffer.BufferWi * (100 + Center) / 200;
         int BlockWi=colorcnt * BarWi;
@@ -269,8 +270,9 @@ void BarsEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &
                 if (Show3D) color.alpha = 255.0 * double(BarWi - n%BarWi - 1) / BarWi;
 
             } else {
-                buffer.palette.GetHSV(ColorIdx, hsv);
+                buffer.palette.GetColor(ColorIdx, color);
                 if (Gradient) buffer.Get2ColorBlend(ColorIdx, color2, pct, color);
+                HSVValue hsv = color.asHSV();
                 if (Highlight && n % BarWi == 0) hsv.saturation=0.0;
                 if (Show3D) hsv.value *= double(BarWi - n%BarWi - 1) / BarWi;
                 color = hsv;

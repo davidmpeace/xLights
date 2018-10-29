@@ -3,22 +3,31 @@
 
 //(*Headers(VideoPanel)
 #include <wx/panel.h>
-class wxFilePickerCtrl;
+class wxBitmapButton;
 class wxCheckBox;
-class wxTextCtrl;
-class wxStaticText;
-class wxSlider;
-class wxFlexGridSizer;
 class wxChoice;
+class wxFilePickerCtrl;
+class wxFlexGridSizer;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
 
 #include <wx/filepicker.h>
 #include <mutex>
 #include <map>
 
+#include "../BulkEditControls.h"
+
+#define VIDEO_SPEED_MIN -1000
+#define VIDEO_SPEED_MAX 1000
+#define VIDEO_SPEED_DIVISOR 100
+
 #define VIDEOWILDCARD "Video Files|*.avi;*.mp4;*.mkv;*.mov;*.asf;*.flv;*.mpg;*.mpeg;*.m4v"
 
-class xlVideoFilePickerCtrl : public wxFilePickerCtrl {
+wxDECLARE_EVENT(EVT_VIDEODETAILS, wxCommandEvent);
+
+class xlVideoFilePickerCtrl : public BulkEditFilePickerCtrl {
 public:
 	xlVideoFilePickerCtrl(wxWindow *parent,
 		wxWindowID id,
@@ -30,7 +39,7 @@ public:
 		long style = wxFLP_DEFAULT_STYLE,
 		const wxValidator& validator = wxDefaultValidator,
 		const wxString& name = wxFilePickerCtrlNameStr)
-		: wxFilePickerCtrl(parent, id, path, message, VIDEOWILDCARD, pos, size, style, validator, name) {
+		: BulkEditFilePickerCtrl(parent, id, path, message, VIDEOWILDCARD, pos, size, style, validator, name) {
 
 	}
 	virtual ~xlVideoFilePickerCtrl() {}
@@ -39,21 +48,43 @@ public:
 class VideoPanel: public wxPanel
 {
     void ValidateWindow();
+    void AddVideoTime(std::string fn, unsigned long ms);
 
 	public:
 
 		VideoPanel(wxWindow* parent);
 		virtual ~VideoPanel();
-        void addVideoTime(std::string fn, unsigned long ms);
 
         //(*Declarations(VideoPanel)
-        wxChoice* Choice_Video_DurationTreatment;
-        wxSlider* Slider_Video_Starttime;
-        wxCheckBox* CheckBox_Video_AspectRatio;
+        BulkEditCheckBox* CheckBox_SynchroniseWithAudio;
+        BulkEditCheckBox* CheckBox_TransparentBlack;
+        BulkEditCheckBox* CheckBox_Video_AspectRatio;
+        BulkEditChoice* Choice_Video_DurationTreatment;
+        BulkEditSlider* Slider1;
+        BulkEditSlider* Slider_Video_CropBottom;
+        BulkEditSlider* Slider_Video_CropLeft;
+        BulkEditSlider* Slider_Video_CropRight;
+        BulkEditSlider* Slider_Video_CropTop;
+        BulkEditSliderF2* Slider_Video_Speed;
+        BulkEditSliderF2* Slider_Video_Starttime;
+        BulkEditTextCtrl* TextCtrl1;
+        BulkEditTextCtrl* TextCtrl_Video_CropBottom;
+        BulkEditTextCtrl* TextCtrl_Video_CropLeft;
+        BulkEditTextCtrl* TextCtrl_Video_CropRight;
+        BulkEditTextCtrl* TextCtrl_Video_CropTop;
+        BulkEditTextCtrlF2* TextCtrl_Video_Speed;
+        BulkEditTextCtrlF2* TextCtrl_Video_Starttime;
+        BulkEditValueCurveButton* BitmapButton_Video_Speed;
+        wxStaticText* StaticText1;
+        wxStaticText* StaticText2;
+        wxStaticText* StaticText3;
+        wxStaticText* StaticText4;
+        wxStaticText* StaticText5;
+        wxStaticText* StaticText6;
+        wxStaticText* StaticText7;
         wxStaticText* StaticText8;
-        wxCheckBox* CheckBox_SynchroniseWithAudio;
+        wxTextCtrl* TextCtrl2;
         xlVideoFilePickerCtrl* FilePicker_Video_Filename;
-        wxTextCtrl* TextCtrl_Video_Starttime;
         //*)
 
 protected:
@@ -63,34 +94,48 @@ protected:
     
 		//(*Identifiers(VideoPanel)
 		static const long ID_FILEPICKERCTRL_Video_Filename;
-		static const long ID_STATICTEXT8;
+		static const long ID_STATICTEXT_Video_Starttime;
 		static const long IDD_SLIDER_Video_Starttime;
 		static const long ID_TEXTCTRL_Video_Starttime;
+		static const long ID_STATICTEXT1;
+		static const long ID_TEXTCTRL_Duration;
+		static const long ID_STATICTEXT_Video_DurationTreatment;
 		static const long ID_CHOICE_Video_DurationTreatment;
+		static const long ID_STATICTEXT2;
+		static const long IDD_SLIDER_Video_Speed;
+		static const long ID_VALUECURVE_Video_Speed;
+		static const long ID_TEXTCTRL_Video_Speed;
 		static const long ID_CHECKBOX_Video_AspectRatio;
 		static const long ID_CHECKBOX_SynchroniseWithAudio;
+		static const long ID_STATICTEXT_Video_CropLeft;
+		static const long IDD_SLIDER_Video_CropLeft;
+		static const long ID_TEXTCTRL_Video_CropLeft;
+		static const long ID_STATICTEXT_Video_CropRight;
+		static const long IDD_SLIDER_Video_CropRight;
+		static const long ID_TEXTCTRL_Video_CropRight;
+		static const long ID_STATICTEXT_Video_CropTop;
+		static const long IDD_SLIDER_Video_CropTop;
+		static const long ID_TEXTCTRL_Video_CropTop;
+		static const long ID_STATICTEXT_Video_CropBottom;
+		static const long IDD_SLIDER_Video_CropBottom;
+		static const long ID_TEXTCTRL_Video_CropBottom;
+		static const long ID_CHECKBOX_Video_TransparentBlack;
+		static const long IDD_SLIDER_Video_TransparentBlack;
+		static const long ID_TEXTCTRL_Video_TransparentBlack;
 		//*)
 
 	public:
 
 		//(*Handlers(VideoPanel)
-		void UpdateLinkedSliderFloat(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-		void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
-		void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-		void UpdateLinkedSlider360(wxCommandEvent& event);
-		void UpdateLinkedTextCtrl(wxScrollEvent& event);
-		void UpdateLinkedSlider(wxCommandEvent& event);
 		void OnLockButtonClick(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-		void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
 		void OnVCButtonClick(wxCommandEvent& event);
-		void OnSlider_Video_StarttimeCmdSliderUpdated(wxScrollEvent& event);
 		void OnFilePicker_Video_FilenameFileChanged(wxFileDirPickerEvent& event);
 		void OnVCChanged(wxCommandEvent& event);
 		void OnCheckBox_SynchroniseWithAudioClick(wxCommandEvent& event);
+		void OnChoice_Video_DurationTreatmentSelect(wxCommandEvent& event);
 		//*)
+
+        void SetVideoDetails(wxCommandEvent& event);
 
 		DECLARE_EVENT_TABLE()
 };

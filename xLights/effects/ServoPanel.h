@@ -3,16 +3,16 @@
 
 //(*Headers(ServoPanel)
 #include <wx/panel.h>
-class wxCheckBox;
-class wxTextCtrl;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
-class wxFlexGridSizer;
+class wxCheckBox;
 class wxChoice;
+class wxFlexGridSizer;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
 
-#include "../ValueCurveButton.h"
+#include "../BulkEditControls.h"
 
 class ServoPanel: public wxPanel
 {
@@ -22,20 +22,22 @@ class ServoPanel: public wxPanel
 		virtual ~ServoPanel();
 
 		//(*Declarations(ServoPanel)
+		BulkEditCheckBox* CheckBox_16bit;
+		BulkEditChoice* Choice_Channel;
+		BulkEditSliderF1* Slider_Servo;
+		BulkEditValueCurveButton* ValueCurve_Servo;
 		wxFlexGridSizer* FlexGridSizer_Main;
-		wxCheckBox* CheckBox_16bit;
-		ValueCurveButton* ValueCurve_Servo;
+		wxStaticText* Label_DMX1;
 		wxStaticText* StaticText1;
-		wxChoice* Choice_Channel;
-		wxSlider* Slider_Servo;
 		//*)
 
 	protected:
 
 		//(*Identifiers(ServoPanel)
-		static const long ID_STATICTEXT1;
+		static const long ID_STATICTEXT_Channel;
 		static const long ID_CHOICE_Channel;
 		static const long ID_CHECKBOX_16bit;
+		static const long ID_STATICTEXT_Servo;
 		static const long IDD_SLIDER_Servo;
 		static const long ID_VALUECURVE_Servo;
 		static const long ID_TEXTCTRL_Servo;
@@ -44,17 +46,7 @@ class ServoPanel: public wxPanel
 	private:
 
 		//(*Handlers(ServoPanel)
-        void UpdateLinkedSliderFloat(wxCommandEvent& event);
-        void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-        void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-        void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
-        void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-        void UpdateLinkedSlider360(wxCommandEvent& event);
-        void UpdateLinkedTextCtrl(wxScrollEvent& event);
-        void UpdateLinkedSlider(wxCommandEvent& event);
         void OnLockButtonClick(wxCommandEvent& event);
-        void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-        void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
         void OnVCButtonClick(wxCommandEvent& event);
         void OnVCChanged(wxCommandEvent& event);
 		//*)

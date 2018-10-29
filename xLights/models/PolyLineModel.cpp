@@ -1,11 +1,15 @@
-#include "PolyLineModel.h"
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/advprops.h>
 #include <wx/xml/xml.h>
+#include <wx/msgdlg.h>
+#include <wx/log.h>
+#include <wx/filedlg.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_transform_2d.hpp>
 #include <glm/mat3x3.hpp>
+
+#include "PolyLineModel.h"
 #include "ModelScreenLocation.h"
 #include "../xLightsMain.h"
 #include "../xLightsVersion.h"
@@ -13,7 +17,11 @@
 PolyLineModel::PolyLineModel(const ModelManager &manager) : ModelWithScreenLocation(manager) {
     parm1 = parm2 = parm3 = 0;
     segs_collapsed = true;
+    num_segments = 0;
+    total_length = 0.0f;
+    hasIndivSeg = false;
 }
+
 PolyLineModel::PolyLineModel(wxXmlNode *node, const ModelManager &manager, bool zeroBased) : ModelWithScreenLocation(manager)
 {
     segs_collapsed = true;
@@ -50,7 +58,7 @@ void PolyLineModel::InitRenderBufferNodes(const std::string &type,
                 BufferWi = w;
             }
         }
-        for (auto it = Nodes.begin(); it != Nodes.end(); it++) {
+        for (auto it = Nodes.begin(); it != Nodes.end(); ++it) {
             newNodes.push_back(NodeBaseClassPtr(it->get()->clone()));
         }
 
@@ -97,7 +105,7 @@ int PolyLineModel::GetNumStrands() const {
 void PolyLineModel::SetStringStartChannels(bool zeroBased, int NumberOfStrings, int StartChannel, int ChannelsPerString) {
     std::string tempstr = ModelXml->GetAttribute("Advanced", "0").ToStdString();
     bool HasIndividualStartChans=tempstr == "1";
-    if( HasIndividualStartChans ) {
+    if( HasIndividualStartChans && !SingleNode ) {
         // if individual start channels defer to InitModel where we know all the segment length data
     } else {
         Model::SetStringStartChannels(zeroBased, NumberOfStrings, StartChannel, ChannelsPerString);
@@ -171,7 +179,7 @@ void PolyLineModel::InitModel() {
         }
         parm2 = numLights;
         ModelXml->DeleteAttribute("parm2");
-        ModelXml->AddAttribute("parm2", wxString::Format("%d", parm2));
+        ModelXml->AddAttribute("parm2", wxString::Format("%ld", parm2));
     } else {
         parm1 = 1;
     }
@@ -271,11 +279,23 @@ void PolyLineModel::InitModel() {
     // normalize all points from 0.0 to 1.0 and create
     // a matrix for each line segment
     for( int i = 0; i < num_points-1; ++i ) {
-        float x1p = (pPos[i].x - minX) / deltax;
-        float x2p = (pPos[i+1].x - minX) / deltax;
-        float y1p = (pPos[i].y - minY) / deltay;
-        float y2p = (pPos[i+1].y - minY) / deltay;
-
+        float x1p, y1p, x2p, y2p;
+        if (deltax == 0.0f) {
+            x1p = 0.0f;
+            x2p = 0.0f;
+        }
+        else {
+            x1p = (pPos[i].x - minX) / deltax;
+            x2p = (pPos[i+1].x - minX) / deltax;
+        }
+        if (deltay == 0.0f) {
+            y1p = 0.0f;
+            y2p = 0.0f;
+        }
+        else {
+            y1p = (pPos[i].y - minY) / deltay;
+            y2p = (pPos[i + 1].y - minY) / deltay;
+        }
         float angle = (float)M_PI/2.0f;
         if (pPos[i+1].x != pPos[i].x) {
             float slope = (y2p - y1p)/(x2p - x1p);
@@ -308,7 +328,7 @@ void PolyLineModel::InitModel() {
     SetBufferSize(1, (SingleNode?1:numLights));
     int chan = 0;
     int LastStringNum=-1;
-    int ChanIncr=SingleChannel ?  1 : 3;
+    int ChanIncr = GetNodeChannelCount(StringType);
     for(idx=0; idx<(SingleNode?1:numLights); idx++) {
         if (Nodes[idx]->StringNum != LastStringNum) {
             LastStringNum=Nodes[idx]->StringNum;
@@ -462,11 +482,14 @@ void PolyLineModel::InitModel() {
     }
     screenLocation.SetRenderSize(1.0, 1.0);
 
-    // cleanup curves
+    // cleanup curves and matrices
     for( int i = 0; i < num_points; ++i ) {
         if( pPos[i].has_curve ) {
             delete pPos[i].curve;
             pPos[i].curve = nullptr;
+        }
+        if (pPos[i].matrix != nullptr) {
+            delete pPos[i].matrix;
         }
     }
 }
@@ -514,8 +537,8 @@ static wxPGChoices LEFT_RIGHT;
 
 void PolyLineModel::AddTypeProperties(wxPropertyGridInterface *grid) {
     if (LEFT_RIGHT.GetCount() == 0) {
-        LEFT_RIGHT.Add("Left");
-        LEFT_RIGHT.Add("Right");
+        LEFT_RIGHT.Add("Green Square");
+        LEFT_RIGHT.Add("Blue Square");
     }
     wxPGProperty *p;
     if (SingleNode) {
@@ -537,37 +560,46 @@ void PolyLineModel::AddTypeProperties(wxPropertyGridInterface *grid) {
         p->SetEditor("SpinCtrl");
     }
 
-    p = grid->Append(new wxEnumProperty("Starting Location", "PolyLineStart", LEFT_RIGHT, IsLtoR ? 0 : 1));
+    grid->Append(new wxEnumProperty("Starting Location", "PolyLineStart", LEFT_RIGHT, IsLtoR ? 0 : 1));
 
     p = grid->Append(new wxBoolProperty("Indiv Segments", "ModelIndividualSegments", hasIndivSeg));
     p->SetAttribute("UseCheckbox", true);
     p->Enable(num_segments > 1);
-    wxPGProperty *sp;
     if (hasIndivSeg) {
         for (int x = 0; x < num_segments; x++) {
             std::string val = ModelXml->GetAttribute(SegAttrName(x)).ToStdString();
             if (val == "") {
+                //TODO this needs to be improved like the model individual start channels code
                 val = wxString::Format("%d", polyLineSizes[x]);
                 ModelXml->DeleteAttribute(SegAttrName(x));
                 ModelXml->AddAttribute(SegAttrName(x), val);
             }
             wxString nm = wxString::Format("Segment %d", x+1);
-            sp = grid->AppendIn(p, new wxUIntProperty(nm, SegAttrName(x), wxAtoi(ModelXml->GetAttribute(SegAttrName(x),""))));
+            grid->AppendIn(p, new wxUIntProperty(nm, SegAttrName(x), wxAtoi(ModelXml->GetAttribute(SegAttrName(x),""))));
         }
         if( segs_collapsed ) {
             grid->Collapse(p);
         }
     }
+    else
+    {
+        for (int x = 0; x < 100; x++) {
+            ModelXml->DeleteAttribute(SegAttrName(x));
+        }
+        // If we dont have individual segments ... then we dont have individual start channels
+        ModelXml->DeleteAttribute("Advanced");
+    }
 }
+
 int PolyLineModel::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEvent& event) {
     if ("PolyLineNodes" == event.GetPropertyName()) {
         ModelXml->DeleteAttribute("parm2");
-        ModelXml->AddAttribute("parm2", wxString::Format("%d", (int)event.GetPropertyValue().GetLong()));
+        ModelXml->AddAttribute("parm2", wxString::Format("%ld", (int)event.GetPropertyValue().GetLong()));
         SetFromXml(ModelXml, zeroBased);
         return 3 | 0x0008;
     } else if ("PolyLineLights" == event.GetPropertyName()) {
         ModelXml->DeleteAttribute("parm3");
-        ModelXml->AddAttribute("parm3", wxString::Format("%d", (int)event.GetPropertyValue().GetLong()));
+        ModelXml->AddAttribute("parm3", wxString::Format("%ld", (int)event.GetPropertyValue().GetLong()));
         SetFromXml(ModelXml, zeroBased);
         return 3 | 0x0008;
     } else if ("PolyLineStart" == event.GetPropertyName()) {
@@ -582,15 +614,19 @@ int PolyLineModel::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropert
             segs_collapsed = false;
             ModelXml->AddAttribute("IndivSegs", "1");
             int count = polyLineSizes.size();
-            for (int x = 0; x < num_segments; x++) {
-                count = polyLineSizes[x];
+            for (int x = 0; x < count; x++) {
                 if (ModelXml->GetAttribute(SegAttrName(x)) == "") {
                     ModelXml->DeleteAttribute(SegAttrName(x));
+                    //TODO This needs to be immproved like the individual start channels code in model
                     ModelXml->AddAttribute(SegAttrName(x), wxString::Format("%d", polyLineSizes[x]));
                 }
             }
-        } else {
+        }
+        else {
             hasIndivSeg = false;
+            for (int x = 0; x < 100; x++) {
+                ModelXml->DeleteAttribute(SegAttrName(x));
+            }
         }
         SetFromXml(ModelXml, zeroBased);
         IncrementChangeCount();
@@ -680,6 +716,9 @@ void PolyLineModel::ImportXlightsModel(std::string filename, xLightsFrame* xligh
             wxString pts = root->GetAttribute("NumPoints");
             wxString point_data = root->GetAttribute("PointData");
             wxString cpoint_data = root->GetAttribute("cPointData");
+            wxString pc = root->GetAttribute("PixelCount");
+            wxString pt = root->GetAttribute("PixelType");
+            wxString psp = root->GetAttribute("PixelSpacing");
 
             // Add any model version conversion logic here
             // Source version will be the program version that created the custom model
@@ -696,6 +735,9 @@ void PolyLineModel::ImportXlightsModel(std::string filename, xLightsFrame* xligh
             SetProperty("Dir", dir);
             SetProperty("StrandNames", sn);
             SetProperty("NodeNames", nn);
+            SetProperty("PixelCount", pc);
+            SetProperty("PixelType", pt);
+            SetProperty("PixelSpacing", psp);
             wxString newname = xlights->AllModels.GenerateModelName(name.ToStdString());
             SetProperty("name", newname, true);
 
@@ -723,6 +765,7 @@ void PolyLineModel::ImportXlightsModel(std::string filename, xLightsFrame* xligh
                 for (int x = 0; x < num_segments; x++) {
                     ModelXml->DeleteAttribute(SegAttrName(x));
                     wxString seg = root->GetAttribute(SegAttrName(x), "");
+                    // TODO this needs to be fixed like the individual start channel code in model
                     int seg_length = wxAtoi(seg);
                     ModelXml->AddAttribute(SegAttrName(x), wxString::Format("%d", seg_length));
                 }
@@ -934,8 +977,18 @@ void PolyLineModel::NormalizePointData()
 
     // normalize all the point data
     for( int i = 0; i < num_points; ++i ) {
-        pPos[i].x = (pPos[i].x - minX) / deltax;
-        pPos[i].y = (pPos[i].y - minY) / deltay;
+        if (deltax == 0.0f) {
+            pPos[i].x = 0.0f;
+        }
+        else {
+            pPos[i].x = (pPos[i].x - minX) / deltax;
+        }
+        if (deltay == 0.0f) {
+            pPos[i].y = 0.0f;
+        }
+        else {
+            pPos[i].y = (pPos[i].y - minY) / deltay;
+        }
         if( pPos[i].has_curve ) {
             float cp0x = pPos[i].curve->get_cp0x();
             float cp0y = pPos[i].curve->get_cp0y();

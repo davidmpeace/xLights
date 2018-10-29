@@ -1,5 +1,5 @@
 #include "IPEntryDialog.h"
-#include "outputs/IPOutput.h"
+#include "UtilFunctions.h"
 
 //(*InternalHeaders(IPEntryDialog)
 #include <wx/intl.h>
@@ -86,14 +86,14 @@ void IPEntryDialog::ValidateWindow()
     {
         Button_Ok->Enable();
     }
-    else if (IPOutput::IsIPValid(TextCtrl_IPAddress->GetValue().ToStdString()))
+    else if (IsIPValidOrHostname(TextCtrl_IPAddress->GetValue().ToStdString()))
     {
         wxIPV4address localaddr;
         localaddr.Hostname(TextCtrl_IPAddress->GetValue());
 
         auto d = new wxDatagramSocket(localaddr, wxSOCKET_NOWAIT);
 
-        if (d != nullptr && d->IsOk())
+        if (d != nullptr && d->IsOk() && d->Error() == wxSOCKET_NOERROR)
         {
             Button_Ok->Enable();
         }

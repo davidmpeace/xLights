@@ -10,7 +10,9 @@
 #define MINVOIDF -9.1234f
 #define MAXVOIDF 9.1234f
 
-#define VC_X_POINTS 40.0
+#define VC_X_POINTS 100.0
+
+class AudioManager;
 
 class vcSortablePoint
 {
@@ -73,6 +75,7 @@ class ValueCurve
     float _max;
     float _min;
     float _divisor;
+    int _timeOffset;
     float _parameter1;
     float _parameter2;
     float _parameter3;
@@ -80,6 +83,7 @@ class ValueCurve
     bool _active;
     bool _wrap;
     bool _realValues;
+    static AudioManager* __audioManager;
 
     void RenderType();
     void SetSerialisedValue(std::string k, std::string s);
@@ -90,7 +94,10 @@ class ValueCurve
     float Denormalise(int parm, float value);
 
 public:
-    ValueCurve() { SetDefault(); _min = MINVOIDF; _max = MAXVOIDF; _divisor = 1; }
+
+    static void SetAudio(AudioManager* am) { __audioManager = am; }
+
+    ValueCurve() { _divisor = 1; SetDefault(); _min = MINVOIDF; _max = MAXVOIDF; }
     ValueCurve(const std::string& serialised);
     ValueCurve(const std::string& id, float min, float max = 100.0f, const std::string type = "Flat", float parameter1 = 0.0f, float parameter2 = 0.0f, float parameter3 = 0.0f, float parameter4 = 0.0f, bool wrap = false, float divisor = 1.0);
     void SetDefault(float min = MINVOIDF, float max = MAXVOIDF, int divisor = MAXVOID);
@@ -108,12 +115,13 @@ public:
     int GetDivisor() const { wxASSERT(_divisor != MAXVOID); return (int)_divisor; }
     void SetRealValue() { _realValues = true; }
     void SetLimits(float min, float max) { _min = min; _max = max; }
-    float GetValueAt(float offset);
-    float GetOutputValueAt(float offset);
-    float GetOutputValueAtDivided(float offset);
-    float GetOutputValue(float offset);
+    void FixScale(int scale);
+    float GetValueAt(float offset, long startMS, long endMS);
+    float GetOutputValueAt(float offset, long startMS, long endMS);
+    float GetOutputValueAtDivided(float offset, long startMS, long endMS);
+    float GetScaledValue(float offset) const;
     void SetActive(bool a) { _active = a; RenderType(); }
-    bool IsActive() const { return IsOk() && _active; }
+    bool IsActive() const { return _active && IsOk(); }
     void ToggleActive() { _active = !_active; if (_active) RenderType(); }
     void SetValueAt(float offset, float value);
     void DeletePoint(float offset);
@@ -124,8 +132,11 @@ public:
     void SetParameter2(float parameter2) { _parameter2 = SafeParameter(2, parameter2); RenderType(); }
     void SetParameter3(float parameter3) { _parameter3 = SafeParameter(3, parameter3); RenderType(); }
     void SetParameter4(float parameter4) { _parameter4 = SafeParameter(4, parameter4); RenderType(); }
+    void SetTimeOffset(int timeOffset) { _timeOffset = timeOffset; RenderType(); }
     void SetWrap(bool wrap);
+    int GetTimeOffset() const { return _timeOffset; }
     float GetParameter1() const { return _parameter1; }
+    float GetParameter1_100() const;
     float GetParameter2() const { return _parameter2; }
     float GetParameter3() const { return _parameter3; }
     float GetParameter4() const { return _parameter4; }
@@ -142,6 +153,7 @@ public:
     static void GetRangeParm2(const std::string& type, float& low, float &high);
     static void GetRangeParm3(const std::string& type, float& low, float &high);
     static void GetRangeParm4(const std::string& type, float& low, float &high);
+    void Reverse();
 };
 
 #endif

@@ -10,14 +10,19 @@
 #ifndef XLIGHTSAPP_H
 #define XLIGHTSAPP_H
 
-#ifdef _MSC_VER_
-#define _CRTDBG_MAP_ALLOC
+#ifdef _MSC_VER
 #include <stdlib.h>
+//#define VISUALSTUDIO_MEMORYLEAKDETECTION
+#ifdef VISUALSTUDIO_MEMORYLEAKDETECTION
+#define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
+#endif
 #endif
 
 #include <wx/app.h>
 #include <wx/cmdline.h>
+
+class xLightsFrame;
 
 class xLightsApp : public wxApp
 {
@@ -25,11 +30,13 @@ class xLightsApp : public wxApp
 
 public:
     virtual bool OnInit();
+    static xLightsFrame* GetFrame() { return __frame; }
     static bool WantDebug; //debug flag from command-line -DJ
     static wxString DebugPath; //path name for debug log file -DJ
     static wxString showDir;
     static wxString mediaDir;
     static wxArrayString sequenceFiles;
+    static xLightsFrame* __frame;
 
     virtual void OnFatalException();
 };

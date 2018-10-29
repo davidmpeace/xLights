@@ -3,15 +3,15 @@
 
 //(*Headers(TendrilPanel)
 #include <wx/panel.h>
-class wxTextCtrl;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
-class wxFlexGridSizer;
 class wxChoice;
+class wxFlexGridSizer;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
 
-#include "../ValueCurveButton.h"
+#include "../BulkEditControls.h"
 
 class TendrilPanel: public wxPanel
 {
@@ -34,120 +34,120 @@ class TendrilPanel: public wxPanel
 		virtual ~TendrilPanel();
 
 		//(*Declarations(TendrilPanel)
+		BulkEditChoice* Choice_Tendril_Movement;
+		BulkEditSlider* Slider_Tendril_Dampening;
+		BulkEditSlider* Slider_Tendril_Friction;
+		BulkEditSlider* Slider_Tendril_Length;
+		BulkEditSlider* Slider_Tendril_ManualX;
+		BulkEditSlider* Slider_Tendril_ManualY;
+		BulkEditSlider* Slider_Tendril_Speed;
+		BulkEditSlider* Slider_Tendril_Tension;
+		BulkEditSlider* Slider_Tendril_Thickness;
+		BulkEditSlider* Slider_Tendril_Trails;
+		BulkEditSlider* Slider_Tendril_TuneMovement;
+		BulkEditSlider* Slider_Tendril_XOffset;
+		BulkEditSlider* Slider_Tendril_YOffset;
+		BulkEditTextCtrl* TextCtrl_Tendril_Dampening;
+		BulkEditTextCtrl* TextCtrl_Tendril_Friction;
+		BulkEditTextCtrl* TextCtrl_Tendril_Length;
+		BulkEditTextCtrl* TextCtrl_Tendril_ManualX;
+		BulkEditTextCtrl* TextCtrl_Tendril_ManualY;
+		BulkEditTextCtrl* TextCtrl_Tendril_Speed;
+		BulkEditTextCtrl* TextCtrl_Tendril_Tension;
+		BulkEditTextCtrl* TextCtrl_Tendril_Thickness;
+		BulkEditTextCtrl* TextCtrl_Tendril_Trails;
+		BulkEditTextCtrl* TextCtrl_Tendril_TuneMovement;
+		BulkEditTextCtrl* TextCtrl_Tendril_XOffset;
+		BulkEditTextCtrl* TextCtrl_Tendril_YOffset;
+		BulkEditValueCurveButton* BitmapButton_Tendril_ManualXVC;
+		BulkEditValueCurveButton* BitmapButton_Tendril_ManualYVC;
+		BulkEditValueCurveButton* BitmapButton_Tendril_ThicknessVC;
+		BulkEditValueCurveButton* BitmapButton_Tendril_TuneMovementVC;
+		BulkEditValueCurveButton* BitmapButton_Tendril_XOffsetVC;
+		BulkEditValueCurveButton* BitmapButton_Tendril_YOffsetVC;
 		wxStaticText* StaticText10;
-		wxStaticText* StaticText9;
-		wxTextCtrl* TextCtrl_Tendril_Length;
-		ValueCurveButton* BitmapButton_Tendril_ThicknessVC;
-		wxTextCtrl* TextCtrl_Tendril_Dampening;
-		wxBitmapButton* BitmapButton_Tendril_XOffset;
-		wxStaticText* StaticText13;
-		wxStaticText* StaticText2;
-		wxBitmapButton* BitmapButton_TendrilSpeed;
-		wxStaticText* StaticText6;
-		wxTextCtrl* TextCtrl_Tendril_Trails;
-		wxSlider* Slider_Tendril_Dampening;
-		wxSlider* Slider_Tendril_ManualX;
-		ValueCurveButton* BitmapButton_Tendril_ManualYVC;
-		ValueCurveButton* BitmapButton_Tendril_ManualXVC;
-		wxStaticText* StaticText8;
 		wxStaticText* StaticText11;
-		wxBitmapButton* BitmapButton_TendrilDampening;
-		ValueCurveButton* BitmapButton_Tendril_TuneMovementVC;
-		wxTextCtrl* TextCtrl_Tendril_ManualY;
-		wxTextCtrl* TextCtrl_Tendril_Thickness;
-		wxStaticText* StaticText1;
-		wxTextCtrl* TextCtrl_Tendril_Tension;
-		wxTextCtrl* TextCtrl_Tendril_Speed;
-		wxStaticText* StaticText3;
-		ValueCurveButton* BitmapButton_Tendril_XOffsetVC;
-		wxSlider* Slider_Tendril_TuneMovement;
-		wxBitmapButton* BitmapButton_TendrilTension;
-		wxTextCtrl* TextCtrl_Tendril_YOffset;
-		wxBitmapButton* BitmapButton_TendrilFriction;
-		ValueCurveButton* BitmapButton_Tendril_YOffsetVC;
-		wxSlider* Slider_Tendril_Speed;
-		wxSlider* Slider_Tendril_XOffset;
-		wxStaticText* StaticText5;
-		wxBitmapButton* BitmapButton_TendrilLength;
-		wxStaticText* StaticText7;
-		wxBitmapButton* BitmapButton_Tendril_Movement;
-		wxBitmapButton* BitmapButton_Tendril_Thickness;
-		wxSlider* Slider_Tendril_Friction;
-		wxTextCtrl* TextCtrl_Tendril_Friction;
 		wxStaticText* StaticText12;
-		wxStaticText* StaticText68;
-		wxChoice* Choice_Tendril_Movement;
-		wxSlider* Slider_Tendril_Thickness;
-		wxSlider* Slider_Tendril_YOffset;
-		wxTextCtrl* TextCtrl_Tendril_XOffset;
-		wxSlider* Slider_Tendril_Length;
-		wxBitmapButton* BitmapButton_Tendril_YOffset;
-		wxBitmapButton* BitmapButton_TendrilTrails;
-		wxSlider* Slider_Tendril_ManualY;
+		wxStaticText* StaticText13;
+		wxStaticText* StaticText1;
+		wxStaticText* StaticText2;
+		wxStaticText* StaticText3;
 		wxStaticText* StaticText4;
-		wxSlider* Slider_Tendril_Trails;
-		wxBitmapButton* BitmapButton_Tendril_TuneMovement;
-		wxTextCtrl* TextCtrl_Tendril_ManualX;
-		wxTextCtrl* TextCtrl_Tendril_TuneMovement;
-		wxSlider* Slider_Tendril_Tension;
+		wxStaticText* StaticText5;
+		wxStaticText* StaticText68;
+		wxStaticText* StaticText6;
+		wxStaticText* StaticText7;
+		wxStaticText* StaticText8;
+		wxStaticText* StaticText9;
+		xlLockButton* BitmapButton_TendrilDampening;
+		xlLockButton* BitmapButton_TendrilFriction;
+		xlLockButton* BitmapButton_TendrilLength;
+		xlLockButton* BitmapButton_TendrilSpeed;
+		xlLockButton* BitmapButton_TendrilTension;
+		xlLockButton* BitmapButton_TendrilTrails;
+		xlLockButton* BitmapButton_Tendril_Movement;
+		xlLockButton* BitmapButton_Tendril_Thickness;
+		xlLockButton* BitmapButton_Tendril_TuneMovement;
+		xlLockButton* BitmapButton_Tendril_XOffset;
+		xlLockButton* BitmapButton_Tendril_YOffset;
 		//*)
 
 	protected:
 
 		//(*Identifiers(TendrilPanel)
-		static const long ID_STATICTEXT1;
+		static const long ID_STATICTEXT_Tendril_Movement;
 		static const long ID_CHOICE_Tendril_Movement;
 		static const long ID_STATICTEXT9;
 		static const long ID_BITMAPBUTTON_CHOICE_Tendril_Movement;
-		static const long ID_STATICTEXT8;
+		static const long ID_STATICTEXT_Tendril_TuneMovement;
 		static const long IDD_SLIDER_Tendril_TuneMovement;
 		static const long ID_VALUECURVE_Tendril_TuneMovement;
 		static const long ID_TEXTCTRL_Tendril_TuneMovement;
-		static const long ID_BITMAPBUTTON_CHOICE_Tendril_TuneMovement;
-		static const long ID_STATICTEXT7;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_TuneMovement;
+		static const long ID_STATICTEXT_Tendril_Thickness;
 		static const long IDD_SLIDER_Tendril_Thickness;
 		static const long ID_VALUECURVE_Tendril_Thickness;
 		static const long ID_TEXTCTRL_Tendril_Thickness;
-		static const long ID_BITMAPBUTTON_CHOICE_Tendril_Thickness;
-		static const long ID_STATICTEXT2;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_Thickness;
+		static const long ID_STATICTEXT_Tendril_Friction;
 		static const long IDD_SLIDER_Tendril_Friction;
 		static const long ID_TEXTCTRL_Tendril_Friction;
-		static const long ID_BITMAPBUTTON_CHOICE_Tendril_Friction;
-		static const long ID_STATICTEXT3;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_Friction;
+		static const long ID_STATICTEXT_Tendril_Dampening;
 		static const long IDD_SLIDER_Tendril_Dampening;
 		static const long ID_TEXTCTRL_Tendril_Dampening;
-		static const long ID_BITMAPBUTTON_CHOICE_Tendril_Dampening;
-		static const long ID_STATICTEXT4;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_Dampening;
+		static const long ID_STATICTEXT_Tendril_Tension;
 		static const long IDD_SLIDER_Tendril_Tension;
 		static const long ID_TEXTCTRL_Tendril_Tension;
-		static const long ID_BITMAPBUTTON_CHOICE_Tendril_Tension;
-		static const long ID_STATICTEXT5;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_Tension;
+		static const long ID_STATICTEXT_Tendril_Trails;
 		static const long IDD_SLIDER_Tendril_Trails;
 		static const long ID_TEXTCTRL_Tendril_Trails;
-		static const long ID_BITMAPBUTTON_CHOICE_Tendril_Trails;
-		static const long ID_STATICTEXT6;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_Trails;
+		static const long ID_STATICTEXT_Tendril_Length;
 		static const long IDD_SLIDER_Tendril_Length;
 		static const long ID_TEXTCTRL_Tendril_Length;
-		static const long ID_BITMAPBUTTON_CHOICE_Tendril_Length;
-		static const long ID_STATICTEXT27;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_Length;
+		static const long ID_STATICTEXT_Tendril_Speed;
 		static const long IDD_SLIDER_Tendril_Speed;
 		static const long ID_TEXTCTRL_Tendril_Speed;
-		static const long IID_BITMAPBUTTON_CHOICE_Tendril_Speed;
-		static const long ID_STATICTEXT10;
+		static const long IID_BITMAPBUTTON_SLIDER_Tendril_Speed;
+		static const long ID_STATICTEXT_Tendril_XOffset;
 		static const long IDD_SLIDER_Tendril_XOffset;
 		static const long ID_VALUECURVE_Tendril_XOffset;
 		static const long ID_TEXTCTRL_Tendril_XOffset;
-		static const long ID_BITMAPBUTTON_Tendril_XOffset;
-		static const long ID_STATICTEXT11;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_XOffset;
+		static const long ID_STATICTEXT_Tendril_YOffset;
 		static const long IDD_SLIDER_Tendril_YOffset;
 		static const long ID_VALUECURVE_Tendril_YOffset;
 		static const long ID_TEXTCTRL_Tendril_YOffset;
-		static const long ID_BITMAPBUTTON_Tendril_YOffset;
-		static const long ID_STATICTEXT12;
+		static const long ID_BITMAPBUTTON_SLIDER_Tendril_YOffset;
+		static const long ID_STATICTEXT_Tendril_ManualX;
 		static const long IDD_SLIDER_Tendril_ManualX;
 		static const long ID_VALUECURVE_Tendril_ManualX;
 		static const long ID_TEXTCTRL_Tendril_ManualX;
-		static const long ID_STATICTEXT13;
+		static const long ID_STATICTEXT_Tendril_ManualY;
 		static const long IDD_SLIDER_Tendril_ManualY;
 		static const long ID_VALUECURVE_Tendril_ManualY;
 		static const long ID_TEXTCTRL_Tendril_ManualY;
@@ -156,23 +156,13 @@ class TendrilPanel: public wxPanel
 	public:
 
 		//(*Handlers(TendrilPanel)
-		void UpdateLinkedSliderFloat(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-		void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-		void UpdateLinkedSlider360(wxCommandEvent& event);
-		void UpdateLinkedTextCtrl(wxScrollEvent& event);
-		void UpdateLinkedSlider(wxCommandEvent& event);
 		void OnLockButtonClick(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-		void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
-        void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-        void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
         void OnVCButtonClick(wxCommandEvent& event);
 		void OnChoice_Tendril_MovementSelect(wxCommandEvent& event);
         void OnVCChanged(wxCommandEvent& event);
         //*)
 
-		DECLARE_EVENT_TABLE()
+    DECLARE_EVENT_TABLE()
 };
 
 #endif

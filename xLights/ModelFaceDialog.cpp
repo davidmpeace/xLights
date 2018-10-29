@@ -1,9 +1,3 @@
-#include "ModelFaceDialog.h"
-#include "xLightsXmlFile.h"
-#include "NodesGridCellEditor.h"
-#include "ModelPreview.h"
-#include "DimmingCurve.h"
-
 //(*InternalHeaders(ModelFaceDialog)
 #include <wx/intl.h>
 #include <wx/string.h>
@@ -17,6 +11,9 @@
 #include <wx/filedlg.h>
 #include <wx/colordlg.h>
 #include <wx/tokenzr.h>
+#include <wx/zipstrm.h>
+#include <wx/wfstream.h>
+#include <wx/dir.h>
 
 #include "../include/AI.xpm"
 #include "../include/E.xpm"
@@ -28,7 +25,18 @@
 #include "../include/REST.xpm"
 #include "../include/U.xpm"
 #include "../include/WQ.xpm"
+
+#include "ModelFaceDialog.h"
+#include "xLightsXmlFile.h"
+#include "NodesGridCellEditor.h"
+#include "ModelPreview.h"
+#include "DimmingCurve.h"
 #include "UtilFunctions.h"
+#include "MatrixFaceDownloadDialog.h"
+#include "xLightsMain.h"
+#include "NodeSelectGrid.h"
+
+#include <log4cpp/Category.hh>
 
 #define CHANNEL_COL 0
 #define COLOR_COL 1
@@ -48,6 +56,7 @@ const long ModelFaceDialog::ID_GRID3 = wxNewId();
 const long ModelFaceDialog::ID_PANEL6 = wxNewId();
 const long ModelFaceDialog::ID_PANEL7 = wxNewId();
 const long ModelFaceDialog::ID_CHOICE2 = wxNewId();
+const long ModelFaceDialog::ID_BUTTON1 = wxNewId();
 const long ModelFaceDialog::ID_GRID1 = wxNewId();
 const long ModelFaceDialog::ID_PANEL3 = wxNewId();
 const long ModelFaceDialog::ID_CHOICEBOOK1 = wxNewId();
@@ -73,8 +82,7 @@ enum {
 #define wxEVT_GRID_CELL_CHANGE wxEVT_GRID_CELL_CHANGED
 #endif
 
-
-ModelFaceDialog::ModelFaceDialog(wxWindow* parent,wxWindowID id,const wxPoint& pos,const wxSize& size)
+ModelFaceDialog::ModelFaceDialog(wxWindow* parent,wxWindowID id, const wxPoint& pos,const wxSize& size)
 {
 	//(*Initialize(ModelFaceDialog)
 	wxFlexGridSizer* FlexGridSizer4;
@@ -214,6 +222,8 @@ ModelFaceDialog::ModelFaceDialog(wxWindow* parent,wxWindowID id,const wxPoint& p
 	MatrixImagePlacementChoice->SetSelection( MatrixImagePlacementChoice->Append(_("Centered")) );
 	MatrixImagePlacementChoice->Append(_("Scaled"));
 	FlexGridSizer6->Add(MatrixImagePlacementChoice, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	Button_DownloadImages = new wxButton(Matrix, ID_BUTTON1, _("Download Images"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON1"));
+	FlexGridSizer6->Add(Button_DownloadImages, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer10->Add(FlexGridSizer6, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	MatrixModelsGrid = new wxGrid(Matrix, ID_GRID1, wxDefaultPosition, wxDefaultSize, 0, _T("ID_GRID1"));
 	MatrixModelsGrid->CreateGrid(10,2);
@@ -281,6 +291,7 @@ ModelFaceDialog::ModelFaceDialog(wxWindow* parent,wxWindowID id,const wxPoint& p
 	Connect(ID_GRID3,wxEVT_GRID_SELECT_CELL,(wxObjectEventFunction)&ModelFaceDialog::OnNodeRangeGridCellSelect);
 	Panel_Matrix->Connect(wxEVT_PAINT,(wxObjectEventFunction)&ModelFaceDialog::Paint,0,this);
 	Connect(ID_CHOICE2,wxEVT_COMMAND_CHOICE_SELECTED,(wxObjectEventFunction)&ModelFaceDialog::OnMatricImagePlacementChoiceSelect);
+	Connect(ID_BUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&ModelFaceDialog::OnButton_DownloadImagesClick);
 	Connect(ID_GRID1,wxEVT_GRID_CELL_LEFT_CLICK,(wxObjectEventFunction)&ModelFaceDialog::OnMatrixModelsGridCellLeftClick1);
 	Connect(ID_GRID1,wxEVT_GRID_CELL_LEFT_DCLICK,(wxObjectEventFunction)&ModelFaceDialog::OnMatrixModelsGridCellLeftClick);
 	Connect(ID_GRID1,wxEVT_GRID_CELL_CHANGE,(wxObjectEventFunction)&ModelFaceDialog::OnMatrixModelsGridCellChange);
@@ -299,6 +310,7 @@ ModelFaceDialog::ModelFaceDialog(wxWindow* parent,wxWindowID id,const wxPoint& p
     FlexGridSizer1->Fit(this);
     FlexGridSizer1->SetSizeHints(this);
     Center();
+    SetEscapeId(wxID_CANCEL);
 }
 
 ModelFaceDialog::~ModelFaceDialog()
@@ -315,7 +327,7 @@ void ModelFaceDialog::SetFaceInfo(Model *cls, std::map< std::string, std::map<st
     modelPreview->SetModel(cls);
 
     for (std::map< std::string, std::map<std::string, std::string> >::iterator it = finfo.begin();
-         it != finfo.end(); it++) {
+         it != finfo.end(); ++it) {
 
         std::string name = it->first;
         std::map<std::string, std::string> &info = it->second;
@@ -334,11 +346,11 @@ void ModelFaceDialog::SetFaceInfo(Model *cls, std::map< std::string, std::map<st
             }
         }
 
-		for (std::map<std::string, std::string>::iterator it = info.begin(); it != info.end(); ++it)
+		for (std::map<std::string, std::string>::iterator it2 = info.begin(); it2 != info.end(); ++it2)
 		{
-			if (it->first.substr(0, 5) == "Mouth" || it->first.substr(0, 4) == "Eyes")
+			if (it2->first.substr(0, 5) == "Mouth" || it2->first.substr(0, 4) == "Eyes")
 			{
-				it->second = FixFile("", it->second);
+				it2->second = FixFile("", it2->second);
 			}
 		}
 
@@ -379,7 +391,6 @@ void ModelFaceDialog::SetFaceInfo(Model *cls, std::map< std::string, std::map<st
         NodeRangeGrid->SetReadOnly(x, 1);
     }
 }
-
 
 void ModelFaceDialog::GetFaceInfo(std::map< std::string, std::map<std::string, std::string> > &finfo) {
     if (SingleNodeGrid->IsCellEditControlShown()) {
@@ -446,9 +457,11 @@ void ModelFaceDialog::SelectFaceModel(const std::string &name) {
                 MatrixModelsGrid->SetCellValue(r, c, faceData[name][key.ToStdString()]);
             }
         }
-        std::string w = faceData[name]["ImagePlacement"];
-        if (w == "") {
-            w = "Centered";
+
+        std::string w = "Centered";
+        if (faceData[name].find("ImagePlacement") != faceData[name].end())
+        {
+            w = faceData[name]["ImagePlacement"];
         }
         MatrixImagePlacementChoice->SetStringSelection(w);
     }
@@ -478,7 +491,7 @@ void ModelFaceDialog::OnButtonMatrixAddClicked(wxCommandEvent& event)
 void ModelFaceDialog::OnButtonMatrixDeleteClick(wxCommandEvent& event)
 {
     std::string name = NameChoice->GetString(NameChoice->GetSelection()).ToStdString();
-    int i = wxMessageBox("Delete face definion?", "Are you sure you want to delete " + name + "?",
+    int i = wxMessageBox("Delete face definition?", "Are you sure you want to delete " + name + "?",
                          wxICON_WARNING | wxOK , this);
     if (i == wxID_OK || i == wxOK) {
 
@@ -506,8 +519,6 @@ void ModelFaceDialog::OnMatrixModelsGridCellChange(wxGridEvent& event)
     faceData[name][key.ToStdString()] = MatrixModelsGrid->GetCellValue(r, c);
 }
 
-
-//static const wxString strSupportedImageTypes = "PNG files (*.png)|*.png|BMP files (*.bmp)|*.bmp|JPG files(*.jpg)|*.jpg|All files (*.*)|*.*";
 static const wxString strSupportedImageTypes = "Image files|*.png;*.bmp;*.jpg;*.gif|All files (*.*)|*.*";
 void ModelFaceDialog::OnMatrixModelsGridCellLeftClick(wxGridEvent& event)
 {
@@ -525,9 +536,196 @@ void ModelFaceDialog::OnMatrixModelsGridCellLeftClick(wxGridEvent& event)
         key.Replace(" ", "");
         faceData[name][key.ToStdString()] = new_filename;
         MatrixModelsGrid->SetCellValue(r, c, new_filename);
+
+        TryToSetAllMatrixModels(name, key.ToStdString(), new_filename.ToStdString(), r, c);
     }
 }
 
+std::string GenerateKey(int col, std::string key)
+{
+    if (col == 0)
+    {
+        return "Mouth-" + key + "-EyesOpen";
+    }
+    else
+    {
+        return "Mouth-" + key + "-EyesClosed";
+    }
+}
+
+std::string ExtractKey(wxString key)
+{
+    return key.AfterFirst('-').BeforeFirst('-').ToStdString();
+}
+
+// replace the count'th occurrence of key with "etc" and return the position
+wxFileName GetFileNamePhoneme(wxFileName fn, std::string key, int count, std::string phoneme)
+{
+    wxString base = fn.GetName();
+    for (int i = 0; i <= count - 1; i++)
+    {
+        base.Replace(key, ":", false);
+    }
+    base.Replace(key, phoneme, false);
+    base.Replace(":", key);
+
+    wxFileName fn2(fn);
+    fn2.SetName(base);
+
+    return fn2;
+}
+
+void ModelFaceDialog::DoSetPhonemes(wxFileName fn, std::string actualkey, std::string key, int count, int row, int col, std::string name, std::list<std::string> phonemes, std::string setPhoneme)
+{
+    if (key == setPhoneme) return;
+
+    for (auto it = phonemes.begin(); it != phonemes.end(); ++it)
+    {
+        wxFileName fn2 = GetFileNamePhoneme(fn, actualkey, count, *it);
+        if (fn2.Exists() && faceData[name][GenerateKey(col, setPhoneme)] == "")
+        {
+            faceData[name][GenerateKey(col, setPhoneme)] = fn2.GetFullPath();
+            MatrixModelsGrid->SetCellValue(row, col, fn2.GetFullPath());
+        }
+    }
+}
+
+std::list<std::string> GetPhonemes(std::string key)
+{
+    if (key == "AI")
+    {
+        std::list<std::string> phonemes = { "AI", "Ai", "ai", "A", "a", "A,I", "a,i" };
+        return phonemes;
+    }
+    else if (key == "E")
+    {
+        std::list<std::string> phonemes = { "E", "e" };
+        return phonemes;
+    }
+    else if (key == "etc")
+    {
+        std::list<std::string> phonemes = { "etc", "ETC", "Etc" };
+        return phonemes;
+    }
+    else if (key == "FV")
+    {
+        std::list<std::string> phonemes = { "FV", "Fv", "fv", "F", "f", "F,V", "f,v" };
+        return phonemes;
+    }
+    else if (key == "L")
+    {
+        std::list<std::string> phonemes = { "L", "l" };
+        return phonemes;
+    }
+    else if (key == "MBP")
+    {
+        std::list<std::string> phonemes = { "MBP", "Mbp", "mbp" };
+        return phonemes;
+    }
+    else if (key == "O")
+    {
+        std::list<std::string> phonemes = { "O", "o" };
+        return phonemes;
+    }
+    else if (key == "rest")
+    {
+        std::list<std::string> phonemes = { "rest", "Rest", "REST" };
+        return phonemes;
+    }
+    else if (key == "U")
+    {
+        std::list<std::string> phonemes = { "U", "u" };
+        return phonemes;
+    }
+    else if (key == "WQ")
+    {
+        std::list<std::string> phonemes = { "WQ", "wq", "Wq", "W", "w", "W,Q", "w,q" };
+        return phonemes;
+    }
+    else
+    {
+        wxASSERT(false);
+        std::list<std::string> phonemes = { };
+        return phonemes;
+    }
+}
+
+void ModelFaceDialog::DoSetMatrixModels(wxFileName fn, std::string actualkey, std::string key, int count, int col, std::string name)
+{
+    int i = 0;
+    for (auto it = _phonemes.begin(); it != _phonemes.end(); ++it)
+    {
+        DoSetPhonemes(fn, actualkey, key, count, i++, col, name, GetPhonemes(*it), *it);
+    }
+}
+
+void ModelFaceDialog::TryToSetAllMatrixModels(std::string name, std::string key, std::string new_filename, int row, int col)
+{
+    wxFileName fn = wxFileName(new_filename);
+
+    std::string k = ExtractKey(key);
+
+    auto phonemes = GetPhonemes(k);
+
+    bool done = false;
+    // try each of the possible variants in the phoneme
+    for (auto it = phonemes.begin(); !done && it != phonemes.end(); ++it)
+    {
+        int replacecount = fn.GetName().Replace(*it, "etc", true);
+
+        // because some file systems are case sensitive try some common variants
+        for (int i = 0; i < replacecount; i++)
+        {
+            wxFileName fn2 = GetFileNamePhoneme(fn, *it, i, "etc");
+            if (fn2.Exists())
+            {
+                DoSetMatrixModels(fn, *it, k, i, col, name);
+                done = true;
+            }
+            else
+            {
+                fn2 = GetFileNamePhoneme(fn, *it, i, "ETC");
+                if (fn2.Exists())
+                {
+                    DoSetMatrixModels(fn, *it, k, i, col, name);
+                    done = true;
+                }
+                else
+                {
+                    fn2 = GetFileNamePhoneme(fn, *it, i, "Etc");
+                    if (fn2.Exists())
+                    {
+                        DoSetMatrixModels(fn, *it, k, i, col, name);
+                        done = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
+bool ModelFaceDialog::IsValidPhoneme(const std::string phoneme) const
+{
+    for (auto it = _phonemes.begin(); it != _phonemes.end(); ++it)
+    {
+        if (wxString(*it).Lower() == wxString(phoneme).Lower()) return true;
+    }
+
+    return false;
+}
+
+int ModelFaceDialog::GetRowForPhoneme(const std::string phoneme) const
+{
+    int row = 0;
+
+    for (auto it = _phonemes.begin(); it != _phonemes.end(); ++it)
+    {
+        if (wxString(*it).Lower() == wxString(phoneme).Lower()) return row;
+        row++;
+    }
+
+    return -1;
+}
 
 void ModelFaceDialog::OnMatricImagePlacementChoiceSelect(wxCommandEvent& event)
 {
@@ -646,14 +844,26 @@ void ModelFaceDialog::OnFaceTypeChoicePageChanged(wxChoicebookEvent& event)
 
 void ModelFaceDialog::OnNodeRangeGridCellLeftDClick(wxGridEvent& event)
 {
-    if (event.GetCol() == 1) {
+    if (event.GetCol() == CHANNEL_COL) {
         std::string name = NameChoice->GetString(NameChoice->GetSelection()).ToStdString();
-        wxColor c = NodeRangeGrid->GetCellBackgroundColour(event.GetRow(), 1);
+        wxColor c = NodeRangeGrid->GetCellBackgroundColour(event.GetRow(), CHANNEL_COL);
+
+        NodeSelectGrid dialog(model, NodeRangeGrid->GetCellValue(event.GetRow(), CHANNEL_COL), this);
+
+        if (dialog.ShowModal() == wxID_OK)
+        {
+            NodeRangeGrid->SetCellValue(event.GetRow(), CHANNEL_COL, dialog.GetNodeList());
+            dialog.Close();
+        }
+    }
+    else if (event.GetCol() == COLOR_COL) {
+        std::string name = NameChoice->GetString(NameChoice->GetSelection()).ToStdString();
+        wxColor c = NodeRangeGrid->GetCellBackgroundColour(event.GetRow(), COLOR_COL);
         wxColourData data;
         data.SetColour(c);
         wxColourDialog dlg(this, &data);
         if (dlg.ShowModal() == wxID_OK) {
-            NodeRangeGrid->SetCellBackgroundColour(event.GetRow(), 1, dlg.GetColourData().GetColour());
+            NodeRangeGrid->SetCellBackgroundColour(event.GetRow(), COLOR_COL, dlg.GetColourData().GetColour());
             NodeRangeGrid->Refresh();
             GetValue(NodeRangeGrid, event, faceData[name]);
         }
@@ -663,14 +873,14 @@ void ModelFaceDialog::OnNodeRangeGridCellLeftDClick(wxGridEvent& event)
 
 void ModelFaceDialog::OnSingleNodeGridCellLeftDClick(wxGridEvent& event)
 {
-    if (event.GetCol() == 1) {
+    if (event.GetCol() == COLOR_COL) {
         std::string name = NameChoice->GetString(NameChoice->GetSelection()).ToStdString();
-        wxColor c = SingleNodeGrid->GetCellBackgroundColour(event.GetRow(), 1);
+        wxColor c = SingleNodeGrid->GetCellBackgroundColour(event.GetRow(), COLOR_COL);
         wxColourData data;
         data.SetColour(c);
         wxColourDialog dlg(this, &data);
         if (dlg.ShowModal() == wxID_OK) {
-            SingleNodeGrid->SetCellBackgroundColour(event.GetRow(), 1, dlg.GetColourData().GetColour());
+            SingleNodeGrid->SetCellBackgroundColour(event.GetRow(), COLOR_COL, dlg.GetColourData().GetColour());
             SingleNodeGrid->Refresh();
             GetValue(SingleNodeGrid, event, faceData[name]);
         }
@@ -681,11 +891,15 @@ void ModelFaceDialog::OnSingleNodeGridCellLeftDClick(wxGridEvent& event)
 void ModelFaceDialog::OnMatrixModelsGridCellSelect(wxGridEvent& event)
 {
     UpdatePreview("", *wxWHITE);
+    event.ResumePropagation(1);
+    event.Skip();
 }
 
 void ModelFaceDialog::OnMatrixModelsGridCellLeftClick1(wxGridEvent& event)
 {
     UpdatePreview("", *wxWHITE);
+    event.ResumePropagation(1);
+    event.Skip();
 }
 
 void ModelFaceDialog::OnSingleNodeGridCellSelect(wxGridEvent& event)
@@ -802,5 +1016,101 @@ void ModelFaceDialog::Paint(wxPaintEvent& event)
             PaintFace(dc, x, y, WQ_xpm);
         }
         y += grid->GetRowHeight(i);
+    }
+}
+
+std::string FixPhonemeCase(const std::string p)
+{
+    wxString pp = wxString(p).Lower();
+
+    if (pp == "ai") return "AI";
+    if (pp == "etc") return "etc";
+    if (pp == "fv") return "FV";
+    if (pp == "wq") return "WQ";
+    if (pp == "rest") return "rest";
+    if (pp == "u") return "U";
+    if (pp == "o") return "O";
+    if (pp == "mbp") return "MBP";
+    if (pp == "e") return "E";
+    if (pp == "l") return "L";
+
+    return "";
+}
+
+void ModelFaceDialog::OnButton_DownloadImagesClick(wxCommandEvent& event)
+{
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    MatrixFaceDownloadDialog dlg(this);
+    if (dlg.DlgInit(model->GetDefaultBufferWi(), model->GetDefaultBufferHt()))
+    {
+        if (dlg.ShowModal() == wxID_OK)
+        {
+            std::string faceZip = dlg.GetFaceFile();
+
+            // create folder if necessary
+            std::string dir = xLightsFrame::CurrentDir.ToStdString() + "/DownloadedFaces";
+            if (!wxDir::Exists(dir))
+            {
+                wxMkDir(dir, wxS_DIR_DEFAULT);
+            }
+
+            std::list<std::string> files;
+
+            // extract all the files in the zip file into that directory
+            wxFileInputStream fin(faceZip);
+            wxZipInputStream zin(fin);
+            wxZipEntry *ent = zin.GetNextEntry();
+            while (ent != nullptr)
+            {
+                std::string filename = dir + "/" + ent->GetName().ToStdString();
+                files.push_back(filename);
+
+                if (!wxFile::Exists(filename))
+                {
+                    wxFileOutputStream fout(filename);
+                    zin.Read(fout);
+                }
+                ent = zin.GetNextEntry();
+            }
+
+            std::string name = NameChoice->GetString(NameChoice->GetSelection()).ToStdString();
+
+            bool error = false;
+            for (auto it = files.begin(); it != files.end(); ++it)
+            {
+                wxFileName fn(*it);
+                wxString basefn = fn.GetName().Lower();
+                bool eyesclosed = false;
+                if (basefn.EndsWith("_eo"))
+                {
+                    basefn = basefn.SubString(0, basefn.Length() - 4);
+                    eyesclosed = false;
+                }
+                else if (basefn.EndsWith("_ec"))
+                {
+                    basefn = basefn.SubString(0, basefn.Length() - 4);
+                    eyesclosed = true;
+                }
+
+                std::string phoneme = FixPhonemeCase(basefn.AfterLast('_').ToStdString());
+
+                if (phoneme == "" || !IsValidPhoneme(phoneme))
+                {
+                    logger_base.warn("Phoneme '%s' was not known. File %s ignored.", (const char *)phoneme.c_str(), (const char *)it->c_str());
+                    error = true;
+                }
+                else
+                {
+                    std::string key = "Mouth-" + phoneme + "-" + (eyesclosed ? "EyesClosed" : "EyesOpen");
+                    faceData[name][key] = *it;
+                    MatrixModelsGrid->SetCellValue(GetRowForPhoneme(phoneme), (eyesclosed ? 1 : 0), *it);
+                }
+            }
+
+            if (error)
+            {
+                wxMessageBox("One or more images could not be mapped to the model due to issues with the names of files within the zip file. See log for details.");
+            }
+        }
     }
 }

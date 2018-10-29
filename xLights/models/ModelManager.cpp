@@ -1,11 +1,12 @@
-#include "ModelManager.h"
-#include "Model.h"
-
 #include <wx/xml/xml.h>
 #include <wx/msgdlg.h>
+#include <wx/regex.h>
 
+#include <cctype>
+
+#include "ModelManager.h"
+#include "Model.h"
 #include "SubModel.h"
-
 #include "StarModel.h"
 #include "ArchesModel.h"
 #include "CandyCaneModel.h"
@@ -14,6 +15,7 @@
 #include "TreeModel.h"
 #include "CustomModel.h"
 #include "DmxModel.h"
+#include "ImageModel.h"
 #include "WholeHouseModel.h"
 #include "SingleLineModel.h"
 #include "PolyLineModel.h"
@@ -25,8 +27,8 @@
 #include "IciclesModel.h"
 #include "../sequencer/Element.h"
 #include "../xLightsMain.h"
-#include <wx/regex.h>
-#include <cctype>
+
+#include <log4cpp/Category.hh>
 
 ModelManager::ModelManager(OutputManager* outputManager, xLightsFrame* xl) : _outputManager(outputManager), xlights(xl)
 {
@@ -56,7 +58,6 @@ Model *ModelManager::GetModel(const std::string &name) const {
         if (pos != std::string::npos) {
             std::string mname = name.substr(0, pos);
             std::string smname = name.substr(pos + 1);
-            
             Model *m = GetModel(mname);
             if (m != nullptr) {
                 return m->GetSubModel(smname);
@@ -72,7 +73,7 @@ Model *ModelManager::operator[](const std::string &name) const {
 
 bool ModelManager::Rename(const std::string &oldName, const std::string &newName) {
     Model *model = GetModel(oldName);
-    if (model == nullptr) {
+    if (model == nullptr || model->GetDisplayAs() == "SubModel") {
         return false;
     }
     model->GetModelXml()->DeleteAttribute("name");
@@ -101,22 +102,70 @@ bool ModelManager::Rename(const std::string &oldName, const std::string &newName
     return false;
 }
 
+bool ModelManager::RenameSubModel(const std::string &oldName, const std::string &newName) {
+
+    bool changed = false;
+
+    for (auto m = begin(); m != end(); ++m)
+    {
+        if (m->second->GetDisplayAs() == "ModelGroup")
+        {
+            ModelGroup* mg = dynamic_cast<ModelGroup*>(m->second);
+            changed |= mg->SubModelRenamed(oldName, newName);
+        }
+    }
+
+    return changed;
+}
+
+bool ModelManager::RenameInListOnly(const std::string& oldName, const std::string& newName)
+{
+    Model *model = GetModel(oldName);
+    if (model == nullptr) return false;
+    models.erase(models.find(oldName));
+    models[newName] = model;
+    return true;
+}
+
+bool ModelManager::IsModelOverlapping(Model* model)
+{
+    long start = model->GetNumberFromChannelString(model->ModelStartChannel);
+    long end = start + model->GetChanCount() - 1;
+    //long sstart = model->GetFirstChannel() + 1;
+    //wxASSERT(sstart == start);
+    //long send = model->GetLastChannel() + 1;
+    //wxASSERT(send == end);
+    for (auto it = this->begin(); it != this->end(); ++it)
+    {
+        if (it->second->GetDisplayAs() != "ModelGroup" && it->second->GetName() != model->GetName())
+        {
+            long s = it->second->GetNumberFromChannelString(it->second->ModelStartChannel);
+            long e = s + it->second->GetChanCount() - 1;
+            //long ss = it->second->GetFirstChannel() + 1;
+            //wxASSERT(ss == s);
+            //long se = it->second->GetLastChannel() + 1;
+            //wxASSERT(se == e);
+            if (start <= e && end >= s) return true;
+        }
+    }
+    return false;
+}
+
 void ModelManager::LoadModels(wxXmlNode *modelNode, int previewW, int previewH) {
-    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     clear();
     previewWidth = previewW;
     previewHeight = previewH;
     this->modelNode = modelNode;
     int countValid = 0;
-    for (wxXmlNode* e=modelNode->GetChildren(); e!=NULL; e=e->GetNext()) {
+    for (wxXmlNode* e=modelNode->GetChildren(); e!=nullptr; e=e->GetNext()) {
         if (e->GetName() == "model") {
             std::string name = e->GetAttribute("name").ToStdString();
             if (!name.empty()) {
                 Model *m = createAndAddModel(e);
                 if (m != nullptr) {
                     m->SetMinMaxModelScreenCoordinates(previewW, previewH);
+                    countValid += m->CouldComputeStartChannel ? 1 : 0;
                 }
-                countValid += m->CouldComputeStartChannel ? 1 : 0;
             }
         }
     }
@@ -158,14 +207,14 @@ void ModelManager::NewRecalcStartChannels() const
     std::map<std::string, Model*> ms(models);
     std::string msg = "Could not calculate start channels for models:\n";
     bool failed = false;
-    
+
     for (auto it = models.begin(); it != models.end(); ++it) {
         it->second->CouldComputeStartChannel = false;
     }
 
     for (auto it = models.begin(); it != models.end(); ++it)
     {
-        if (it->second->GetDisplayAs() != "ModelGroup") 
+        if (it->second->GetDisplayAs() != "ModelGroup")
         {
             std::list<std::string> used;
             if (!it->second->UpdateStartChannelFromChannelString(ms, used)) {
@@ -180,6 +229,16 @@ void ModelManager::NewRecalcStartChannels() const
 
     //long end  = sw.Time();
     //logger_base.debug("New RecalcStartChannels takes %ld.", end);
+}
+
+void ModelManager::ResetModelGroups() const
+{
+    // This goes through all the model groups which hold model pointers and ensure their model pointers are correct
+    for (auto it = models.begin(); it != models.end(); ++it) {
+        if (it->second->GetDisplayAs() == "ModelGroup") {
+            ((ModelGroup*)(it->second))->ResetModels();
+        }
+    }
 }
 
 void ModelManager::OldRecalcStartChannels() const {
@@ -215,10 +274,16 @@ void ModelManager::OldRecalcStartChannels() const {
             DisplayStartChannelCalcWarning();
 
             //nothing improved
+
+            ResetModelGroups();
+
             return;
         }
         countValid = newCountValid;
     }
+
+    ResetModelGroups();
+
     //long end = sw.Time();
     //logger_base.debug("Old RecalcStartChannels takes %ld.", end);
 }
@@ -248,7 +313,7 @@ bool ModelManager::LoadGroups(wxXmlNode *groupNode, int previewW, int previewH) 
     this->groupNode = groupNode;
     std::list<ModelGroup*> toBeDone;
     bool changed = false;
-    
+
     for (wxXmlNode* e=groupNode->GetChildren(); e!=nullptr; e=e->GetNext()) {
         if (e->GetName() == "modelGroup") {
             std::string name = e->GetAttribute("name").ToStdString();
@@ -275,14 +340,18 @@ bool ModelManager::LoadGroups(wxXmlNode *groupNode, int previewW, int previewH) 
             std::string msg = "Could not process model groups (possibly due to circular groups or a missing model):";
             for (auto it = toBeDone.begin(); it != toBeDone.end(); ++it) {
                 ModelGroup *g = *it;
-                
+
                 wxString orig = g->GetModelXml()->GetAttribute("models");
                 wxString newM;
                 wxArrayString mn = wxSplit(orig, ',');
                 std::string modelsRemoved;
-                for (auto it2 = mn.begin(); it2 != mn.end(); it2++) {
+                for (auto it2 = mn.begin(); it2 != mn.end(); ++it2) {
                     auto m = models.find((*it2).ToStdString());
-                    if (m == models.end()) {
+                    if (*it2 == "")
+                    {
+                        // This can happen if a comma is left behind in the string ... just ignore it
+                    }
+                    else if (m == models.end()) {
                         modelsRemoved += "\n       " + *it2 + " not found";
                     } else {
                         if (newM != "") {
@@ -294,13 +363,19 @@ bool ModelManager::LoadGroups(wxXmlNode *groupNode, int previewW, int previewH) 
                 g->GetModelXml()->DeleteAttribute("models");
                 g->GetModelXml()->AddAttribute("models", newM);
                 if (g->Reset()) {
-                    msg = "Could not process model group " + g->GetName()
+                    // Model successfully loaded
+                    if (modelsRemoved > "")
+                    {
+                        msg = "Could not process model group " + g->GetName()
                             + " due to models not being found.  The following models will be removed from the group:"
                             + modelsRemoved;
-                    wxMessageBox(msg);
+                        logger_base.warn("ModelManager::LoadGroups %s", (const char *)msg.c_str());
+                        wxMessageBox(msg);
+                    }
                     maxIter = toBeDone.size();
                     changed = true;
                 } else {
+                    // Load of the new group failed so reset it
                     msg += "\n" + g->GetName();
                     msg += modelsRemoved;
                     g->GetModelXml()->DeleteAttribute("models");
@@ -448,11 +523,22 @@ Model* ModelManager::CreateDefaultModel(const std::string &type, const std::stri
         node->DeleteAttribute("DmxPanDegOfRot");
         node->AddAttribute("DmxPanDegOfRot", "540");
         model = new DmxModel(node, *this, false);
+    } else if (type == "Image") {
+        node->DeleteAttribute("parm1");
+        node->AddAttribute("parm1", "1");
+        node->DeleteAttribute("parm2");
+        node->AddAttribute("parm2", "1");
+        node->DeleteAttribute("Image");
+        node->AddAttribute("Image", "");
+        node->DeleteAttribute("StringType");
+        node->AddAttribute("StringType", "Single Color White");
+        model = new ImageModel(node, *this, false);
     } else if (type == "Window Frame") {
         node->DeleteAttribute("parm1");
         node->AddAttribute("parm1", "16");
         node->DeleteAttribute("parm3");
         node->AddAttribute("parm3", "16");
+        node->AddAttribute("Rotation", "CW");
         model = new WindowFrameModel(node, *this, false);
     } else if (type == "Wreath") {
         model = new WreathModel(node, *this, false);
@@ -526,6 +612,8 @@ Model *ModelManager::CreateModel(wxXmlNode *node, bool zeroBased) const {
         model = new CircleModel(node, *this, zeroBased);
 	} else if (type == "DMX") {
         model = new DmxModel(node, *this, zeroBased);
+	} else if (type == "Image") {
+        model = new ImageModel(node, *this, zeroBased);
     } else if (type == "Window Frame") {
         model = new WindowFrameModel(node, *this, zeroBased);
     } else if (type == "Wreath") {
@@ -593,7 +681,7 @@ Model *ModelManager::createAndAddModel(wxXmlNode *node) {
 
 void ModelManager::Delete(const std::string &name) {
 
-    if( xlights->CurrentSeqXmlFile != nullptr ) 
+    if( xlights->CurrentSeqXmlFile != nullptr )
     {
         Element* elem_to_delete = xlights->GetSequenceElements().GetElement(name);
         if (elem_to_delete != nullptr)
@@ -621,7 +709,7 @@ void ModelManager::Delete(const std::string &name) {
     }
 
     // now delete the model
-    for (auto it = models.begin(); it != models.end(); it++) {
+    for (auto it = models.begin(); it != models.end(); ++it) {
         if (it->first == name) {
             Model *model = it->second;
 
@@ -637,6 +725,7 @@ void ModelManager::Delete(const std::string &name) {
                 models.erase(it);
                 delete model->GetModelXml();
                 delete model;
+                ResetModelGroups();
                 return;
             }
         }

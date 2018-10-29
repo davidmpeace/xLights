@@ -1,8 +1,15 @@
+bin/xCapture
+bin/xFade
 bin/xLights
 bin/xSchedule
 bin/*.dll
 bin/*.exe
 bin/*.map
+bin64/xLights
+bin64/xSchedule
+bin64/*.dll
+bin64/*.exe
+bin64/*.map
 *.bak
 thumbs.db
 *.save
@@ -29,3 +36,4 @@ wxWidgets*
 xLights/xLights.VC.db
 lib/linux/libliquidfun.a
 *.opensdf
+*.cbp.mak.orig

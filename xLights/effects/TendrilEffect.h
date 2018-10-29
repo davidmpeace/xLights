@@ -83,11 +83,13 @@ class TendrilEffect : public RenderableEffect
     public:
         TendrilEffect(int id);
         virtual ~TendrilEffect();
-        virtual void SetDefaultParameters(Model *cls) override;
+        virtual void SetDefaultParameters() override;
         virtual void Render(Effect *effect, SettingsMap &settings, RenderBuffer &buffer) override;
 #ifdef LINUX
         virtual bool CanRenderOnBackgroundThread(Effect *effect, const SettingsMap &settings, RenderBuffer &buffer) override { return false;}
 #endif
+        virtual bool AppropriateOnNodes() const override { return false; }
+        virtual bool SupportsRenderCache() const override { return true; }
 
     protected:
         virtual wxPanel *CreatePanel(wxWindow *parent) override;

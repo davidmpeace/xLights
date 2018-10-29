@@ -15,16 +15,17 @@
 #define WAVE_SPEED_MIN 0
 #define WAVE_SPEED_MAX 50
 
-#define WAVE_Y_POSITION_MIN -250
-#define WAVE_Y_POSITION_MAX 250
+#define WAVE_YOFFSET_MIN -250
+#define WAVE_YOFFSET_MAX 250
 
 class WaveEffect : public RenderableEffect
 {
     public:
         WaveEffect(int id);
         virtual ~WaveEffect();
-        virtual void SetDefaultParameters(Model *cls) override;
+        virtual void SetDefaultParameters() override;
         virtual void Render(Effect *effect, SettingsMap &settings, RenderBuffer &buffer) override;
+        virtual bool AppropriateOnNodes() const override { return false; }
 
     protected:
         virtual wxPanel *CreatePanel(wxWindow *parent) override;

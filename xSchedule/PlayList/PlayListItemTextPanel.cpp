@@ -35,6 +35,7 @@ const long PlayListItemTextPanel::ID_STATICTEXT6 = wxNewId();
 const long PlayListItemTextPanel::ID_SPINCTRL1 = wxNewId();
 const long PlayListItemTextPanel::ID_STATICTEXT10 = wxNewId();
 const long PlayListItemTextPanel::ID_CHOICE4 = wxNewId();
+const long PlayListItemTextPanel::ID_CHECKBOX1 = wxNewId();
 const long PlayListItemTextPanel::ID_STATICTEXT12 = wxNewId();
 const long PlayListItemTextPanel::ID_SPINCTRL2 = wxNewId();
 const long PlayListItemTextPanel::ID_STATICTEXT13 = wxNewId();
@@ -49,24 +50,6 @@ BEGIN_EVENT_TABLE(PlayListItemTextPanel,wxPanel)
 	//(*EventTable(PlayListItemTextPanel)
 	//*)
 END_EVENT_TABLE()
-
-void PlayListItemTextPanel::SetChoiceFromString(wxChoice* choice, std::string value)
-{
-    int sel = choice->GetSelection();
-
-    choice->SetSelection(-1);
-    for (size_t i = 0; i < choice->GetCount(); i++)
-    {
-        if (choice->GetString(i) == value)
-        {
-            choice->SetSelection(i);
-            return;
-        }
-    }
-
-    choice->SetSelection(sel);
-}
-
 
 PlayListItemTextPanel::PlayListItemTextPanel(wxWindow* parent, PlayListItemText* text,wxWindowID id,const wxPoint& pos,const wxSize& size)
 {
@@ -91,6 +74,8 @@ PlayListItemTextPanel::PlayListItemTextPanel(wxWindow* parent, PlayListItemText*
 	Choice_Type = new wxChoice(this, ID_CHOICE1, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE1"));
 	Choice_Type->SetSelection( Choice_Type->Append(_("Normal")) );
 	Choice_Type->Append(_("Countdown"));
+	Choice_Type->Append(_("Countdown Seconds"));
+	Choice_Type->Append(_("File Read"));
 	FlexGridSizer1->Add(Choice_Type, 1, wxALL|wxEXPAND, 5);
 	StaticText_Text = new wxStaticText(this, ID_STATICTEXT1, _("Text:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
 	FlexGridSizer1->Add(StaticText_Text, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
@@ -131,6 +116,10 @@ PlayListItemTextPanel::PlayListItemTextPanel(wxWindow* parent, PlayListItemText*
 	FlexGridSizer1->Add(StaticText10, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	Choice_BlendMode = new wxChoice(this, ID_CHOICE4, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE4"));
 	FlexGridSizer1->Add(Choice_BlendMode, 1, wxALL|wxEXPAND, 5);
+	FlexGridSizer1->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	CheckBox_RenderWhenBlank = new wxCheckBox(this, ID_CHECKBOX1, _("Render when text is blank"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX1"));
+	CheckBox_RenderWhenBlank->SetValue(true);
+	FlexGridSizer1->Add(CheckBox_RenderWhenBlank, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	StaticText12 = new wxStaticText(this, ID_STATICTEXT12, _("X Position:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT12"));
 	FlexGridSizer1->Add(StaticText12, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	SpinCtrl_X = new wxSpinCtrl(this, ID_SPINCTRL2, _T("0"), wxDefaultPosition, wxDefaultSize, 0, -1000, 1000, 0, _T("ID_SPINCTRL2"));
@@ -174,15 +163,16 @@ PlayListItemTextPanel::PlayListItemTextPanel(wxWindow* parent, PlayListItemText*
     SpinCtrl_Speed->SetValue(text->GetSpeed());
     FontPickerCtrl1->SetSelectedFont(*text->GetFont());
     FontPickerCtrl1->SetSelectedColour(text->GetColour());
-    SetChoiceFromString(Choice_Orientation, text->GetOrientation());
-    SetChoiceFromString(Choice_Movement, text->GetMovement());
-    SetChoiceFromString(Choice_Type, text->GetType());
+    Choice_Orientation->SetStringSelection(text->GetOrientation());
+    Choice_Movement->SetStringSelection(text->GetMovement());
+    Choice_Type->SetStringSelection(text->GetType());
     TextCtrl_Duration->SetValue(wxString::Format(wxT("%.3f"), (float)text->GetDuration() / 1000.0));
     Choice_BlendMode->SetSelection(text->GetBlendMode());
-    SetChoiceFromString(Choice_Matrices, text->GetMatrix());
+    Choice_Matrices->SetStringSelection(text->GetMatrix());
     SpinCtrl_X->SetValue(_text->GetX());
     SpinCtrl_Y->SetValue(_text->GetY());
     SpinCtrl_Priority->SetValue(_text->GetPriority());
+    CheckBox_RenderWhenBlank->SetValue(_text->GetRenderWhenBlank());
 
     ValidateWindow();
 }
@@ -207,6 +197,7 @@ PlayListItemTextPanel::~PlayListItemTextPanel()
     _text->SetY(SpinCtrl_Y->GetValue());
     _text->SetName(TextCtrl_Name->GetValue().ToStdString());
     _text->SetPriority(SpinCtrl_Priority->GetValue());
+    _text->SetRenderWhenBlank(CheckBox_RenderWhenBlank->GetValue());
 }
 
 void PlayListItemTextPanel::OnChoice_TypeSelect(wxCommandEvent& event)
@@ -220,6 +211,14 @@ void PlayListItemTextPanel::ValidateWindow()
     if (Choice_Type->GetStringSelection() == "Normal")
     {
         StaticText_Text->SetLabel("Text");
+    }
+    else if (Choice_Type->GetStringSelection() == "File Read")
+    {
+        StaticText_Text->SetLabel("File Path");
+    }
+    else if (Choice_Type->GetStringSelection() == "Countdown Seconds")
+    {
+        StaticText_Text->SetLabel("Seconds");
     }
     else
     {

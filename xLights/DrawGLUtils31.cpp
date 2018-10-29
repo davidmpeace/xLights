@@ -67,6 +67,19 @@ PFNGLDISABLEVERTEXATTRIBARRAYPROC glDisableVertexAttribArray;
 PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
 PFNGLPOINTPARAMETERFPROC glPointParameterf;
 
+PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
+PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
+PFNGLISFRAMEBUFFERPROC glIsFramebuffer;
+PFNGLFRAMEBUFFERPARAMETERIPROC glFramebufferParameteri;
+PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
+PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
+PFNGLISRENDERBUFFERPROC glIsRenderbuffer;
+PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
+PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC glRenderbufferStorageMultisample;
+PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+
 #ifdef LINUX // conversion function from glx to wgl calls
 __GLXextFuncPtr wglGetProcAddress(const char* a) {
     return glXGetProcAddress((const GLubyte*)a);
@@ -113,6 +126,25 @@ bool DrawGLUtils::LoadGLFunctions() {
     glDisableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glDisableVertexAttribArray");
     glGetAttribLocation = (PFNGLGETATTRIBLOCATIONPROC)wglGetProcAddress("glGetAttribLocation");
     glPointParameterf = (PFNGLPOINTPARAMETERFPROC)wglGetProcAddress("glPointParameterf");
+
+    auto ptr = wglGetProcAddress("glGenFramebuffers");
+    if ( ptr != nullptr )
+      glGenFramebuffers = (PFNGLGENFRAMEBUFFERSPROC)ptr;
+    else
+	   glGenFramebuffers = (PFNGLGENFRAMEBUFFERSPROC)wglGetProcAddress("glGenFramebuffersEXT");
+	 glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC)wglGetProcAddress("glBindFramebuffer");
+	 glDeleteFramebuffers = (PFNGLDELETEFRAMEBUFFERSPROC)wglGetProcAddress("glDeleteFramebuffers");
+	 glIsFramebuffer = (PFNGLISFRAMEBUFFERPROC)wglGetProcAddress("glIsFramebuffer");
+	 glFramebufferParameteri = (PFNGLFRAMEBUFFERPARAMETERIPROC)wglGetProcAddress("glFramebufferParameteri");
+	 glGenRenderbuffers = (PFNGLGENRENDERBUFFERSPROC)wglGetProcAddress("glGenRenderbuffers");
+	 glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC)wglGetProcAddress("glDeleteRenderbuffers");
+	 glIsRenderbuffer = (PFNGLISRENDERBUFFERPROC)wglGetProcAddress("glIsRenderbuffer");
+	 glBindRenderbuffer = (PFNGLBINDRENDERBUFFERPROC)wglGetProcAddress("glBindRenderbuffer");
+	 glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC)wglGetProcAddress("glRenderbufferStorage");
+	 glRenderbufferStorageMultisample = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC)wglGetProcAddress("glRenderbufferStorageMultisample");
+	 glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFERPROC)wglGetProcAddress("glFramebufferRenderbuffer");
+
+
     return (glUseProgram != nullptr);
 }
 #else
@@ -140,8 +172,10 @@ public:
             delete [] buffers;
             LOG_GL_ERRORV(glDeleteVertexArrays(1, &VertexArrayID));
             delete [] bufferInfo;
+            numBuffers = 0;
         }
     }
+
     void Reset() {
         for (int x = 0; x < numBuffers; x++) {
             if (bufferInfo[x].currentPos > bufferInfo[x].currentSize || !buffersValid) {
@@ -154,24 +188,29 @@ public:
         buffersValid = true;
     }
     
-    GLuint GetBufferID(int idx) {
+    GLuint GetBufferID(int idx) const {
         return buffers[idx];
     }
-    void UseProgram() {
+
+    void UseProgram() const {
         LOG_GL_ERRORV(glUseProgram(ProgramID));
     }
-    void SetMatrix(glm::mat4 &m) {
+
+    void SetMatrix(glm::mat4 &m) const {
         LOG_GL_ERRORV(glUniformMatrix4fv(MatrixID, 1, GL_FALSE, glm::value_ptr(m)));
     }
+
     void SetRenderType(int i) {
         if (lastRenderType != i) {
             LOG_GL_ERRORV(glUniform1i(RenderTypeID, i));
             lastRenderType = i;
         }
     }
+
     int BindBuffer(int idx, void *data, int sz) {
         return BindBuffer(idx, buffers[idx], data, sz);
     }
+
     int BindBuffer(int idx, GLuint bufId, void *data, int sz) {
         LOG_GL_ERRORV(glEnableVertexAttribArray(idx));
         LOG_GL_ERRORV(glBindBuffer(GL_ARRAY_BUFFER, bufId));
@@ -196,7 +235,8 @@ public:
         bufferInfo[idx].currentPos += sz;
         return i;
     }
-    void UnbindBuffer(int idx) {
+
+    void UnbindBuffer(int idx) const {
         LOG_GL_ERRORV(glDisableVertexAttribArray(idx));
         LOG_GL_ERRORV(glBindBuffer(GL_ARRAY_BUFFER, 0));
     }
@@ -344,10 +384,14 @@ class OpenGL33Cache : public DrawGLUtils::xlGLCacheInfo {
                                 "in vec2 UV;\n"
                                 "out vec4 color;\n"
                                 "uniform sampler2D tex;\n"
-                                "uniform int RenderType;\n"
+                                "uniform int RenderType = 0;\n"
                                 "void main(){\n"
                                 "    vec4 c = texture(tex, UV);\n"
-                                "    color = vec4(c.rgb, c.a*fragmentColor.a);\n"
+                                "    if (RenderType == 0) {\n"
+                                "        color = vec4(c.rgb, c.a*fragmentColor.a);\n"
+                                "    } else {\n"
+                                "        color = vec4(fragmentColor.rgb, c.a * fragmentColor.a);\n"
+                                "    }\n"
                                 "}\n", 3);
         }
         if (UsesVertexAccumulator) {
@@ -478,6 +522,7 @@ public:
         LOG_GL_ERRORV(glDrawArrays(type, offset0, va.count));
         if (type == GL_POINTS && enableCapability == 0x0B10) {
             singleColorProgram.SetRenderType(0);
+            LOG_GL_ERRORV(glPointSize(ps));
         } else if (enableCapability > 0) {
             LOG_GL_ERRORV(glDisable(enableCapability));
         }
@@ -497,7 +542,7 @@ public:
         normalProgram.BindBuffer(1, &va.colors[0], va.count*4*sizeof(GLubyte));
         LOG_GL_ERRORV(glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, (void*)0 ));
         bool tverticesBound = false;
-        for (auto it = va.types.begin(); it != va.types.end(); it++) {
+        for (auto it = va.types.begin(); it != va.types.end(); ++it) {
             int type = it->type;
             int enableCapability = it->enableCapability;
             
@@ -505,7 +550,7 @@ public:
                 textureProgram.UseProgram();
                 if (!tverticesBound) {
                     textureProgram.SetMatrix(*matrix);
-                    textureProgram.BindBuffer(2, &va.tvertices[0], va.tvertices.size() * sizeof(GLfloat));
+                    textureProgram.BindBuffer(2, va.tvertices, va.count * 2 * sizeof(GLfloat));
                     LOG_GL_ERRORV(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0 ));
                     tverticesBound = true;
                 } else {
@@ -517,7 +562,16 @@ public:
                 LOG_GL_ERRORV(glUniform1i(glGetUniformLocation(textureProgram.ProgramID, "tex"), 0));
                 
                 GLuint cid = glGetUniformLocation(textureProgram.ProgramID, "inColor");
-                LOG_GL_ERRORV(glUniform4f(cid, 1.0, 1.0, 1.0, ((float)it->textureAlpha)/255.0));
+                if (it->useTexturePixelColor) {
+                    LOG_GL_ERRORV(glUniform4f(cid, ((float)it->texturePixelColor.red) / 255.0f,
+                                              ((float)it->texturePixelColor.green) / 255.0f,
+                                              ((float)it->texturePixelColor.blue) / 255.0f,
+                                              ((float)it->texturePixelColor.alpha) / 255.0f));
+                    textureProgram.SetRenderType(1);
+                } else {
+                    LOG_GL_ERRORV(glUniform4f(cid, 1.0, 1.0, 1.0, ((float)it->textureAlpha)/255.0));
+                    textureProgram.SetRenderType(0);
+                }
             } else if (type == GL_POINTS && enableCapability == 0x0B10) {
                 //POINT_SMOOTH, removed in OpenGL3.x
                 normalProgram.SetRenderType(1);
@@ -600,7 +654,7 @@ public:
         int offset0 = textureProgram.BindBuffer(0, &va.vertices[0], va.count*2*sizeof(GLfloat)) / (2*sizeof(GLfloat));
         LOG_GL_ERRORV(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0 ));
 
-        textureProgram.BindBuffer(2, &va.tvertices[0], va.count*2*sizeof(GLfloat));
+        textureProgram.BindBuffer(2, va.tvertices, va.count*2*sizeof(GLfloat));
         LOG_GL_ERRORV(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0 ));
 
         LOG_GL_ERRORV(glActiveTexture(GL_TEXTURE0)); //switch to texture image unit 0
@@ -608,7 +662,16 @@ public:
         LOG_GL_ERRORV(glUniform1i(glGetUniformLocation(textureProgram.ProgramID, "tex"), 0));
 
         GLuint cid = glGetUniformLocation(textureProgram.ProgramID, "inColor");
-        LOG_GL_ERRORV(glUniform4f(cid, 1.0, 1.0, 1.0, ((float)va.alpha)/255.0));
+        if (va.forceColor) {
+            textureProgram.SetRenderType(1);
+            LOG_GL_ERRORV(glUniform4f(cid, ((float)va.color.red) / 255.0f,
+                                      ((float)va.color.green) / 255.0f,
+                                      ((float)va.color.blue) / 255.0f,
+                                      ((float)va.color.alpha) / 255.0f));
+        } else {
+            textureProgram.SetRenderType(0);
+            LOG_GL_ERRORV(glUniform4f(cid, 1.0, 1.0, 1.0, ((float)va.alpha)/255.0));
+        }
 
         if (enableCapability > 0) {
             LOG_GL_ERRORV(glEnable(enableCapability));

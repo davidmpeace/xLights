@@ -22,7 +22,7 @@
     <ProjectGuid>{48F219FA-C28E-457B-9A85-DC3A8F949F9B}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Xlights</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -102,7 +102,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);ImageHlp.Lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;SDL2.lib;swscale.lib;log4cpp.lib;liquidfund.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);ImageHlp.Lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;SDL2.lib;swscale.lib;log4cpp.lib;iphlpapi.lib;WS2_32.Lib;liquidfund.lib</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
     </Link>
   </ItemDefinitionGroup>
@@ -113,11 +113,15 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);WXDEBUG; __WXDEBUG__;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <LanguageStandard>
+      </LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;SDL2.lib;swscale.lib;%(AdditionalDependencies);libdbghelp.a;log4cppd.lib;liquidfund.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;SDL2.lib;swscale.lib;%(AdditionalDependencies);libdbghelp.a;log4cppd.lib;iphlpapi.lib;WS2_32.Lib;liquidfund.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -135,7 +139,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);ImageHlp.Lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;SDL2.lib;swscale.lib;log4cpp.lib;liquidfun.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);ImageHlp.Lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;SDL2.lib;swscale.lib;log4cpp.lib;iphlpapi.lib;WS2_32.Lib;liquidfun.lib</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <Profile>true</Profile>
     </Link>
@@ -156,12 +160,22 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <Profile>true</Profile>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;SDL2.lib;swscale.lib;%(AdditionalDependencies);libdbghelp.a;log4cppd.lib;liquidfun.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;SDL2.lib;swscale.lib;%(AdditionalDependencies);libdbghelp.a;log4cppd.lib;iphlpapi.lib;WS2_32.Lib;liquidfun.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\xSchedule\md5.cpp" />
+    <ClCompile Include="..\xSchedule\wxJSON\jsonreader.cpp" />
+    <ClCompile Include="..\xSchedule\wxJSON\jsonval.cpp" />
+    <ClCompile Include="..\xSchedule\wxJSON\jsonwriter.cpp" />
+    <ClCompile Include="BatchRenderDialog.cpp" />
+    <ClCompile Include="BulkEditControls.cpp" />
+    <ClCompile Include="BulkEditSliderDialog.cpp" />
+    <ClCompile Include="CachedFileDownloader.cpp" />
     <ClCompile Include="ColorManager.cpp" />
     <ClCompile Include="ColorManagerDialog.cpp" />
+    <ClCompile Include="controllers\ControllerUploadData.cpp" />
+    <ClCompile Include="controllers\ESPixelStick.cpp" />
     <ClCompile Include="controllers\Falcon.cpp" />
     <ClCompile Include="controllers\FPP.cpp" />
     <ClCompile Include="controllers\FPPConnectDialog.cpp" />
@@ -169,9 +183,13 @@
     <ClCompile Include="controllers\Pixlite16.cpp" />
     <ClCompile Include="controllers\SanDevices.cpp" />
     <ClCompile Include="controllers\SimpleFTP.cpp" />
+    <ClCompile Include="controllers\WebSocketClient.cpp" />
     <ClCompile Include="CustomTimingDialog.cpp" />
+    <ClCompile Include="DissolveTransitionPattern.cpp" />
     <ClCompile Include="effects\ShapeEffect.cpp" />
     <ClCompile Include="effects\ShapePanel.cpp" />
+    <ClCompile Include="effects\WarpEffect.cpp" />
+    <ClCompile Include="effects\WarpPanel.cpp" />
     <ClCompile Include="EffectTimingDialog.cpp" />
     <ClCompile Include="effects\CandleEffect.cpp" />
     <ClCompile Include="effects\CandlePanel.cpp" />
@@ -180,10 +198,20 @@
     <ClCompile Include="effects\LiquidPanel.cpp" />
     <ClCompile Include="effects\ServoEffect.cpp" />
     <ClCompile Include="effects\ServoPanel.cpp" />
+    <ClCompile Include="FolderSelection.cpp" />
+    <ClCompile Include="FontManager.cpp" />
     <ClCompile Include="GenerateLyricsDialog.cpp" />
     <ClCompile Include="HousePreviewPanel.cpp" />
     <ClCompile Include="IPEntryDialog.cpp" />
+    <ClCompile Include="JukeboxPanel.cpp" />
+    <ClCompile Include="LayerSelectDialog.cpp" />
+    <ClCompile Include="LinkJukeboxButtonDialog.cpp" />
+    <ClCompile Include="LyricUserDictDialog.cpp" />
+    <ClCompile Include="MatrixFaceDownloadDialog.cpp" />
     <ClCompile Include="models\ChannelBlockModel.cpp" />
+    <ClCompile Include="models\ImageModel.cpp" />
+    <ClCompile Include="MultiControllerUploadDialog.cpp" />
+    <ClCompile Include="OpenGLShaders.cpp" />
     <ClCompile Include="outputs\ArtNetDialog.cpp" />
     <ClCompile Include="AudioManager.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
@@ -359,8 +387,14 @@
     <ClCompile Include="models\WreathModel.cpp" />
     <ClCompile Include="MusicXML.cpp" />
     <ClCompile Include="NewTimingDialog.cpp" />
+    <ClCompile Include="NodeSelectGrid.cpp" />
     <ClCompile Include="NodesGridCellEditor.cpp" />
     <ClCompile Include="NoteImportDialog.cpp" />
+    <ClCompile Include="outputs\LorController.cpp" />
+    <ClCompile Include="outputs\LorControllerDialog.cpp" />
+    <ClCompile Include="outputs\LorControllers.cpp" />
+    <ClCompile Include="outputs\LorOptimisedDialog.cpp" />
+    <ClCompile Include="outputs\LOROptimisedOutput.cpp" />
     <ClCompile Include="outputs\NullOutputDialog.cpp" />
     <ClCompile Include="OptionChooser.cpp" />
     <ClCompile Include="osx_utils\TouchBars.cpp" />
@@ -381,18 +415,22 @@
     <ClCompile Include="outputs\SerialOutput.cpp" />
     <ClCompile Include="outputs\TestPreset.cpp" />
     <ClCompile Include="PaletteMgmtDialog.cpp" />
+    <ClCompile Include="Parallel.cpp" />
     <ClCompile Include="PerspectivesPanel.cpp" />
     <ClCompile Include="PhonemeDictionary.cpp" />
-    <ClCompile Include="PixelAppearanceDlg.cpp" />
     <ClCompile Include="PixelBuffer.cpp" />
+    <ClCompile Include="PixelTestDialog.cpp" />
     <ClCompile Include="PreviewModels.cpp" />
     <ClCompile Include="PreviewPane.cpp" />
     <ClCompile Include="RenameTextDialog.cpp" />
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="RenderBuffer.cpp" />
+    <ClCompile Include="RenderCache.cpp" />
     <ClCompile Include="RenderProgressDialog.cpp" />
     <ClCompile Include="ResizeImageDialog.cpp" />
     <ClCompile Include="SaveChangesDialog.cpp" />
+    <ClCompile Include="SelectPanel.cpp" />
+    <ClCompile Include="SelectTimingsDialog.cpp" />
     <ClCompile Include="SeqElementMismatchDialog.cpp" />
     <ClCompile Include="SeqExportDialog.cpp" />
     <ClCompile Include="SeqFileUtilities.cpp" />
@@ -412,8 +450,11 @@
     <ClCompile Include="sequencer\UndoManager.cpp" />
     <ClCompile Include="sequencer\Waveform.cpp" />
     <ClCompile Include="outputs\SerialPortWithRate.cpp" />
+    <ClCompile Include="SequenceVideoPanel.cpp" />
+    <ClCompile Include="SequenceVideoPreview.cpp" />
     <ClCompile Include="SequenceViewManager.cpp" />
     <ClCompile Include="SevenSegmentDialog.cpp" />
+    <ClCompile Include="SplashDialog.cpp" />
     <ClCompile Include="StartChannelDialog.cpp" />
     <ClCompile Include="StrandNodeNamesDialog.cpp" />
     <ClCompile Include="SubBufferPanel.cpp" />
@@ -427,10 +468,10 @@
     <ClCompile Include="TabPreview.cpp" />
     <ClCompile Include="TabSequence.cpp" />
     <ClCompile Include="TabSetup.cpp" />
-    <ClCompile Include="TestDialog.cpp" />
     <ClCompile Include="TimingPanel.cpp" />
     <ClCompile Include="tmGridCell.cpp" />
     <ClCompile Include="TopEffectsPanel.cpp" />
+    <ClCompile Include="UpdaterDialog.cpp" />
     <ClCompile Include="UtilFunctions.cpp" />
     <ClCompile Include="ValueCurve.cpp" />
     <ClCompile Include="ValueCurveButton.cpp" />
@@ -449,6 +490,10 @@
     <ClCompile Include="vamp-hostsdk\PluginWrapper.cpp" />
     <ClCompile Include="vamp-hostsdk\RealTime.cpp" />
     <ClCompile Include="VAMPPluginDialog.cpp" />
+    <ClCompile Include="VendorMusicDialog.cpp" />
+    <ClCompile Include="VendorMusicHelpers.cpp" />
+    <ClCompile Include="VideoExporter.cpp" />
+    <ClCompile Include="VendorModelDialog.cpp" />
     <ClCompile Include="VideoReader.cpp" />
     <ClCompile Include="ViewsModelsPanel.cpp" />
     <ClCompile Include="VSAFile.cpp" />
@@ -467,11 +512,19 @@
     <ClCompile Include="xLightsTimer.cpp" />
     <ClCompile Include="xLightsVersion.cpp" />
     <ClCompile Include="xLightsXmlFile.cpp" />
+    <ClCompile Include="xlLockButton.cpp" />
     <ClCompile Include="xlSlider.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\xSchedule\md5.h" />
+    <ClInclude Include="BatchRenderDialog.h" />
+    <ClInclude Include="BulkEditControls.h" />
+    <ClInclude Include="BulkEditSliderDialog.h" />
+    <ClInclude Include="CachedFileDownloader.h" />
     <ClInclude Include="ColorManager.h" />
     <ClInclude Include="ColorManagerDialog.h" />
+    <ClInclude Include="controllers\ControllerUploadData.h" />
+    <ClInclude Include="controllers\ESPixelStick.h" />
     <ClInclude Include="controllers\Falcon.h" />
     <ClInclude Include="controllers\FPP.h" />
     <ClInclude Include="controllers\FPPConnectDialog.h" />
@@ -479,12 +532,29 @@
     <ClInclude Include="controllers\Pixlite16.h" />
     <ClInclude Include="controllers\SanDevices.h" />
     <ClInclude Include="controllers\SimpleFTP.h" />
+    <ClInclude Include="controllers\WebSocketClient.h" />
+    <ClInclude Include="DissolveTransitionPattern.h" />
+    <ClInclude Include="effects\assist\AssistPanel.h" />
+    <ClInclude Include="effects\assist\PicturesAssistPanel.h" />
+    <ClInclude Include="effects\assist\xlGridCanvasEmpty.h" />
+    <ClInclude Include="effects\assist\xlGridCanvasMorph.h" />
+    <ClInclude Include="effects\assist\xlGridCanvasPictures.h" />
     <ClInclude Include="effects\ShapeEffect.h" />
     <ClInclude Include="effects\ShapePanel.h" />
+    <ClInclude Include="effects\WarpEffect.h" />
+    <ClInclude Include="effects\WarpPanel.h" />
     <ClInclude Include="EffectTimingDialog.h" />
+    <ClInclude Include="FolderSelection.h" />
+    <ClInclude Include="FontManager.h" />
     <ClInclude Include="GenerateLyricsDialog.h" />
     <ClInclude Include="HousePreviewPanel.h" />
+    <ClInclude Include="JukeboxPanel.h" />
+    <ClInclude Include="LayerSelectDialog.h" />
+    <ClInclude Include="LinkJukeboxButtonDialog.h" />
+    <ClInclude Include="LyricUserDictDialog.h" />
+    <ClInclude Include="MatrixFaceDownloadDialog.h" />
     <ClInclude Include="models\ChannelBlockModel.h" />
+    <ClInclude Include="models\ImageModel.h" />
     <ClInclude Include="MSWStackWalk.h" />
     <ClInclude Include="CustomTimingDialog.h" />
     <ClInclude Include="effects\CandleEffect.h" />
@@ -495,6 +565,8 @@
     <ClInclude Include="effects\ServoEffect.h" />
     <ClInclude Include="effects\ServoPanel.h" />
     <ClInclude Include="IPEntryDialog.h" />
+    <ClInclude Include="MultiControllerUploadDialog.h" />
+    <ClInclude Include="OpenGLShaders.h" />
     <ClInclude Include="outputs/ArtNetDialog.h" />
     <ClInclude Include="AudioManager.h" />
     <ClInclude Include="BitmapCache.h" />
@@ -657,8 +729,14 @@
     <ClInclude Include="models\WreathModel.h" />
     <ClInclude Include="MusicXML.h" />
     <ClInclude Include="NewTimingDialog.h" />
+    <ClInclude Include="NodeSelectGrid.h" />
     <ClInclude Include="NodesGridCellEditor.h" />
     <ClInclude Include="NoteImportDialog.h" />
+    <ClInclude Include="outputs\LorController.h" />
+    <ClInclude Include="outputs\LorControllerDialog.h" />
+    <ClInclude Include="outputs\LorControllers.h" />
+    <ClInclude Include="outputs\LorOptimisedDialog.h" />
+    <ClInclude Include="outputs\LOROptimisedOutput.h" />
     <ClInclude Include="outputs\NullOutputDialog.h" />
     <ClInclude Include="OptionChooser.h" />
     <ClInclude Include="osxMacUtils.h" />
@@ -681,22 +759,26 @@
     <ClInclude Include="outputs\SerialOutput.h" />
     <ClInclude Include="outputs\TestPreset.h" />
     <ClInclude Include="PaletteMgmtDialog.h" />
+    <ClInclude Include="Parallel.h" />
     <ClInclude Include="PerspectivesPanel.h" />
     <ClInclude Include="PhonemeDictionary.h" />
-    <ClInclude Include="PixelAppearanceDlg.h" />
     <ClInclude Include="PixelBuffer.h" />
+    <ClInclude Include="PixelTestDialog.h" />
     <ClInclude Include="PreviewModels.h" />
     <ClInclude Include="PreviewPane.h" />
     <ClInclude Include="RenameTextDialog.h" />
     <ClInclude Include="RenderBuffer.h" />
+    <ClInclude Include="RenderCache.h" />
     <ClInclude Include="RenderCommandEvent.h" />
     <ClInclude Include="RenderProgressDialog.h" />
+    <ClInclude Include="RenderUtils.h" />
     <ClInclude Include="ResizeImageDialog.h" />
     <ClInclude Include="SaveChangesDialog.h" />
+    <ClInclude Include="SelectPanel.h" />
+    <ClInclude Include="SelectTimingsDialog.h" />
     <ClInclude Include="SeqElementMismatchDialog.h" />
     <ClInclude Include="SeqExportDialog.h" />
     <ClInclude Include="SeqSettingsDialog.h" />
-    <ClInclude Include="SequenceCheck.h" />
     <ClInclude Include="SequenceData.h" />
     <ClInclude Include="sequencer\DragEffectBitmapButton.h" />
     <ClInclude Include="sequencer\Effect.h" />
@@ -713,8 +795,11 @@
     <ClInclude Include="sequencer\UndoManager.h" />
     <ClInclude Include="sequencer\Waveform.h" />
     <ClInclude Include="outputs\SerialPortWithRate.h" />
+    <ClInclude Include="SequenceVideoPanel.h" />
+    <ClInclude Include="SequenceVideoPreview.h" />
     <ClInclude Include="SequenceViewManager.h" />
     <ClInclude Include="SevenSegmentDialog.h" />
+    <ClInclude Include="SplashDialog.h" />
     <ClInclude Include="StartChannelDialog.h" />
     <ClInclude Include="StrandNodeNamesDialog.h" />
     <ClInclude Include="SubBufferPanel.h" />
@@ -724,10 +809,10 @@
     <ClInclude Include="support\EzGrid.h" />
     <ClInclude Include="support\FastComboEditor.h" />
     <ClInclude Include="support\GridCellChoiceRenderer.h" />
-    <ClInclude Include="TestDialog.h" />
     <ClInclude Include="TimingPanel.h" />
     <ClInclude Include="tmGridCell.h" />
     <ClInclude Include="TopEffectsPanel.h" />
+    <ClInclude Include="UpdaterDialog.h" />
     <ClInclude Include="UtilClasses.h" />
     <ClInclude Include="UtilFunctions.h" />
     <ClInclude Include="ValueCurve.h" />
@@ -754,6 +839,10 @@
     <ClInclude Include="vamp-hostsdk\vamp.h" />
     <ClInclude Include="vamp-hostsdk\Window.h" />
     <ClInclude Include="VAMPPluginDialog.h" />
+    <ClInclude Include="VendorMusicDialog.h" />
+    <ClInclude Include="VendorMusicHelpers.h" />
+    <ClInclude Include="VideoExporter.h" />
+    <ClInclude Include="VendorModelDialog.h" />
     <ClInclude Include="VideoReader.h" />
     <ClInclude Include="ViewsModelsPanel.h" />
     <ClInclude Include="VSAFile.h" />
@@ -774,6 +863,7 @@
     <ClInclude Include="xLightsTimer.h" />
     <ClInclude Include="xLightsVersion.h" />
     <ClInclude Include="xLightsXmlFile.h" />
+    <ClInclude Include="xlLockButton.h" />
     <ClInclude Include="xlSlider.h" />
   </ItemGroup>
   <ItemGroup>

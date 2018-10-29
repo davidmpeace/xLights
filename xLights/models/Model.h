@@ -37,7 +37,7 @@ class Model
 public:
     Model(const ModelManager &manger);
     virtual ~Model();
-
+    static wxArrayString GetLayoutGroups(const ModelManager& mm);
     static std::string SafeModelName(const std::string& name)
     {
         wxString n(name.c_str());
@@ -64,6 +64,7 @@ public:
     const std::string &Name() const { return name;}
     const std::string &GetName() const { return name;}
     virtual std::string GetFullName() const { return name;}
+    void Rename(std::string newName);
     int GetNumStrings() const { return parm1; }
     virtual int GetNumPhysicalStrings() const { return parm1; }
 
@@ -97,9 +98,10 @@ public:
     }
 
     virtual bool SupportsXlightsModel();
-    static Model* GetXlightsModel(Model* model, std::string &last_model, xLightsFrame* xlights, bool &cancelled);
+    static Model* GetXlightsModel(Model* model, std::string &last_model, xLightsFrame* xlights, bool &cancelled, bool download);
     virtual void ImportXlightsModel(std::string filename, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y);
     virtual void ExportXlightsModel();
+    void SetStartChannel(std::string startChannel, bool suppressRecalc = false);
 
     static const std::vector<std::string> DEFAULT_BUFFER_STYLES;
 
@@ -137,15 +139,12 @@ protected:
                         int &bufferWi, int &bufferHi) const;
     void AdjustForTransform(const std::string &transform,
                             int &bufferWi, int &bufferHi) const;
-    void ApplyTransparency(xlColor &color, int transparency);
+    void ApplyTransparency(xlColor &color, int transparency) const;
 
     int BufferHt,BufferWi;  // size of the default buffer
     std::vector<NodeBaseClassPtr> Nodes;
 
     const ModelManager &modelManager;
-
-    NodeBaseClass* createNode(int ns, const std::string &StringType, size_t NodesPerString, const std::string &rgbOrder);
-
 
     virtual void InitModel();
     virtual int CalcCannelsPerString();
@@ -181,6 +180,7 @@ protected:
     std::string DisplayAs;  // Tree 360, Tree 270, Tree 180, Tree 90, Vert Matrix, Horiz Matrix, Single Line, Arches, Window Frame, Candy Cane
     std::string layout_group;
     std::string controller_connection;
+    int rgbwHandlingType;
 
     unsigned long changeCount;
 
@@ -196,7 +196,15 @@ public:
     static std::list<std::string> GetLCProtocols();
     static bool IsProtocolValid(std::string protocol);
     int GetPort() const;
+    bool IsPixelProtocol() const;
     std::string GetControllerConnection() const { return controller_connection; }
+    long GetStringStartChan(int x) const {
+        if (x < stringStartChan.size()) {
+            return stringStartChan[x];
+        }
+        return 1;
+    }
+    void SetControllerConnection(const std::string& controllerConnection);
     const std::vector<Model *>& GetSubModels() const { return subModels; }
     Model *GetSubModel(const std::string &name);
     int GetNumSubModels() const { return subModels.size();}
@@ -216,6 +224,10 @@ public:
     std::string ModelStartChannel;
     bool CouldComputeStartChannel;
     bool Overlapping=false;
+    std::string _pixelCount = "";
+    std::string _pixelType = "";
+    std::string _pixelSpacing = "";
+
     void SetFromXml(wxXmlNode* ModelNode, bool zeroBased=false);
     virtual bool ModelRenamed(const std::string &oldName, const std::string &newName);
     size_t GetNodeCount() const;
@@ -227,10 +239,11 @@ public:
     void UpdateXmlWithScale();
     void SetOffset(double xPct, double yPct);
     void AddOffset(double xPct, double yPct);
-    unsigned int GetLastChannel();
-    std::string GetLastChannelInStartChannelFormat(OutputManager* outputManager);
+    virtual unsigned int GetLastChannel();
+    std::string GetLastChannelInStartChannelFormat(OutputManager* outputManager, std::list<std::string>* visitedModels);
     std::string GetStartChannelInDisplayFormat();
-    unsigned int GetFirstChannel();
+    bool IsValidStartChannelString() const;
+    virtual unsigned int GetFirstChannel();
     unsigned int GetNumChannels();
     int GetNodeNumber(size_t nodenum);
     wxXmlNode* GetModelXml() const;
@@ -244,7 +257,7 @@ public:
 
     virtual const std::string &GetLayoutGroup() const {return layout_group;}
     void SetLayoutGroup(const std::string &grp);
-    std::list<std::string> GetFaceFiles() const;
+    std::list<std::string> GetFaceFiles(bool all = false) const;
     void MoveHandle(ModelPreview* preview, int handle, bool ShiftKeyPressed, int mouseX, int mouseY);
     void SelectHandle(int handle);
     int GetSelectedHandle();
@@ -255,6 +268,8 @@ public:
     void AddHandle(ModelPreview* preview, int mouseX, int mouseY);
     virtual void InsertHandle(int after_handle);
     virtual void DeleteHandle(int handle);
+    virtual std::list<std::string> GetFileReferences() { return std::list<std::string>(); }
+    virtual std::list<std::string> CheckModelSettings() { std::list<std::string> res; return res; };
 
     std::vector<std::string> GetModelState() const;
     void SaveModelState( std::vector<std::string>& state );
@@ -281,7 +296,10 @@ public:
     virtual xlColor GetNodeMaskColor(size_t nodenum) const;
     void SetNodeColor(size_t nodenum, const xlColor &c);
     wxChar GetChannelColorLetter(wxByte chidx);
-    
+    std::string GetRGBOrder() const { return rgbOrder; }
+    static char EncodeColour(const xlColor& c);
+    char GetAbsoluteChannelColorLetter(long absoluteChannel); // absolute channel may or may not be in this model ... in which case a ' ' is returned
+
     virtual std::string ChannelLayoutHtml(OutputManager* outputManager);
     void ExportAsCustomXModel() const;
     bool IsCustom(void);
@@ -324,7 +342,7 @@ public:
             return strandNames[x];
         }
         if (def) {
-            return wxString::Format("Strand %i", (long)x + 1).ToStdString();
+            return wxString::Format("Strand %ld", (long)x + 1).ToStdString();
         }
         return "";
     }
@@ -333,7 +351,7 @@ public:
             return nodeNames[x];
         }
         if (def) {
-            return wxString::Format("Node %i", (long)x + 1).ToStdString();
+            return wxString::Format("Node %ld", (long)x + 1).ToStdString();
         }
         return "";
     }
@@ -352,7 +370,7 @@ public:
     {
         static std::string Nodes(" Nodes");
         if (Nodes.size() > StrType.size()) return false;
-        return !std::equal(Nodes.rbegin(), Nodes.rend(), StrType.rbegin());
+        return StrType.find(Nodes) == std::string::npos;
     }
     // true for traditional strings
     static bool HasSingleChannel(const std::string& StrType)

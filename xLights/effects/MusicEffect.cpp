@@ -7,7 +7,7 @@
 #include "../RenderBuffer.h"
 #include "../UtilClasses.h"
 #include "../models/Model.h"
-#include "../SequenceCheck.h"
+#include "../UtilFunctions.h"
 
 #include "../../include/music-16.xpm"
 #include "../../include/music-24.xpm"
@@ -73,7 +73,7 @@ void MusicEffect::adjustSettings(const std::string &version, Effect *effect, boo
     }
 }
 
-void MusicEffect::SetDefaultParameters(Model *cls) {
+void MusicEffect::SetDefaultParameters() {
     MusicPanel *mp = (MusicPanel*)panel;
     if (mp == nullptr) {
         return;
@@ -101,7 +101,7 @@ void MusicEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
         SettingsMap.GetInt("SLIDER_Music_Sensitivity", 50),
         SettingsMap.GetBool("CHECKBOX_Music_Scale", false),
         std::string(SettingsMap.Get("CHOICE_Music_Scaling", "None")),
-        GetValueCurveInt("Music_Offset", 0, SettingsMap, oset, MUSIC_OFFSET_MIN, MUSIC_OFFSET_MAX),
+        GetValueCurveInt("Music_Offset", 0, SettingsMap, oset, MUSIC_OFFSET_MIN, MUSIC_OFFSET_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS()),
         SettingsMap.GetInt("SLIDER_Music_StartNote", 60),
         SettingsMap.GetInt("SLIDER_Music_EndNote", 80),
         SettingsMap.Get("CHOICE_Music_Colour", "Distinct"),
@@ -255,9 +255,11 @@ void MusicEffect::Render(RenderBuffer &buffer,
     std::vector<std::list<MusicEvent*>*>& _events = cache->_events;
 
     // end note cant be less than start note
-    if (endnote < startnote)
+    if (startnote > endnote)
     {
-        endnote = startnote;
+        int temp = startnote;
+        startnote = endnote;
+        endnote = temp;
     }
 
     int actualbars = std::min(bars, std::min(endnote - startnote + 1, buffer.BufferWi - offsetx));

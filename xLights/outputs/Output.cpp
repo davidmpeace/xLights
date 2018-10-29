@@ -8,6 +8,7 @@
 #include "DDPOutput.h"
 #include "NullOutput.h"
 #include "LOROutput.h"
+#include "LOROptimisedOutput.h"
 #include "DLightOutput.h"
 #include "DMXOutput.h"
 #include "PixelNetOutput.h"
@@ -15,10 +16,12 @@
 #include "OpenPixelNetOutput.h"
 #include "OpenDMXOutput.h"
 #include "../UtilFunctions.h"
+#include "OutputManager.h"
 
 #pragma region Constructors and Destructors
 Output::Output(Output* output)
 {
+    _suspend = false;
     _changed = false;
     _timer_msec = 0;
     _outputNumber = -1;
@@ -40,6 +43,7 @@ Output::Output(Output* output)
 
 Output::Output(wxXmlNode* node)
 {
+    _suspend = false;
     _changed = false;
     _timer_msec = 0;
     _outputNumber = -1;
@@ -52,14 +56,12 @@ Output::Output(wxXmlNode* node)
     _controller = nullptr;
     _dirty = false;
     _ok = true;
-    _suppressDuplicateFrames = false;
     _lastOutputTime = 0 ;
     _skippedFrames = 9999;
 
     _enabled = (node->GetAttribute("Enabled", "Yes") == "Yes");
     _suppressDuplicateFrames = (node->GetAttribute("SuppressDuplicates", "No") == "Yes");
-    _description = UnXmlSafe(node->GetAttribute("Description").ToStdString());
-    _dirty = false;
+    _description = UnXmlSafe(node->GetAttribute("Description"));
     _channels = wxAtoi(node->GetAttribute("MaxChannels"));
     std::string controller = UnXmlSafe(node->GetAttribute("Controller").ToStdString());
     if (controller != "")
@@ -70,6 +72,7 @@ Output::Output(wxXmlNode* node)
 
 Output::Output()
 {
+    _suspend = false;
     _changed = false;
     _timer_msec = 0;
     _outputNumber = -1;
@@ -79,7 +82,6 @@ Output::Output()
     _baudRate = 0;
     _commPort = "";
     _controller = nullptr;
-    _dirty = false;
     _enabled = true;
     _description = "";
     _dirty = true;
@@ -115,7 +117,7 @@ void Output::Save(wxXmlNode* node)
         node->AddAttribute("Controller", XmlSafe(_controller->GetId()));
     }
 
-    node->AddAttribute("MaxChannels", wxString::Format("%d", _channels));
+    node->AddAttribute("MaxChannels", wxString::Format("%ld", _channels));
 
     _dirty = false;
 }
@@ -161,6 +163,10 @@ Output* Output::Create(wxXmlNode* node)
     else if (type == OUTPUT_LOR)
     {
         return new LOROutput(node);
+    }
+    else if (type == OUTPUT_LOR_OPT)
+    {
+        return new LOROptimisedOutput(node);
     }
     else if (type == OUTPUT_DLIGHT)
     {
@@ -264,3 +270,11 @@ void Output::SetManyChannels(long channel, unsigned char data[], long size)
     }
 }
 #pragma endregion Data Setting
+
+void Output::FrameOutput()
+{
+    _lastOutputTime = wxGetUTCTimeMillis();
+    _skippedFrames = 0;
+    _changed = false;
+    OutputManager::RegisterSentPacket();
+}

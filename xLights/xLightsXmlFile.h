@@ -3,7 +3,6 @@
 
 #include <wx/filename.h>
 #include <wx/xml/xml.h>
-#include <wx/textctrl.h>
 #include "sequencer/SequenceElements.h"
 #include "DataLayer.h"
 #include "AudioManager.h"
@@ -50,11 +49,12 @@ class xLightsXmlFile : public wxFileName
 
         bool Open(const wxString& ShowDir, bool ignore_audio=false);
 
+        void AddJukebox(wxXmlNode* node);
         void Save( SequenceElements& elements);
         wxXmlDocument& GetXmlDocument() { return seqDocument; }
         DataLayerSet& GetDataLayers() { return mDataLayers; }
 
-        const wxString &GetVersion() { return version_string; };
+        const wxString &GetVersion() const { return version_string; };
 
         int GetSequenceDurationMS() const { return int(seq_duration * 1000); }
         double GetSequenceDurationDouble() const { return seq_duration; }
@@ -66,8 +66,8 @@ class xLightsXmlFile : public wxFileName
 
         const wxString &GetSequenceTiming() const { return seq_timing; }
 		void SetSequenceTiming(const wxString& timing);
-		int GetFrameMS();
-		int GetFrequency();
+		int GetFrameMS() const;
+		int GetFrequency() const;
 
         const wxString &GetSequenceType() const { return seq_type; }
         void SetSequenceType( const wxString& type );
@@ -76,6 +76,7 @@ class xLightsXmlFile : public wxFileName
 		AudioManager* GetMedia() const { return audio; }
 		const wxString &GetMediaFile() const { return media_file; }
 		void SetMediaFile(const wxString& ShowDir, const wxString& filename, bool overwrite_tags );
+		void ClearMediaFile();
 
         wxString GetHeaderInfo(HEADER_INFO_TYPES node_type) { return header_info[node_type]; }
         void SetHeaderInfo(HEADER_INFO_TYPES node_type, const wxString& node_value);
@@ -84,7 +85,7 @@ class xLightsXmlFile : public wxFileName
         void SetImageDir(const wxString& dir);
 
         void SetSequenceLoaded(bool value) { sequence_loaded = value; }
-        bool GetSequenceLoaded() { return sequence_loaded; }
+        bool GetSequenceLoaded() const { return sequence_loaded; }
 
         void AddNewTimingSection(const std::string & interval_name, xLightsFrame* xLightsParent);
         void AddNewTimingSection(const std::string & interval_name, xLightsFrame* xLightsParent, std::vector<int> &starts,
@@ -93,27 +94,29 @@ class xLightsXmlFile : public wxFileName
         void DeleteTimingSection(const std::string & section);
         void SetTimingSectionName(const std::string & section, const std::string & name);
         bool TimingAlreadyExists(const std::string & section, xLightsFrame* xLightsParent);
-        wxArrayString GetTimingList() { return timing_list; }
+        wxArrayString GetTimingList() const { return timing_list; }
         wxArrayString GetTimingList(SequenceElements& seq_elements);
         void ProcessAudacityTimingFiles(const wxString& dir, const wxArrayString& filenames, xLightsFrame* xLightsParent);
         void ProcessLorTiming(const wxString& dir, const wxArrayString& filenames, xLightsFrame* xLightsParent);
         void ProcessXTiming(const wxString& dir, const wxArrayString& filenames, xLightsFrame* xLightsParent);
+        void ProcessXTiming(wxXmlNode* node, xLightsFrame* xLightsParent);
         void ProcessPapagayo(const wxString& dir, const wxArrayString& filenames, xLightsFrame* xLightsParent);
         void ProcessLSPTiming(const wxString& dir, const wxArrayString& filenames, xLightsFrame* xLightsParent);
         void ProcessXLightsTiming(const wxString& dir, const wxArrayString& filenames, xLightsFrame* xLightsParent);
+        void ProcessVixen3Timing(const wxString& dir, const wxArrayString& filenames, xLightsFrame* xLightsParent);
         void ProcessError(const wxString& s);
-        wxString UniqueTimingName(xLightsFrame* xLightsParent, wxString name);
+        wxString UniqueTimingName(xLightsFrame* xLightsParent, wxString name) const;
         void UpdateVersion();
         void UpdateVersion(const std::string &version);
         void AdjustEffectSettingsForVersion(SequenceElements& elements, xLightsFrame* xLightsParent);
 
-        bool IsOpen() { return is_open; }
-        bool HasAudioMedia() { return audio != nullptr; }
-        int GetNumModels() { return models.GetCount(); }
-        bool WasConverted() { return was_converted; }
+        bool IsOpen() const { return is_open; }
+        bool HasAudioMedia() const { return audio != nullptr; }
+        int GetNumModels() const { return models.GetCount(); }
+        bool WasConverted() const { return was_converted; }
         void AcknowledgeConversion() { was_converted = false; }  // called to turn off conversion warning
-        bool IsV3Sequence();
-        bool NeedsTimesCorrected();
+        bool IsV3Sequence() const;
+        bool NeedsTimesCorrected() const;
         void ConvertToFixedPointTiming();
         void SetMetaMP3Tags();
 
@@ -123,7 +126,7 @@ class xLightsXmlFile : public wxFileName
         bool supportsModelBlending() const { return supports_model_blending;}
         void setSupportsModelBlending(bool b) { supports_model_blending = b;}
 
-        int GetLastView();
+        int GetLastView() const;
 
         // static methods
         static void FixVersionDifferences(const wxString& filename);
@@ -152,7 +155,7 @@ class xLightsXmlFile : public wxFileName
         bool LoadSequence(const wxString& ShowDir, bool ignore_audio=false);
         bool LoadV3Sequence();
         bool Save();
-        bool SaveCopy();
+        bool SaveCopy() const;
         void AddTimingDisplayElement( const wxString& name, const wxString& visible, const wxString& active );
         void AddDisplayElement( const wxString& name, const wxString& type, const wxString& visible, const wxString& collapsed, const wxString& active );
         wxXmlNode* AddElement( const wxString& name, const wxString& type );
@@ -177,12 +180,12 @@ class xLightsXmlFile : public wxFileName
         wxXmlNode* InsertChildXmlNode(wxXmlNode* node, wxXmlNode* following_node, const wxString& node_name);
         wxXmlNode* AddFixedTiming( const wxString& name, const wxString& timing );
         void SetNodeContent(wxXmlNode* node, const wxString& content);
-        void CleanUpEffects();
+        void CleanUpEffects() const;
         void UpdateNextId( const wxString& value );
 
-        void FixVersionDifferences();
+        //void FixVersionDifferences();
 
-        void SetSequenceDuration(const wxString& length, wxXmlNode* node);
+        //void SetSequenceDuration(const wxString& length, wxXmlNode* node);
 
         static wxString InsertMissing(wxString str, wxString missing_array, bool INSERT);
 

@@ -1,3 +1,13 @@
+//(*InternalHeaders(VsaImportDialog)
+#include <wx/font.h>
+#include <wx/intl.h>
+#include <wx/string.h>
+//*)
+
+#include <wx/wfstream.h>
+#include <wx/txtstrm.h>
+#include <wx/msgdlg.h>
+
 #include "VsaImportDialog.h"
 #include "sequencer/SequenceElements.h"
 #include "xLightsMain.h"
@@ -6,15 +16,6 @@
 #include "support/FastComboEditor.h"
 #include "support/GridCellChoiceRenderer.h"
 #include "support/EzGrid.h"
-#include <wx/wfstream.h>
-#include <wx/txtstrm.h>
-#include <wx/msgdlg.h>
-
-//(*InternalHeaders(VsaImportDialog)
-#include <wx/font.h>
-#include <wx/intl.h>
-#include <wx/string.h>
-//*)
 
 //(*IdInit(VsaImportDialog)
 const long VsaImportDialog::ID_STATICTEXT39 = wxNewId();
@@ -39,7 +40,7 @@ END_EVENT_TABLE()
 
 static wxArrayString Convert(const std::vector<std::string> arr) {
     wxArrayString ret;
-    for (auto it = arr.begin(); it != arr.end(); it++) {
+    for (auto it = arr.begin(); it != arr.end(); ++it) {
         ret.push_back(*it);
     }
     return ret;
@@ -108,6 +109,7 @@ VsaImportDialog::VsaImportDialog(wxWindow* parent,wxWindowID id,const wxPoint& p
 	Connect(wxEVT_SIZE,(wxObjectEventFunction)&VsaImportDialog::OnResize);
 	//*)
 
+    SetEscapeId(Button_Cancel->GetId());
 }
 
 VsaImportDialog::~VsaImportDialog()
@@ -136,7 +138,7 @@ void VsaImportDialog::Init(VSAFile* file, bool allModels) {
 
     modelNames.push_back("");
     if (allModels) {
-        for (auto it = xlights->AllModels.begin(); it != xlights->AllModels.end(); it++) {
+        for (auto it = xlights->AllModels.begin(); it != xlights->AllModels.end(); ++it) {
             modelNames.push_back(it->first);
         }
     } else {
@@ -157,12 +159,13 @@ void VsaImportDialog::Init(VSAFile* file, bool allModels) {
         if( tracks[i].enable ) {
             ChannelMapGrid->AppendRows(1);
             ChannelMapGrid->SetCellValue(_num_tracks, 0, tracks[i].name);
-            ChannelMapGrid->SetCellValue(_num_tracks, 3, wxString::Format("%d", _num_tracks));
+            ChannelMapGrid->SetCellValue(_num_tracks, 3, wxString::Format("%d", (int)_num_tracks));
             ChannelMapGrid->SetCellRenderer(_num_tracks, 1, new wxGridCellChoiceRenderer);
             ChannelMapGrid->SetCellEditor(_num_tracks, 1, new wxFastComboEditor(Convert(modelNames)));
             ChannelMapGrid->SetCellValue(_num_tracks, 1, modelNames[0]);
             ChannelMapGrid->SetCellRenderer(_num_tracks, 2, new wxGridCellChoiceRenderer);
             trackNames.push_back(tracks[i].name);
+            trackIndex.push_back(i);
             selectedModels.push_back(modelNames[0]);
             selectedLayers.push_back(_num_tracks);
             selectedChannels.push_back("");

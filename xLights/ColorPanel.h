@@ -2,27 +2,26 @@
 #define COLORPANEL_H
 
 //(*Headers(ColorPanel)
-#include <wx/scrolwin.h>
-#include <wx/sizer.h>
-#include <wx/stattext.h>
-#include <wx/textctrl.h>
-#include <wx/checkbox.h>
-#include <wx/slider.h>
-#include <wx/panel.h>
 #include <wx/bmpbuttn.h>
 #include <wx/button.h>
+#include <wx/checkbox.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/slider.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
 //*)
 
 #include <wx/dir.h>
-#include <wx/colordlg.h>
-#include "ValueCurveButton.h"
-#include "ColorCurve.h"
 
 #include <vector>
 #include <map>
-#include "osx_utils/TouchBars.h"
 
-wxDECLARE_EVENT(EVT_EFFECT_PALETTE_UPDATED, wxCommandEvent);
+#include "xlLockButton.h"
+#include "ColorCurve.h"
+#include "BulkEditControls.h"
+#include "osx_utils/TouchBars.h"
 
 #define COLORPANEL_BRIGHTNESS_MIN 0
 #define COLORPANEL_BRIGHTNESS_MAX 400
@@ -42,7 +41,6 @@ class ColorPanel: public wxPanel
     void OnVCChanged(wxCommandEvent& event);
     void OnCCChanged(wxCommandEvent& event);
 
-    int __brightness;
     std::list<std::string> _loadedPalettes;
     wxString _lastShowDir;
     bool _supportslinear;
@@ -50,14 +48,15 @@ class ColorPanel: public wxPanel
 
 public:
 
-		ColorPanel(wxWindow* parent,wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
+		ColorPanel(wxWindow* parent, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
 		virtual ~ColorPanel();
 
         void SetColorCount(int count);
         void SetDefaultSettings(bool optionbased = false);
-        wxString GetColorString();
+        wxString GetColorString(bool colourOnly = false);
         wxString GetRandomColorString();
         void SetSupports(bool linear, bool radial);
+        void ValidateWindow();
 
         bool PaletteChanged;
         bool EffectChanged;
@@ -67,7 +66,6 @@ public:
         ColorPanelTouchBar *SetupTouchBar(xlTouchBarSupport &tbs);
         ColorPanelTouchBar *GetTouchBar() const { return touchBar; }
 private:
-        void ValidateWindow();
         std::string GetCurrentPalette() const;
         wxString FindPaletteFile(const wxString& filename, const wxString& palette) const;
         wxColour GetPaletteColor(int idx) const;
@@ -79,46 +77,43 @@ public:
         void SetButtonColor(int btn, const xlColor &v, bool notify = true);
 
 		//(*Declarations(ColorPanel)
-		wxStaticText* StaticText22;
-		wxCheckBox* CheckBox_ResetColorPanel;
-		wxBitmapButton* BitmapButton_Contrast;
-		wxSlider* Slider_Color_HueAdjust;
-		wxBitmapButton* BitmapButton_Brightness;
-		ValueCurveButton* BitmapButton_Color_ValueAdjust;
-		wxFlexGridSizer* FlexGridSizer_Palette;
-		wxBitmapButton* BitmapButton_ShuffleColours;
-		wxStaticText* StaticText2;
-		wxSlider* Slider_Color_SaturationAdjust;
-		wxBitmapButton* BitmapButton_SavePalette;
-		wxBitmapButton* BitmapButton_random;
-		wxTextCtrl* TextCtrl_Color_ValueAdjust;
-		wxBitmapButton* BitmapButton_normal;
-		wxPanel* Panel_Sizer;
+		BulkEditCheckBox* CheckBox_MusicSparkles;
+		BulkEditSlider* Slider_Brightness;
+		BulkEditSlider* Slider_Color_HueAdjust;
+		BulkEditSlider* Slider_Color_SaturationAdjust;
+		BulkEditSlider* Slider_Color_ValueAdjust;
+		BulkEditSlider* Slider_Contrast;
+		BulkEditSlider* Slider_SparkleFrequency;
+		BulkEditTextCtrl* TextCtrl_Color_HueAdjust;
+		BulkEditTextCtrl* TextCtrl_Color_SaturationAdjust;
+		BulkEditTextCtrl* TextCtrl_Color_ValueAdjust;
+		BulkEditTextCtrl* txtCtlBrightness;
+		BulkEditTextCtrl* txtCtlContrast;
+		BulkEditTextCtrl* txtCtrlSparkleFreq;
+		BulkEditValueCurveButton* BitmapButton_Color_HueAdjust;
+		BulkEditValueCurveButton* BitmapButton_Color_SaturationAdjust;
+		BulkEditValueCurveButton* BitmapButton_Color_ValueAdjust;
+		BulkEditValueCurveButton* BitmapButton_SparkleFrequencyVC;
+		BulkEditValueCurveButton* BitmapButton_VCBrightness;
 		ColourList* BitmapButton_ColourChoice;
-		wxBitmapButton* BitmapButton_SparkleFrequency;
-		wxStaticText* StaticText1;
-		ValueCurveButton* BitmapButton_Color_SaturationAdjust;
-		wxStaticText* StaticText3;
-		wxStaticText* StaticText127;
-		wxTextCtrl* txtCtlBrightness;
-		wxTextCtrl* txtCtlContrast;
-		wxBitmapButton* BitmapButton_locked;
-		wxSlider* Slider_Color_ValueAdjust;
-		wxBitmapButton* BitmapButton_MusicSparkles;
-		wxSlider* Slider_Brightness;
-		wxStaticText* StaticText126;
-		wxSlider* Slider_SparkleFrequency;
+		wxCheckBox* CheckBox_ResetColorPanel;
+		wxFlexGridSizer* FlexGridSizer_Palette;
+		wxPanel* Panel_Sizer;
 		wxScrolledWindow* ColorScrollWindow;
-		ValueCurveButton* BitmapButton_VCBrightness;
-		ValueCurveButton* BitmapButton_Color_HueAdjust;
-		wxTextCtrl* txtCtrlSparkleFreq;
-		wxSlider* Slider_Contrast;
-		wxBitmapButton* BitmapButton_DeletePalette;
-		wxCheckBox* CheckBox_MusicSparkles;
+		wxStaticText* StaticText126;
+		wxStaticText* StaticText127;
+		wxStaticText* StaticText1;
+		wxStaticText* StaticText22;
+		wxStaticText* StaticText2;
+		wxStaticText* StaticText3;
 		wxStaticText* StaticText4;
-		ValueCurveButton* BitmapButton_SparkleFrequencyVC;
-		wxTextCtrl* TextCtrl_Color_HueAdjust;
-		wxTextCtrl* TextCtrl_Color_SaturationAdjust;
+		xlLockButton* BitmapButton_Brightness;
+		xlLockButton* BitmapButton_Contrast;
+		xlLockButton* BitmapButton_MusicSparkles;
+		xlLockButton* BitmapButton_SparkleFrequency;
+		xlSizedBitmapButton* BitmapButton_DeletePalette;
+		xlSizedBitmapButton* BitmapButton_SavePalette;
+		xlSizedBitmapButton* BitmapButton_ShuffleColours;
 		//*)
 
 	protected:
@@ -130,38 +125,35 @@ public:
 		static const long ID_BUTTON1;
 		static const long ID_BITMAPBUTTON2;
 		static const long ID_CHECKBOX_ResetColorPanel;
-		static const long ID_STATICTEXT24;
+		static const long ID_STATICTEXT_SparkleFrequency;
 		static const long ID_SLIDER_SparkleFrequency;
 		static const long ID_VALUECURVE_SparkleFrequency;
 		static const long IDD_TEXTCTRL_SparkleFrequency;
 		static const long ID_BITMAPBUTTON_SLIDER_SparkleFrequency;
 		static const long ID_CHECKBOX_MusicSparkles;
 		static const long ID_BITMAPBUTTON_MusicSparkles;
-		static const long ID_STATICTEXT127;
+		static const long ID_STATICTEXT_Brightness;
 		static const long ID_SLIDER_Brightness;
 		static const long ID_VALUECURVE_Brightness;
 		static const long IDD_TEXTCTRL_Brightness;
 		static const long ID_BITMAPBUTTON_SLIDER_Brightness;
-		static const long ID_STATICTEXT128;
+		static const long ID_STATICTEXT_Contrast;
 		static const long ID_SLIDER_Contrast;
 		static const long IDD_TEXTCTRL_Contrast;
 		static const long ID_BITMAPBUTTON_SLIDER_Contrast;
 		static const long ID_STATICTEXT4;
-		static const long ID_STATICTEXT1;
+		static const long ID_STATICTEXT_Color_HueAdjust;
 		static const long ID_SLIDER_Color_HueAdjust;
 		static const long ID_VALUECURVE_Color_HueAdjust;
 		static const long IDD_TEXTCTRL_Color_HueAdjust;
-		static const long ID_STATICTEXT2;
+		static const long ID_STATICTEXT_Color_SaturationAdjust;
 		static const long ID_SLIDER_Color_SaturationAdjust;
 		static const long ID_VALUECURVE_Color_SaturationAdjust;
 		static const long IDD_TEXTCTRL_Color_SaturationAdjust;
-		static const long ID_STATICTEXT3;
+		static const long ID_STATICTEXT_Color_ValueAdjust;
 		static const long ID_SLIDER_Color_ValueAdjust;
 		static const long ID_VALUECURVE_Color_ValueAdjust;
 		static const long IDD_TEXTCTRL_Color_ValueAdjust;
-		static const long ID_BITMAPBUTTON87;
-		static const long ID_BITMAPBUTTON1;
-		static const long ID_BITMAPBUTTON88;
 		static const long ID_SCROLLED_ColorScroll;
 		static const long ID_PANEL1;
 		//*)
@@ -173,19 +165,9 @@ public:
 		//void OnButton_PaletteNumberClick(wxCommandEvent& event);
 		void OnResize(wxSizeEvent& event);
 		void OnUpdateColorClick(wxCommandEvent& event);
-		void UpdateLinkedSliderFloat(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-		void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-		void UpdateLinkedSlider360(wxCommandEvent& event);
-		void UpdateLinkedTextCtrl(wxScrollEvent& event);
-		void UpdateLinkedSlider(wxCommandEvent& event);
 		void OnLockButtonClick(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-		void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
 		void OnCheckBox_MusicSparklesClick(wxCommandEvent& event);
 		void OnVCButtonClick(wxCommandEvent& event);
-		void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
 		void OnBitmapButton_SavePaletteClick(wxCommandEvent& event);
 		void OnBitmapButton_DeletePaletteClick(wxCommandEvent& event);
 		void OnBitmapButton_ShuffleColoursClick(wxCommandEvent& event);

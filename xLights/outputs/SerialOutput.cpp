@@ -4,6 +4,7 @@
 #include <log4cpp/Category.hh>
 #include "SerialPortWithRate.h"
 #include "LOROutput.h"
+#include "LOROptimisedOutput.h"
 #include "DLightOutput.h"
 #include "RenardOutput.h"
 #include "DMXOutput.h"
@@ -26,6 +27,7 @@ SerialOutput::SerialOutput(wxXmlNode* node) : Output(node)
     {
         _baudRate = wxAtoi(node->GetAttribute("BaudRate", ""));
     }
+    SetId(wxAtoi(node->GetAttribute("Id", "0")));
 }
 
 SerialOutput::SerialOutput(SerialOutput* output) : Output(output)
@@ -67,6 +69,8 @@ void SerialOutput::Save(wxXmlNode* node)
         node->AddAttribute("BaudRate", "n/a");
     }
 
+    node->AddAttribute("Id", wxString::Format(wxT("%i"), GetId()));
+
     Output::Save(node);
 }
 
@@ -105,13 +109,13 @@ bool SerialOutput::TxEmpty() const
 
 std::string SerialOutput::GetChannelMapping(long ch) const
 {
-    std::string res = "Channel " + std::string(wxString::Format(wxT("%i"), ch)) + " maps to ...\n";
+    std::string res = "Channel " + std::string(wxString::Format(wxT("%ld"), ch)) + " maps to ...\n";
 
     long channeloffset = ch - GetStartChannel() + 1;
 
     res += "Type: " + GetType() + "\n";
     res += "ComPort: " + _commPort + "\n";
-    res += "Channel: " + std::string(wxString::Format(wxT("%i"), channeloffset)) + "\n";
+    res += "Channel: " + std::string(wxString::Format(wxT("%ld"), channeloffset)) + "\n";
 
     if (!_enabled) res += " INACTIVE";
 
@@ -124,11 +128,16 @@ std::string SerialOutput::GetLongDescription() const
 
     if (!_enabled) res += "INACTIVE ";
     res += GetType() + " " + _commPort;
-    res += " [1-" + std::string(wxString::Format(wxT("%i"), (long)_channels)) + "] ";
-    res += "(" + std::string(wxString::Format(wxT("%i"), (long)GetStartChannel())) + "-" + std::string(wxString::Format(wxT("%i"), (long)GetEndChannel())) + ") ";
+    res += " [1-" + std::string(wxString::Format(wxT("%ld"), (long)_channels)) + "] ";
+    res += "(" + std::string(wxString::Format(wxT("%ld"), (long)GetStartChannel())) + "-" + std::string(wxString::Format(wxT("%li"), (long)GetEndChannel())) + ") ";
     res += _description;
 
     return res;
+}
+
+std::string SerialOutput::GetPingDescription() const
+{
+    return GetCommPort() + " " + GetDescription();
 }
 #pragma endregion Getters and Setters
 
@@ -201,6 +210,26 @@ std::list<std::string> SerialOutput::GetPossibleSerialPorts()
     return res;
 }
 
+std::list<std::string> SerialOutput::GetPossibleBaudRates()
+{
+    std::list<std::string> res;
+
+    res.push_back("9600");
+    res.push_back("19200");
+    res.push_back("38400");
+    res.push_back("57600");
+    res.push_back("115200");
+    res.push_back("128000");
+    res.push_back("250000");
+    res.push_back("256000");
+    res.push_back("500000");
+    res.push_back("512000");
+    res.push_back("1000000");
+    res.push_back("1024000");
+
+    return res;
+}
+
 std::list<std::string> SerialOutput::GetAvailableSerialPorts()
 {
     std::list<std::string> res;
@@ -215,9 +244,9 @@ std::list<std::string> SerialOutput::GetAvailableSerialPorts()
 
     //enum serial comm ports (more user friendly, especially if USB-to-serial ports change):
     //logic based on http://www.cplusplus.com/forum/windows/73821/
-    if (!(err = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("HARDWARE\\DEVICEMAP\\SERIALCOMM"), 0, KEY_READ, &hkey)))
+    if (!((err = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("HARDWARE\\DEVICEMAP\\SERIALCOMM"), 0, KEY_READ, &hkey))))
     {
-        for (DWORD inx = 0; !(err = RegEnumValue(hkey, inx, (LPTSTR)valname, &vallen, nullptr, nullptr, (LPBYTE)portname, &portlen)) || (err == ERROR_MORE_DATA); ++inx)
+        for (DWORD inx = 0; !((err = RegEnumValue(hkey, inx, (LPTSTR)valname, &vallen, nullptr, nullptr, (LPBYTE)portname, &portlen))) || (err == ERROR_MORE_DATA); ++inx)
         {
             if (err == ERROR_MORE_DATA)
             {
@@ -291,6 +320,8 @@ bool SerialOutput::Open()
     {
         _serial = new SerialPort();
 
+        logger_base.debug("Opening serial port %s. Baud rate = %d. Config = %s.", (const char *)_commPort.c_str(), _baudRate, (const char *)_serialConfig);
+
         int errcode = _serial->Open(_commPort, _baudRate, _serialConfig);
         if (errcode < 0)
         {
@@ -318,6 +349,10 @@ bool SerialOutput::Open()
                 errcode);
             wxMessageBox(msg, _("Communication Error"), wxOK);
         }
+        else
+        {
+            logger_base.debug("    Serial port %s open.", (const char *)_commPort.c_str());
+        }
     }
 
     return _ok;
@@ -325,13 +360,14 @@ bool SerialOutput::Open()
 
 void SerialOutput::Close()
 {
+    log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     if (_serial != nullptr)
     {
         // throw away any pending data
         _serial->Purge();
 
         int i = 0;
-        while( !TxEmpty() && (i < 10) )
+        while( !TxEmpty() && (i < 200) )
         {
             wxMilliSleep(5);
             i++;
@@ -339,6 +375,7 @@ void SerialOutput::Close()
         _serial->Close();
         delete _serial;
         _serial = nullptr;
+        logger_base.debug("    Serial port %s closed in %d milliseconds.", (const char *)_commPort.c_str(), i * 5);
     }
 }
 #pragma endregion Start and Stop
@@ -366,6 +403,10 @@ SerialOutput* SerialOutput::Mutate(const std::string& newtype)
     {
         return new LOROutput(this);
     }
+    else if (newtype == OUTPUT_LOR_OPT)
+    {
+        return new LOROptimisedOutput(this);
+    }
     else if (newtype == OUTPUT_DLIGHT)
     {
         return new DLightOutput(this);
@@ -385,6 +426,29 @@ SerialOutput* SerialOutput::Mutate(const std::string& newtype)
 
 
     return nullptr;
+}
+
+PINGSTATE SerialOutput::Ping() const
+{
+    if (_serial != nullptr && _ok)
+    {
+        return PINGSTATE::PING_OPEN;
+    }
+    else
+    {
+        PINGSTATE res = PINGSTATE::PING_ALLFAILED;
+        SerialPort* serial = new SerialPort();
+
+        int errcode = serial->Open(_commPort, _baudRate, _serialConfig);
+        if (errcode >= 0)
+        {
+            res = PINGSTATE::PING_OPENED;
+            serial->Close();
+        }
+
+        delete serial;
+        return res;
+    }
 }
 
 #pragma region UI

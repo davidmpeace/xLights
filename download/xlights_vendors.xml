@@ -1,0 +1,15 @@
+<vendors>
+	<!-- model vendors just use the model tag -->
+    <vendor>
+        <name>Boscoyo</name>
+        <link>http://hohenseefamily.com/xlights/boscoyo.xml</link>
+    </vendor>
+    <musicvendor>
+        <name>Free</name>
+        <link>http://nutcracker123.com/xlights/vendors/xlights_music_free.xml</link>
+    </musicvendor>
+    <musicvendor>
+        <name>Singing Faces Project</name>
+        <link>http://xlightssharing.com/music.xml</link>
+    </musicvendor>
+</vendors>

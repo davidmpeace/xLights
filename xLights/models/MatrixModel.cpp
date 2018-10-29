@@ -1,12 +1,13 @@
-#include "MatrixModel.h"
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/advprops.h>
 #include <wx/xml/xml.h>
-#include "ModelScreenLocation.h"
 #include <wx/log.h>
 #include <wx/filedlg.h>
-#include "../xLightsVersion.h"
 #include <wx/msgdlg.h>
+
+#include "MatrixModel.h"
+#include "ModelScreenLocation.h"
+#include "../xLightsVersion.h"
 #include "../xLightsMain.h"
 
 MatrixModel::MatrixModel(wxXmlNode *node, const ModelManager &manager, bool zeroBased) : ModelWithScreenLocation(manager)
@@ -61,7 +62,7 @@ void MatrixModel::AddTypeProperties(wxPropertyGridInterface *grid) {
     p->SetAttribute("Max", 250);
     p->SetEditor("SpinCtrl");
 
-    p = grid->Append(new wxEnumProperty("Starting Location", "MatrixStart", TOP_BOT_LEFT_RIGHT, IsLtoR ? (isBotToTop ? 2 : 0) : (isBotToTop ? 3 : 1)));
+    grid->Append(new wxEnumProperty("Starting Location", "MatrixStart", TOP_BOT_LEFT_RIGHT, IsLtoR ? (isBotToTop ? 2 : 0) : (isBotToTop ? 3 : 1)));
 }
 void MatrixModel::AddStyleProperties(wxPropertyGridInterface *grid) {
     grid->Append(new wxEnumProperty("Direction", "MatrixStyle", MATRIX_STYLES, vMatrix ? 1 : 0));
@@ -139,6 +140,7 @@ void MatrixModel::InitVMatrix(int firstExportStrand) {
     SetBufferSize(PixelsPerStrand,NumStrands);
     SetNodeCount(parm1,PixelsPerString, rgbOrder);
     screenLocation.SetRenderSize(NumStrands, PixelsPerStrand);
+    int chanPerNode = GetNodeChannelCount(StringType);
 
     // create output mapping
     if (SingleNode) {
@@ -165,14 +167,14 @@ void MatrixModel::InitVMatrix(int firstExportStrand) {
         for (int x = 0; x < NumStrands; x++) {
             stringnum = x / parm3;
             segmentnum = x % parm3;
-            strandStartChan[x] = stringStartChan[stringnum] + segmentnum * PixelsPerStrand * 3;
+            strandStartChan[x] = stringStartChan[stringnum] + segmentnum * PixelsPerStrand * chanPerNode;
         }
         if (firstExportStrand > 0 && firstExportStrand < NumStrands) {
             int offset = strandStartChan[firstExportStrand];
             for (int x = 0; x < NumStrands; x++) {
                 strandStartChan[x] = strandStartChan[x] - offset;
                 if (strandStartChan[x] < 0) {
-                    strandStartChan[x] += (PixelsPerStrand * NumStrands * 3);
+                    strandStartChan[x] += (PixelsPerStrand * NumStrands * chanPerNode);
                 }
             }
         }
@@ -182,7 +184,7 @@ void MatrixModel::InitVMatrix(int firstExportStrand) {
             segmentnum = x % parm3;
             for(y=0; y < PixelsPerStrand; y++) {
                 idx=stringnum * PixelsPerString + segmentnum * PixelsPerStrand + y;
-                Nodes[idx]->ActChan = strandStartChan[x] + y*3;
+                Nodes[idx]->ActChan = strandStartChan[x] + y*chanPerNode;
                 Nodes[idx]->Coords[0].bufX=IsLtoR ? x : NumStrands-x-1;
                 Nodes[idx]->Coords[0].bufY= isBotToTop == (segmentnum % 2 == 0) ? y:PixelsPerStrand-y-1;
                 Nodes[idx]->StringNum=stringnum;
@@ -208,6 +210,8 @@ void MatrixModel::InitHMatrix() {
     SetBufferSize(NumStrands,PixelsPerStrand);
     SetNodeCount(parm1,PixelsPerString,rgbOrder);
     screenLocation.SetRenderSize(PixelsPerStrand, NumStrands);
+    
+    int chanPerNode = GetNodeChannelCount(StringType);
 
     // create output mapping
     if (SingleNode) {
@@ -233,7 +237,7 @@ void MatrixModel::InitHMatrix() {
             segmentnum=y % parm3;
             for(x=0; x<PixelsPerStrand; x++) {
                 idx=stringnum * PixelsPerString + segmentnum * PixelsPerStrand + x;
-                Nodes[idx]->ActChan = stringStartChan[stringnum] + segmentnum * PixelsPerStrand*3 + x*3;
+                Nodes[idx]->ActChan = stringStartChan[stringnum] + segmentnum * PixelsPerStrand*chanPerNode + x*chanPerNode;
                 Nodes[idx]->Coords[0].bufX=IsLtoR != (segmentnum % 2 == 0) ? PixelsPerStrand-x-1 : x;
                 Nodes[idx]->Coords[0].bufY= isBotToTop ? y :NumStrands-y-1;
                 Nodes[idx]->StringNum=stringnum;
@@ -332,6 +336,9 @@ void MatrixModel::ImportXlightsModel(std::string filename, xLightsFrame* xlights
             wxString nn = root->GetAttribute("NodeNames");
             wxString v = root->GetAttribute("SourceVersion");
             wxString da = root->GetAttribute("DisplayAs");
+            wxString pc = root->GetAttribute("PixelCount");
+            wxString pt = root->GetAttribute("PixelType");
+            wxString psp = root->GetAttribute("PixelSpacing");
 
             // Add any model version conversion logic here
             // Source version will be the program version that created the custom model
@@ -349,6 +356,9 @@ void MatrixModel::ImportXlightsModel(std::string filename, xLightsFrame* xlights
             SetProperty("StrandNames", sn);
             SetProperty("NodeNames", nn);
             SetProperty("DisplayAs", da);
+            SetProperty("PixelCount", pc);
+            SetProperty("PixelType", pt);
+            SetProperty("PixelSpacing", psp);
 
             wxString newname = xlights->AllModels.GenerateModelName(name.ToStdString());
             GetModelScreenLocation().Write(ModelXml);

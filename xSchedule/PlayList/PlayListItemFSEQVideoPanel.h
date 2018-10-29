@@ -14,6 +14,7 @@
 #include <wx/button.h>
 //*)
 
+class OutputManager;
 class PlayListItemFSEQVideo;
 class FSEQFilePickerCtrl;
 class AudioFilePickerCtrl;
@@ -21,16 +22,23 @@ class VideoFilePickerCtrl;
 
 class PlayListItemFSEQVideoPanel: public wxPanel
 {
+    OutputManager* _outputManager;
     PlayListItemFSEQVideo* _fseq;
     void ValidateWindow();
+    void SetWindowPositionText();
 
 	public:
 
-		PlayListItemFSEQVideoPanel(wxWindow* parent, PlayListItemFSEQVideo* fseq, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
+		PlayListItemFSEQVideoPanel(wxWindow* parent, OutputManager* outputManager, PlayListItemFSEQVideo* fseq, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
 		virtual ~PlayListItemFSEQVideoPanel();
 
 		//(*Declarations(PlayListItemFSEQVideoPanel)
+		wxStaticText* StaticText10;
 		wxSlider* Slider1;
+		wxStaticText* StaticText9;
+		wxCheckBox* CheckBox_LoopVideo;
+		wxStaticText* StaticText_StartChannel;
+		wxSpinCtrl* SpinCtrl_FadeOut;
 		wxChoice* Choice_BlendMode;
 		wxSpinCtrl* SpinCtrl_Channels;
 		wxStaticText* StaticText2;
@@ -38,6 +46,8 @@ class PlayListItemFSEQVideoPanel: public wxPanel
 		VideoFilePickerCtrl* FilePickerCtrl_VideoFile;
 		wxCheckBox* CheckBox_FastStartAudio;
 		wxStaticText* StaticText8;
+		wxCheckBox* CheckBox_CacheVideo;
+		wxStaticText* StaticText_Position;
 		wxStaticText* StaticText1;
 		wxStaticText* StaticText3;
 		wxCheckBox* CheckBox_LimitChannels;
@@ -49,9 +59,11 @@ class PlayListItemFSEQVideoPanel: public wxPanel
 		wxStaticText* StaticText5;
 		wxStaticText* StaticText7;
 		FSEQFilePickerCtrl* FilePickerCtrl_FSEQFile;
+		wxTextCtrl* TextCtrl_StartChannel;
+		wxCheckBox* CheckBox_SuppressVirtualMatrix;
 		wxButton* Button_PositionWindow;
 		wxStaticText* StaticText4;
-		wxSpinCtrl* SpinCtrl_StartChannel;
+		wxSpinCtrl* SpinCtrl_FadeIn;
 		wxCheckBox* CheckBox_OverrideVolume;
 		//*)
 
@@ -63,22 +75,31 @@ class PlayListItemFSEQVideoPanel: public wxPanel
 		static const long ID_STATICTEXT8;
 		static const long ID_FILEPICKERCTRL3;
 		static const long ID_BUTTON1;
+		static const long ID_STATICTEXT11;
 		static const long ID_CHECKBOX5;
+		static const long ID_CHECKBOX6;
 		static const long ID_STATICTEXT5;
 		static const long ID_CHOICE1;
 		static const long ID_CHECKBOX3;
 		static const long ID_STATICTEXT6;
-		static const long ID_SPINCTRL2;
+		static const long ID_TEXTCTRL2;
+		static const long ID_STATICTEXT12;
 		static const long ID_STATICTEXT7;
 		static const long ID_SPINCTRL3;
 		static const long ID_CHECKBOX1;
 		static const long ID_STATICTEXT2;
 		static const long ID_FILEPICKERCTRL2;
 		static const long ID_CHECKBOX4;
+		static const long ID_CHECKBOX7;
+		static const long ID_CHECKBOX8;
 		static const long ID_CHECKBOX2;
 		static const long ID_SLIDER1;
 		static const long ID_STATICTEXT4;
 		static const long ID_SPINCTRL1;
+		static const long ID_STATICTEXT10;
+		static const long ID_SPINCTRL4;
+		static const long ID_STATICTEXT9;
+		static const long ID_SPINCTRL5;
 		static const long ID_STATICTEXT3;
 		static const long ID_TEXTCTRL1;
 		//*)
@@ -94,6 +115,7 @@ class PlayListItemFSEQVideoPanel: public wxPanel
 		void OnCheckBox_LimitChannelsClick(wxCommandEvent& event);
 		void OnFilePickerCtrl_VideoFileFileChanged(wxFileDirPickerEvent& event);
 		void OnButton_PositionWindowClick(wxCommandEvent& event);
+		void OnTextCtrl_StartChannelText(wxCommandEvent& event);
 		//*)
 
 		DECLARE_EVENT_TABLE()

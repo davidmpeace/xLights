@@ -4,6 +4,7 @@
 #include "PlayListItemAudioPanel.h"
 #include "../../xLights/AudioManager.h"
 #include <log4cpp/Category.hh>
+#include "../../xLights/UtilFunctions.h"
 
 PlayListItemAudio::PlayListItemAudio(wxXmlNode* node) : PlayListItem(node)
 {
@@ -20,14 +21,27 @@ void PlayListItemAudio::Load(wxXmlNode* node)
     PlayListItem::Load(node);
     _fastStartAudio = (node->GetAttribute("FastStartAudio", "FALSE") == "TRUE");
     _audioFile = node->GetAttribute("AudioFile", "");
+    _audioFile = FixFile("", _audioFile);
 
-    if (_fastStartAudio)
-    {
-        LoadFiles();
-    }
-    else
+    //if (_fastStartAudio)
+    //{
+    //    LoadFiles();
+    //}
+    //else
     {
         FastSetDuration();
+    }
+}
+
+void PlayListItemAudio::Frame(wxByte* buffer, size_t size, size_t ms, size_t framems, bool outputframe)
+{
+    if (outputframe)
+    {
+        if (ms == _delay && _delay != 0 && ControlsTiming() && _audioManager != nullptr)
+        {
+            _audioManager->Play(0, _audioManager->LengthMS());
+        }
+        _currentFrame++;
     }
 }
 
@@ -48,6 +62,8 @@ void PlayListItemAudio::LoadFiles()
         }
     }
 
+    _durationMS = 0;
+
     if (IsInSlaveMode())
     {
         
@@ -56,15 +72,25 @@ void PlayListItemAudio::LoadFiles()
     {
         _audioManager = new AudioManager(_audioFile);
 
-        if (!_audioManager->IsOk())
+        if (_audioManager == nullptr || !_audioManager->IsOk())
         {
             logger_base.error("Audio: Audio file '%s' has a problem opening.", (const char *)_audioFile.c_str());
+            
+            if (_audioManager != nullptr)
+            {
+                delete _audioManager;
+                _audioManager = nullptr;
+            }
         }
-
-        if (_volume != -1)
-            _audioManager->SetVolume(_volume);
-        _durationMS = _audioManager->LengthMS();
-        _controlsTimingCache = true;
+        else
+        {
+            if (_volume != -1)
+            {
+                _audioManager->SetVolume(_volume);
+            }
+            _durationMS = _audioManager->LengthMS();
+            _controlsTimingCache = true;
+        }
     }
     else
     {
@@ -84,14 +110,30 @@ PlayListItemAudio::PlayListItemAudio() : PlayListItem()
     _audioManager = nullptr;
 }
 
+PlayListItemAudio::~PlayListItemAudio()
+{
+    CloseFiles();
+
+    if (_audioManager != nullptr)
+    {
+        delete _audioManager;
+        _audioManager = nullptr;
+    }
+}
+
 PlayListItem* PlayListItemAudio::Copy() const
 {
     PlayListItemAudio* res = new PlayListItemAudio();
+    PlayListItem::Copy(res);
     res->_fastStartAudio = _fastStartAudio;
     res->_durationMS = _durationMS;
     res->_controlsTimingCache = _controlsTimingCache;
     res->SetAudioFile(_audioFile); // we set this way to trigger file loading
-    PlayListItem::Copy(res);
+
+    if (_fastStartAudio)
+    {
+        res->LoadFiles();
+    }
 
     return res;
 }
@@ -165,9 +207,16 @@ size_t PlayListItemAudio::GetPositionMS() const
 {
     if (ControlsTiming() && _audioManager != nullptr)
     {
-        return _audioManager->Tell();
+        if (_delay != 0)
+        {
+            if (_currentFrame * GetFrameMS() < _delay)
+            {
+                return _currentFrame * GetFrameMS();
+            }
+        }
+        return _delay + _audioManager->Tell();
     }
-    
+
     return 0;
 }
 
@@ -176,19 +225,36 @@ void PlayListItemAudio::Restart()
     if (ControlsTiming() && _audioManager != nullptr)
     {
         _audioManager->Stop();
-        _audioManager->Play(0, _audioManager->LengthMS());
+        if (_delay == 0)
+        {
+            _audioManager->Play(0, _audioManager->LengthMS());
+        }
+        else
+        {
+            _audioManager->Seek(0);
+        }
     }
 }
 
-void PlayListItemAudio::Start()
+void PlayListItemAudio::Start(long stepLengthMS)
 {
+    PlayListItem::Start(stepLengthMS);
+
     // load the audio
     LoadFiles();
 
     if (ControlsTiming() && _audioManager != nullptr)
     {
-        _audioManager->Play(0, _audioManager->LengthMS());
+        if (_delay == 0)
+        {
+            _audioManager->Play(0, _audioManager->LengthMS());
+        }
+        else
+        {
+            _audioManager->Seek(0);
+        }
     }
+    _currentFrame = 0;
 }
 
 void PlayListItemAudio::Suspend(bool suspend)
@@ -224,8 +290,15 @@ void PlayListItemAudio::CloseFiles()
 {
     if (_audioManager != nullptr)
     {
-        delete _audioManager;
-        _audioManager = nullptr;
+        if (!_fastStartAudio)
+        {
+            delete _audioManager;
+            _audioManager = nullptr;
+        }
+        else
+        {
+            _audioManager->AbsoluteStop();
+        }
     }
 }
 
@@ -264,7 +337,7 @@ void PlayListItemAudio::SetFastStartAudio(bool fastStartAudio)
     }
 }
 
-std::list<std::string> PlayListItemAudio::GetMissingFiles() const
+std::list<std::string> PlayListItemAudio::GetMissingFiles() 
 {
     std::list<std::string> res;
     if (!wxFile::Exists(GetAudioFile()))

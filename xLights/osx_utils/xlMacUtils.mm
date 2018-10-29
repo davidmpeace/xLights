@@ -15,8 +15,13 @@
 #include "xlGLCanvas.h"
 #include "osxMacUtils.h"
 
+#include "AudioManager.h"
+
 #include <list>
 
+
+#include <CoreAudio/CoreAudio.h>
+#include <CoreServices/CoreServices.h>
 
 void ObtainAccessToURL(const std::string &path) {
     if ("" == path) {
@@ -35,7 +40,7 @@ void ObtainAccessToURL(const std::string &path) {
                              includingResourceValuesForKeys: nil
                                               relativeToURL: nil
                                                       error: &error];
-        NSString *base64 = [newData base64Encoding];
+        NSString *base64 = [newData base64EncodedStringWithOptions:0];
         const char *cstr = [base64 UTF8String];
         if (cstr != nullptr && *cstr) {
             data = cstr;
@@ -44,9 +49,9 @@ void ObtainAccessToURL(const std::string &path) {
     }
     
     if (data.length() > 0) {
-        NSString* dstr = [NSString stringWithCString:data.ToStdString().c_str()
+        NSString* dstr = [NSString stringWithCString:data.c_str()
                                             encoding:[NSString defaultCStringEncoding]];
-        NSData *nsdata = [[NSData alloc] initWithBase64Encoding:dstr];
+        NSData *nsdata = [[NSData alloc] initWithBase64EncodedString:dstr options:0];
         BOOL isStale = false;
     //options:(NSURLBookmarkResolutionOptions)options
     //relativeToURL:(NSURL *)relativeURL
@@ -211,34 +216,25 @@ void ModalPopup(wxWindow *w, wxMenu &menu) {
     //w->PopupMenu(&menu);
 }
 
-void AddWindowsMenu() {
-    NSApplication *app = [NSApplication sharedApplication];
-    NSMenu * mainMenu = app.mainMenu;
-    
-    NSMenu* windowMenu = [[NSMenu alloc] initWithTitle:@"Window"];
-    
-    // MINIMIZE
-    NSMenuItem* minimizeItem = [[NSMenuItem alloc] initWithTitle:@"Minimize"
-                                                          action:@selector(performMiniaturize:)
-                                                   keyEquivalent:@"m"];
-    [windowMenu addItem:minimizeItem];
-    [minimizeItem release];
-    
-    // ZOOM
-    [windowMenu addItemWithTitle:@"Zoom"
-                          action:@selector(performZoom:)
-                   keyEquivalent:@""];
-    
-    // SEPARATOR
-    [windowMenu addItem:[NSMenuItem separatorItem]];
-    
-    // BRING ALL TO FRONT
-    [windowMenu addItemWithTitle:@"Bring All to Front"
-                          action:@selector(arrangeInFront:)
-                   keyEquivalent:@""];
 
-    NSMenuItem* windowItem = [mainMenu insertItemWithTitle:@"" action:nil keyEquivalent:@"" atIndex: ([mainMenu numberOfItems] - 1)];
-    [windowItem setSubmenu:windowMenu];
-    [NSApp setWindowsMenu:windowMenu];
+static const AudioObjectPropertyAddress devlist_address = {
+    kAudioHardwarePropertyDevices,
+    kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyElementMaster
+};
+
+/* this is called when the system's list of available audio devices changes. */
+static OSStatus
+device_list_changed(AudioObjectID systemObj, UInt32 num_addr, const AudioObjectPropertyAddress *addrs, void *data)
+{
+    AudioManager *am = (AudioManager*)data;
+    am->AudioDeviceChanged();
+    return 0;
 }
 
+void AddAudioDeviceChangeListener(AudioManager *am) {
+    AudioObjectAddPropertyListener(kAudioObjectSystemObject, &devlist_address, device_list_changed, am);
+}
+void RemoveAudioDeviceChangeListener(AudioManager *am) {
+    AudioObjectRemovePropertyListener(kAudioObjectSystemObject, &devlist_address, device_list_changed, am);
+}

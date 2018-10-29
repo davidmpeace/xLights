@@ -20,23 +20,27 @@
     You should have received a copy of the GNU General Public License
     along with xLights.  If not, see <http://www.gnu.org/licenses/>.
 **************************************************************/
+
 #include <cmath>
 #ifdef _MSC_VER
 	// required so M_PI will be defined by MSC
 	#define _USE_MATH_DEFINES
 	#include <math.h>
 #endif
+
 #include "RenderBuffer.h"
 #include "sequencer/Effect.h"
 #include "xLightsMain.h"
 #include "xLightsXmlFile.h"
 #include "UtilFunctions.h"
 
+#include <log4cpp/Category.hh>
+
 template <class CTX>
 class ContextPool {
 public:
     
-    ContextPool(std::function<CTX* ()> alloc): allocator(alloc) {
+    ContextPool(std::function<CTX* ()> alloc, std::string type = ""): allocator(alloc), _type(type) {
     }
     ~ContextPool() {
         while (!contexts.empty()) {
@@ -47,14 +51,23 @@ public:
     }
     
     CTX *GetContext() {
-        std::unique_lock<std::mutex> locker(lock);
-        if (contexts.empty()) {
-            lock.unlock();
+        // This seems odd but manually releasing the lock causes hard crashes on Visual Studio
+        bool contextsEmpty = false;
+        {
+            std::unique_lock<std::mutex> locker(lock);
+            contextsEmpty = contexts.empty();
+        }
+
+        if (contextsEmpty) {
             return allocator();
         }
-        CTX *ret = contexts.front();
-        contexts.pop();
-        return ret;
+
+        {
+            std::unique_lock<std::mutex> locker(lock);
+            CTX *ret = contexts.front();
+            contexts.pop();
+            return ret;
+        }
     }
     void ReleaseContext(CTX *pctx) {
         std::unique_lock<std::mutex> locker(lock);
@@ -65,8 +78,8 @@ private:
     std::mutex lock;
     std::queue<CTX*> contexts;
     std::function<CTX* ()> allocator;
+    std::string _type;
 };
-
 
 static ContextPool<TextDrawingContext> *TEXT_CONTEXT_POOL = nullptr;
 static ContextPool<PathDrawingContext> *PATH_CONTEXT_POOL = nullptr;
@@ -111,6 +124,7 @@ void DrawingContext::Initialize(wxWindow *parent) {
         });
     }
 }
+
 void DrawingContext::CleanUp() {
     if (TEXT_CONTEXT_POOL != nullptr) {
         delete TEXT_CONTEXT_POOL;
@@ -173,13 +187,42 @@ AudioManager* RenderBuffer::GetMedia()
 {
 	if (xLightsFrame::CurrentSeqXmlFile == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	return xLightsFrame::CurrentSeqXmlFile->GetMedia();
 }
 
-inline double DegToRad(double deg) { return (deg * M_PI) / 180.0; }
+Model* RenderBuffer::GetModel() const
+{
+    // this only returns a model or model group
+    wxString m(cur_model);
+    if (m.Contains("/"))
+    {
+        return nullptr;
+    }
 
+    return frame->AllModels[cur_model];
+}
+
+Model* RenderBuffer::GetPermissiveModel() const
+{
+    // This will return models, model groups or submodels and strands
+    return frame->AllModels.GetModel(cur_model);
+}
+
+std::string RenderBuffer::GetModelName() const
+{
+    Model* m = GetPermissiveModel();
+
+    if (m != nullptr)
+    {
+        return m->GetFullName();
+    }
+
+    return cur_model;
+}
+
+inline double DegToRad(double deg) { return (deg * M_PI) / 180.0; }
 
 DrawingContext::DrawingContext(int BufferWi, int BufferHt, bool allowShared, bool alpha) : nullBitmap(wxNullBitmap)
 {
@@ -241,6 +284,7 @@ DrawingContext::DrawingContext(int BufferWi, int BufferHt, bool allowShared, boo
 
 DrawingContext::~DrawingContext() {
     //static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    
     if (gc != nullptr) {
         delete gc;
     }
@@ -257,23 +301,22 @@ DrawingContext::~DrawingContext() {
 
 
 PathDrawingContext::PathDrawingContext(int BufferWi, int BufferHt, bool allowShared)
-    : DrawingContext(BufferWi, BufferHt, allowShared, true)
-{
-}
-PathDrawingContext::~PathDrawingContext() {
-}
+    : DrawingContext(BufferWi, BufferHt, allowShared, true) {}
+
+PathDrawingContext::~PathDrawingContext() {}
 
 TextDrawingContext::TextDrawingContext(int BufferWi, int BufferHt, bool allowShared)
 #ifdef __WXMSW__
     : DrawingContext(BufferWi, BufferHt, allowShared, false)
-#else
+#elif defined(__WXOSX__)
     : DrawingContext(BufferWi, BufferHt, allowShared, true)
+#elif defined(LINUX)
+    // Linux does text rendering on main thread so using the shared stuff is fine
+    : DrawingContext(BufferWi, BufferHt, true, true)
 #endif
-{
-}
-TextDrawingContext::~TextDrawingContext() {
-}
+{}
 
+TextDrawingContext::~TextDrawingContext() {}
 
 void DrawingContext::ResetSize(int BufferWi, int BufferHt) {
     if (bitmap != nullptr) {
@@ -305,6 +348,7 @@ void DrawingContext::Clear() {
 
         if (AllowAlphaChannel()) {
             image->SetAlpha();
+            memset(image->GetAlpha(), wxIMAGE_ALPHA_TRANSPARENT, image->GetWidth() * image->GetHeight());
             for (wxCoord x = 0; x < image->GetWidth(); x++) {
                 for (wxCoord y = 0; y < image->GetHeight(); y++) {
                     image->SetAlpha(x, y, wxIMAGE_ALPHA_TRANSPARENT);
@@ -453,6 +497,9 @@ void TextDrawingContext::SetFont(wxFontInfo &font, const xlColor &color) {
             fontColor = color;
         }
         gc->SetFont(this->font);
+#ifdef LINUX
+        dc->SetFont(font);
+#endif
     } else {
         wxFont f(font);
     #ifdef __WXMSW__
@@ -509,6 +556,39 @@ void TextDrawingContext::GetTextExtent(const wxString &msg, double *width, doubl
         *height = size.GetHeight();
     }
 }
+void TextDrawingContext::GetTextExtents(const wxString &msg, wxArrayDouble &extents) {
+    if (gc != nullptr) {
+#ifdef LINUX
+        //GetPartialTextExtents on the GraphicsContext is broken on Linux (crashes) so we have to use the one on the
+        //normal drawing context and then try to scale it to roughly what would be drawn on the context
+        wxArrayInt sizes;
+        dc->GetPartialTextExtents(msg, sizes);
+        extents.resize(sizes.size());
+        if (sizes.size() == 0) {
+            return;
+        }
+        
+        double w,h;
+        gc->GetTextExtent(msg, &w, &h);
+        double max = sizes[sizes.size() - 1];
+        for (int x = 0; x < sizes.size(); x++) {
+            extents[x] = (double)sizes[x];
+            extents[x] *= w;
+            extents[x] /= max;
+        }
+#else
+        gc->GetPartialTextExtents(msg, extents);
+#endif
+        return;
+    }
+    wxArrayInt sizes;
+    dc->GetPartialTextExtents(msg, sizes);
+    extents.resize(sizes.size());
+    for (int x = 0; x < sizes.size(); x++) {
+        extents[x] = sizes[x];
+    }
+}
+
 
 RenderBuffer::RenderBuffer(xLightsFrame *f) : frame(f)
 {
@@ -520,7 +600,7 @@ RenderBuffer::RenderBuffer(xLightsFrame *f) : frame(f)
 }
 
 RenderBuffer::~RenderBuffer()
-{
+{    
     //dtor
     if (_textDrawingContext != nullptr) {
         TextDrawingContext::ReleaseContext(_textDrawingContext);
@@ -557,6 +637,8 @@ TextDrawingContext * RenderBuffer::GetTextDrawingContext()
 
 void RenderBuffer::InitBuffer(int newBufferHt, int newBufferWi, int newModelBufferHt, int newModelBufferWi, const std::string& bufferTransform)
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
     if (_pathDrawingContext != nullptr && (BufferHt != newBufferHt || BufferWi != newBufferWi)) {
         _pathDrawingContext->ResetSize(newBufferWi, newBufferHt);
     }
@@ -567,8 +649,12 @@ void RenderBuffer::InitBuffer(int newBufferHt, int newBufferWi, int newModelBuff
     BufferWi = newBufferWi;
     ModelBufferHt = newModelBufferHt;
     ModelBufferWi = newModelBufferWi;
-    //int NumPixels = BufferHt * BufferWi;
-    int NumPixels = ModelBufferHt * ModelBufferWi;
+    if (ModelBufferHt * ModelBufferWi < std::max(BufferHt, ModelBufferHt) * std::max(BufferWi, ModelBufferWi))
+    {
+        wxASSERT(false);
+        logger_base.warn("RenderBuffer had to be expanded for %s from %d to %d pixels", (const char *)GetModelName().c_str(), ModelBufferHt * ModelBufferWi, std::max(BufferHt, ModelBufferHt) * std::max(BufferWi, ModelBufferWi));
+    }
+    int NumPixels = std::max(BufferHt, ModelBufferHt) * std::max(BufferWi, ModelBufferWi);
     pixels.resize(NumPixels);
     tempbuf.resize(NumPixels);
     isTransformed = (bufferTransform != "None");
@@ -714,21 +800,22 @@ HSVValue RenderBuffer::Get2ColorAdditive(HSVValue& hsv1, HSVValue& hsv2)
     return rgb.asHSV();
 }
 // 0 <= n < 1
-void RenderBuffer::GetMultiColorBlend(float n, bool circular, xlColor &color)
+void RenderBuffer::GetMultiColorBlend(float n, bool circular, xlColor &color, int reserveColours)
 {
-    size_t colorcnt=GetColorCount();
+    size_t colorcnt = GetColorCount() - reserveColours;
     if (colorcnt <= 1)
     {
-        palette.GetColor(0,color);
+        palette.GetColor(0, color);
         return;
     }
-    if (n >= 1.0) n=0.99999f;
-    if (n < 0.0) n=0.0f;
-    float realidx=circular ? n*colorcnt : n*(colorcnt-1);
-    int coloridx1=floor(realidx);
-    int coloridx2=(coloridx1+1) % colorcnt;
-    float ratio=realidx-float(coloridx1);
-    Get2ColorBlend(coloridx1,coloridx2,ratio,color);
+
+    if (n >= 1.0) n = 0.99999f;
+    if (n < 0.0) n = 0.0f;
+    float realidx = circular ? n * colorcnt : n * (colorcnt - 1);
+    int coloridx1 = floor(realidx);
+    int coloridx2 = (coloridx1 + 1) % colorcnt;
+    float ratio = realidx - float(coloridx1);
+    Get2ColorBlend(coloridx1, coloridx2, ratio, color);
 }
 
 
@@ -749,21 +836,29 @@ void RenderBuffer::SetPixel(int x, int y, const xlColor &color, bool wrap)
             y -= BufferHt;
         }
     }
-    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt)
+    
+    // I dont like this ... it should actually never happen
+    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < pixels.size())
     {
         pixels[y*BufferWi+x] = color;
     }
 }
 
-void RenderBuffer::ProcessPixel(int x_pos, int y_pos, const xlColor &color, bool wrap_x)
+void RenderBuffer::ProcessPixel(int x_pos, int y_pos, const xlColor &color, bool wrap_x, bool wrap_y)
 {
     int x_value = x_pos;
-    if( wrap_x )  // if set wrap image at boundary
+    if (wrap_x)  // if set wrap image at boundary
     {
         x_value %= BufferWi;
         x_value = (x_value >= 0) ? (x_value) : (BufferWi + x_value);
     }
-    SetPixel(x_value,y_pos,color);
+    int y_value = y_pos;
+    if (wrap_y)
+    {
+        y_value %= BufferHt;
+        y_value = (y_value >= 0) ? (y_value) : (BufferHt + y_value);
+    }
+    SetPixel(x_value, y_value, color);
 }
 
 // 0,0 is lower left
@@ -783,18 +878,43 @@ void RenderBuffer::SetPixel(int x, int y, const HSVValue& hsv, bool wrap)
             y -= BufferHt;
         }
     }
-    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt)
+    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < pixels.size())
     {
         pixels[y*BufferWi+x] = hsv;
     }
 }
+void RenderBuffer::SetNodePixel(int nodeNum, const xlColor &color) {
+    if (nodeNum < Nodes.size()) {
+        for (auto &a : Nodes[nodeNum]->Coords) {
+            SetPixel(a.bufX, a.bufY, color);
+        }
+    }
+}
+
+void RenderBuffer::CopyNodeColorsToPixels(std::vector<bool> &done) {
+    xlColor c;
+    for (auto &node : Nodes) {
+        node->GetColor(c);
+        for (auto &a : node->Coords) {
+            int x = a.bufX;
+            int y = a.bufY;
+            if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < pixels.size()) {
+                pixels[y*BufferWi+x] = c;
+                done[y*BufferWi+x] = true;
+            }
+        }
+    }
+}
+
 
 //copy src to dest: -DJ
 void RenderBuffer::CopyPixel(int srcx, int srcy, int destx, int desty)
 {
-    if ((srcx >= 0) && (srcx < BufferWi) && (srcy >= 0) && (srcy < BufferHt))
-        if ((destx >= 0) && (destx < BufferWi) && (desty >= 0) && (desty < BufferHt))
+    if ((srcx >= 0) && (srcx < BufferWi) && (srcy >= 0) && (srcy < BufferHt) && srcy*BufferWi + srcx < pixels.size())
+        if ((destx >= 0) && (destx < BufferWi) && (desty >= 0) && (desty < BufferHt) && desty*BufferWi + destx < pixels.size())
+        {
             pixels[desty * BufferWi + destx] = pixels[srcy * BufferWi + srcx];
+        }
 }
 
 void RenderBuffer::DrawHLine(int y, int xstart, int xend, const xlColor &color, bool wrap) {
@@ -965,17 +1085,22 @@ void RenderBuffer::DrawCircle(int x0, int y0, int radius, const xlColor& rgb, bo
     }
 }
 
-
 // 0,0 is lower left
 void RenderBuffer::GetPixel(int x, int y, xlColor &color)
 {
-    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt)
+    // I also dont like this ... I shouldnt need to check against pixel size
+    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < pixels.size())
     {
-        color=pixels[y*BufferWi+x];
+        color = pixels[y*BufferWi + x];
+    }
+    else
+    {
+        color = xlBLACK;
     }
 }
+
 const xlColor &RenderBuffer::GetPixel(int x, int y) {
-    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt)
+    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < pixels.size())
     {
         return pixels[y*BufferWi+x];
     }
@@ -985,7 +1110,7 @@ const xlColor &RenderBuffer::GetPixel(int x, int y) {
 // 0,0 is lower left
 void RenderBuffer::SetTempPixel(int x, int y, const xlColor &color)
 {
-    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt)
+    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < tempbuf.size())
     {
         tempbuf[y*BufferWi+x]=color;
     }
@@ -1001,23 +1126,22 @@ void RenderBuffer::SetTempPixel(int x, int y, const xlColor & color, int alpha)
 // 0,0 is lower left
 void RenderBuffer::GetTempPixel(int x, int y, xlColor &color)
 {
-    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt)
+    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < tempbuf.size())
     {
         color=tempbuf[y*BufferWi+x];
     }
 }
 const xlColor &RenderBuffer::GetTempPixel(int x, int y) {
-    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt)
+    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < tempbuf.size())
     {
         return tempbuf[y*BufferWi+x];
     }
     return xlBLACK;
 }
 
-
 const xlColor& RenderBuffer::GetTempPixelRGB(int x, int y)
 {
-    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt)
+    if (x >= 0 && x < BufferWi && y >= 0 && y < BufferHt && y*BufferWi + x < tempbuf.size())
     {
         return tempbuf[y*BufferWi+x];
     }
@@ -1035,13 +1159,15 @@ void RenderBuffer::SetState(int period, bool ResetState, const std::string& mode
     curPeriod = period;
     palette.UpdateForProgress(GetEffectTimeIntervalPosition());
 }
+
 void RenderBuffer::ClearTempBuf()
 {
-    for (size_t i=0; i < tempbuf.size(); i++)
+    for (size_t i = 0; i < tempbuf.size(); i++)
     {
         tempbuf[i].Set(0, 0, 0, 0);
     }
 }
+
 float RenderBuffer::GetEffectTimeIntervalPosition(float cycles) {
     if (curEffEndPer == curEffStartPer) {
         return 0.0f;

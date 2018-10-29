@@ -10,7 +10,7 @@
 					<cols>4</cols>
 					<growablecols>1</growablecols>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT1" variable="StaticText1" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_Movement" variable="StaticText1" member="yes">
 							<label>Movement</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -18,7 +18,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxChoice" name="ID_CHOICE_Tendril_Movement" variable="Choice_Tendril_Movement" member="yes">
+						<object class="wxChoice" name="ID_CHOICE_Tendril_Movement" subclass="BulkEditChoice" variable="Choice_Tendril_Movement" member="yes">
 							<content>
 								<item>Random</item>
 								<item>Square</item>
@@ -47,9 +47,10 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_Movement" variable="BitmapButton_Tendril_Movement" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_Movement" variable="BitmapButton_Tendril_Movement" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -58,7 +59,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT8" variable="StaticText8" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_TuneMovement" variable="StaticText8" member="yes">
 							<label>Tune Movement</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -70,18 +71,17 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="IDD_SLIDER_Tendril_TuneMovement" variable="Slider_Tendril_TuneMovement" member="yes">
+								<object class="wxSlider" name="IDD_SLIDER_Tendril_TuneMovement" subclass="BulkEditSlider" variable="Slider_Tendril_TuneMovement" member="yes">
 									<value>10</value>
 									<max>20</max>
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_TuneMovement" subclass="ValueCurveButton" variable="BitmapButton_Tendril_TuneMovementVC" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_TuneMovement" subclass="BulkEditValueCurveButton" variable="BitmapButton_Tendril_TuneMovementVC" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -95,20 +95,20 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_TuneMovement" variable="TextCtrl_Tendril_TuneMovement" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_TuneMovement" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_TuneMovement" member="yes">
 							<value>10</value>
 							<size>20,-1d</size>
 							<validator>__tuneMovement</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_TuneMovement" variable="BitmapButton_Tendril_TuneMovement" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_TuneMovement" variable="BitmapButton_Tendril_TuneMovement" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -117,7 +117,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT7" variable="StaticText7" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_Thickness" variable="StaticText7" member="yes">
 							<label>Thickness</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -129,19 +129,18 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="IDD_SLIDER_Tendril_Thickness" variable="Slider_Tendril_Thickness" member="yes">
+								<object class="wxSlider" name="IDD_SLIDER_Tendril_Thickness" subclass="BulkEditSlider" variable="Slider_Tendril_Thickness" member="yes">
 									<value>3</value>
 									<min>1</min>
 									<max>20</max>
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_Thickness" subclass="ValueCurveButton" variable="BitmapButton_Tendril_ThicknessVC" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_Thickness" subclass="BulkEditValueCurveButton" variable="BitmapButton_Tendril_ThicknessVC" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -155,20 +154,20 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Thickness" variable="TextCtrl_Tendril_Thickness" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Thickness" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_Thickness" member="yes">
 							<value>3</value>
 							<size>20,-1d</size>
 							<validator>__thickness</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_Thickness" variable="BitmapButton_Tendril_Thickness" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_Thickness" variable="BitmapButton_Tendril_Thickness" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -177,7 +176,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT2" variable="StaticText2" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_Friction" variable="StaticText2" member="yes">
 							<label>Friction</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -185,30 +184,29 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSlider" name="IDD_SLIDER_Tendril_Friction" variable="Slider_Tendril_Friction" member="yes">
+						<object class="wxSlider" name="IDD_SLIDER_Tendril_Friction" subclass="BulkEditSlider" variable="Slider_Tendril_Friction" member="yes">
 							<value>10</value>
 							<max>20</max>
-							<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
 						</object>
 						<flag>wxALL|wxEXPAND</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Friction" variable="TextCtrl_Tendril_Friction" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Friction" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_Friction" member="yes">
 							<value>10</value>
 							<size>20,-1d</size>
 							<validator>__friction</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_Friction" variable="BitmapButton_TendrilFriction" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_Friction" variable="BitmapButton_TendrilFriction" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -217,7 +215,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT3" variable="StaticText3" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_Dampening" variable="StaticText3" member="yes">
 							<label>Dampening</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -225,30 +223,29 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSlider" name="IDD_SLIDER_Tendril_Dampening" variable="Slider_Tendril_Dampening" member="yes">
+						<object class="wxSlider" name="IDD_SLIDER_Tendril_Dampening" subclass="BulkEditSlider" variable="Slider_Tendril_Dampening" member="yes">
 							<value>10</value>
 							<max>20</max>
-							<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
 						</object>
 						<flag>wxALL|wxEXPAND</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Dampening" variable="TextCtrl_Tendril_Dampening" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Dampening" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_Dampening" member="yes">
 							<value>10</value>
 							<size>20,-1d</size>
 							<validator>__dampening</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_Dampening" variable="BitmapButton_TendrilDampening" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_Dampening" variable="BitmapButton_TendrilDampening" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -257,7 +254,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT4" variable="StaticText4" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_Tension" variable="StaticText4" member="yes">
 							<label>Tension</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -265,30 +262,29 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSlider" name="IDD_SLIDER_Tendril_Tension" variable="Slider_Tendril_Tension" member="yes">
+						<object class="wxSlider" name="IDD_SLIDER_Tendril_Tension" subclass="BulkEditSlider" variable="Slider_Tendril_Tension" member="yes">
 							<value>20</value>
 							<max>39</max>
-							<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
 						</object>
 						<flag>wxALL|wxEXPAND</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Tension" variable="TextCtrl_Tendril_Tension" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Tension" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_Tension" member="yes">
 							<value>20</value>
 							<size>20,-1d</size>
 							<validator>__tension</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_Tension" variable="BitmapButton_TendrilTension" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_Tension" variable="BitmapButton_TendrilTension" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -297,7 +293,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT5" variable="StaticText5" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_Trails" variable="StaticText5" member="yes">
 							<label>Trails</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -305,31 +301,30 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSlider" name="IDD_SLIDER_Tendril_Trails" variable="Slider_Tendril_Trails" member="yes">
+						<object class="wxSlider" name="IDD_SLIDER_Tendril_Trails" subclass="BulkEditSlider" variable="Slider_Tendril_Trails" member="yes">
 							<value>1</value>
 							<min>1</min>
 							<max>20</max>
-							<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
 						</object>
 						<flag>wxALL|wxEXPAND</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Trails" variable="TextCtrl_Tendril_Trails" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Trails" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_Trails" member="yes">
 							<value>1</value>
 							<size>20,-1d</size>
 							<validator>__trails</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_Trails" variable="BitmapButton_TendrilTrails" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_Trails" variable="BitmapButton_TendrilTrails" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -338,7 +333,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT6" variable="StaticText6" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_Length" variable="StaticText6" member="yes">
 							<label>Length</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -346,30 +341,29 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSlider" name="IDD_SLIDER_Tendril_Length" variable="Slider_Tendril_Length" member="yes">
+						<object class="wxSlider" name="IDD_SLIDER_Tendril_Length" subclass="BulkEditSlider" variable="Slider_Tendril_Length" member="yes">
 							<value>60</value>
 							<min>5</min>
-							<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
 						</object>
 						<flag>wxALL|wxEXPAND</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Length" variable="TextCtrl_Tendril_Length" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Length" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_Length" member="yes">
 							<value>60</value>
 							<size>20,-1d</size>
 							<validator>__length</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_CHOICE_Tendril_Length" variable="BitmapButton_TendrilLength" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_Length" variable="BitmapButton_TendrilLength" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -378,7 +372,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT27" variable="StaticText68" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_Speed" variable="StaticText68" member="yes">
 							<label>Speed</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -386,31 +380,30 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxSlider" name="IDD_SLIDER_Tendril_Speed" variable="Slider_Tendril_Speed" member="yes">
+						<object class="wxSlider" name="IDD_SLIDER_Tendril_Speed" subclass="BulkEditSlider" variable="Slider_Tendril_Speed" member="yes">
 							<value>10</value>
 							<min>1</min>
 							<max>10</max>
-							<handler function="UpdateLinkedTextCtrl" entry="EVT_COMMAND_SLIDER_UPDATED" />
 						</object>
 						<flag>wxALL|wxEXPAND</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Speed" variable="TextCtrl_Tendril_Speed" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_Speed" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_Speed" member="yes">
 							<value>10</value>
 							<size>20,-1d</size>
 							<validator>__speed</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="IID_BITMAPBUTTON_CHOICE_Tendril_Speed" variable="BitmapButton_TendrilSpeed" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="IID_BITMAPBUTTON_SLIDER_Tendril_Speed" variable="BitmapButton_TendrilSpeed" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -419,7 +412,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT10" variable="StaticText10" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_XOffset" variable="StaticText10" member="yes">
 							<label>Horizontal Offset</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -431,17 +424,16 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="IDD_SLIDER_Tendril_XOffset" variable="Slider_Tendril_XOffset" member="yes">
+								<object class="wxSlider" name="IDD_SLIDER_Tendril_XOffset" subclass="BulkEditSlider" variable="Slider_Tendril_XOffset" member="yes">
 									<min>-100</min>
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_XOffset" subclass="ValueCurveButton" variable="BitmapButton_Tendril_XOffsetVC" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_XOffset" subclass="BulkEditValueCurveButton" variable="BitmapButton_Tendril_XOffsetVC" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -455,20 +447,20 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_XOffset" variable="TextCtrl_Tendril_XOffset" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_XOffset" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_XOffset" member="yes">
 							<value>0</value>
 							<size>20,-1d</size>
 							<validator>__horizontalOffset</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Tendril_XOffset" variable="BitmapButton_Tendril_XOffset" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_XOffset" variable="BitmapButton_Tendril_XOffset" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -477,7 +469,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT11" variable="StaticText11" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_YOffset" variable="StaticText11" member="yes">
 							<label>Vertical Offset</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -489,17 +481,16 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="IDD_SLIDER_Tendril_YOffset" variable="Slider_Tendril_YOffset" member="yes">
+								<object class="wxSlider" name="IDD_SLIDER_Tendril_YOffset" subclass="BulkEditSlider" variable="Slider_Tendril_YOffset" member="yes">
 									<min>-100</min>
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
 								</object>
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_YOffset" subclass="ValueCurveButton" variable="BitmapButton_Tendril_YOffsetVC" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_YOffset" subclass="BulkEditValueCurveButton" variable="BitmapButton_Tendril_YOffsetVC" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -513,20 +504,20 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_YOffset" variable="TextCtrl_Tendril_YOffset" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_YOffset" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_YOffset" member="yes">
 							<value>0</value>
 							<size>20,-1d</size>
 							<validator>__verticalOffset</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxBitmapButton" name="ID_BITMAPBUTTON_Tendril_YOffset" variable="BitmapButton_Tendril_YOffset" member="yes">
-							<size>13,13</size>
-							<bg>wxSYS_COLOUR_ACTIVECAPTION</bg>
+						<object class="wxBitmapButton" subclass="xlLockButton" name="ID_BITMAPBUTTON_SLIDER_Tendril_YOffset" variable="BitmapButton_Tendril_YOffset" member="yes">
+                            <bitmap stock_id="xlART_PADLOCK_OPEN" stock_client="wxART_BUTTON" />
+                            <size>14,14</size>
+                            <bg>wxSYS_COLOUR_BTNHIGHLIGHT</bg>
 							<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 							<handler function="OnLockButtonClick" entry="EVT_BUTTON" />
 						</object>
@@ -535,7 +526,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT12" variable="StaticText12" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_ManualX" variable="StaticText12" member="yes">
 							<label>Manual X</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -547,16 +538,14 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="IDD_SLIDER_Tendril_ManualX" variable="Slider_Tendril_ManualX" member="yes">
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
-								</object>
+								<object class="wxSlider" name="IDD_SLIDER_Tendril_ManualX" subclass="BulkEditSlider" variable="Slider_Tendril_ManualX" member="yes" />
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_ManualX" subclass="ValueCurveButton" variable="BitmapButton_Tendril_ManualXVC" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_ManualX" subclass="BulkEditValueCurveButton" variable="BitmapButton_Tendril_ManualXVC" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -570,11 +559,10 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_ManualX" variable="TextCtrl_Tendril_ManualX" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_ManualX" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_ManualX" member="yes">
 							<value>0</value>
 							<size>20,-1d</size>
 							<validator>__verticalOffset</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>
@@ -586,7 +574,7 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxStaticText" name="ID_STATICTEXT13" variable="StaticText13" member="yes">
+						<object class="wxStaticText" name="ID_STATICTEXT_Tendril_ManualY" variable="StaticText13" member="yes">
 							<label>Manual Y</label>
 						</object>
 						<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
@@ -598,16 +586,14 @@
 							<cols>2</cols>
 							<growablecols>0</growablecols>
 							<object class="sizeritem">
-								<object class="wxSlider" name="IDD_SLIDER_Tendril_ManualY" variable="Slider_Tendril_ManualY" member="yes">
-									<handler function="UpdateLinkedTextCtrlVC" entry="EVT_COMMAND_SLIDER_UPDATED" />
-								</object>
+								<object class="wxSlider" name="IDD_SLIDER_Tendril_ManualY" subclass="BulkEditSlider" variable="Slider_Tendril_ManualY" member="yes" />
 								<flag>wxALL|wxEXPAND</flag>
 								<border>2</border>
 								<option>1</option>
 							</object>
 							<object class="sizeritem">
-								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_ManualY" subclass="ValueCurveButton" variable="BitmapButton_Tendril_ManualYVC" member="yes">
-									<bitmap code="valuecurvenotselected_24" />
+								<object class="wxBitmapButton" name="ID_VALUECURVE_Tendril_ManualY" subclass="BulkEditValueCurveButton" variable="BitmapButton_Tendril_ManualYVC" member="yes">
+                                    <bitmap stock_id="xlART_valuecurve_notselected" stock_client="wxART_BUTTON" />
 									<style>wxBU_AUTODRAW|wxNO_BORDER</style>
 									<handler function="OnVCButtonClick" entry="EVT_BUTTON" />
 								</object>
@@ -621,11 +607,10 @@
 						<option>1</option>
 					</object>
 					<object class="sizeritem">
-						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_ManualY" variable="TextCtrl_Tendril_ManualY" member="yes">
+						<object class="wxTextCtrl" name="ID_TEXTCTRL_Tendril_ManualY" subclass="BulkEditTextCtrl" variable="TextCtrl_Tendril_ManualY" member="yes">
 							<value>0</value>
 							<size>20,-1d</size>
 							<validator>__verticalOffset</validator>
-							<handler function="UpdateLinkedSlider" entry="EVT_TEXT" />
 						</object>
 						<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 						<border>2</border>

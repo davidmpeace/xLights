@@ -5,7 +5,7 @@
 #include "../RenderBuffer.h"
 #include "../UtilClasses.h"
 #include "../models/Model.h"
-#include "../SequenceCheck.h"
+#include "../UtilFunctions.h"
 
 #include "../../include/fill-16.xpm"
 #include "../../include/fill-64.xpm"
@@ -20,7 +20,7 @@ FillEffect::~FillEffect()
     //dtor
 }
 
-void FillEffect::SetDefaultParameters(Model *cls) {
+void FillEffect::SetDefaultParameters() {
     FillPanel *fp = (FillPanel*)panel;
     if (fp == nullptr) {
         return;
@@ -152,12 +152,12 @@ static inline int GetDirection(const std::string & DirectionString) {
 void FillEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
 
     double eff_pos = buffer.GetEffectTimeIntervalPosition();
-    int position = GetValueCurveInt("Fill_Position", 100, SettingsMap, eff_pos, FILL_POSITION_MIN, FILL_POSITION_MAX);
+    int position = GetValueCurveInt("Fill_Position", 100, SettingsMap, eff_pos, FILL_POSITION_MIN, FILL_POSITION_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     double pos_pct = (double)position / 100.0;
     int Direction = GetDirection(SettingsMap["CHOICE_Fill_Direction"]);
-    int BandSize = GetValueCurveInt("Fill_Band_Size", 0, SettingsMap, eff_pos, FILL_BANDSIZE_MIN, FILL_BANDSIZE_MAX);
-    int SkipSize = GetValueCurveInt("Fill_Skip_Size", 0, SettingsMap, eff_pos, FILL_SKIPSIZE_MIN, FILL_SKIPSIZE_MAX);
-    int offset = GetValueCurveInt("Fill_Offset", 0, SettingsMap, eff_pos, FILL_OFFSET_MIN, FILL_OFFSET_MAX);
+    int BandSize = GetValueCurveInt("Fill_Band_Size", 0, SettingsMap, eff_pos, FILL_BANDSIZE_MIN, FILL_BANDSIZE_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int SkipSize = GetValueCurveInt("Fill_Skip_Size", 0, SettingsMap, eff_pos, FILL_SKIPSIZE_MIN, FILL_SKIPSIZE_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int offset = GetValueCurveInt("Fill_Offset", 0, SettingsMap, eff_pos, FILL_OFFSET_MIN, FILL_OFFSET_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     int offset_in_pixels = SettingsMap.GetBool("CHECKBOX_Fill_Offset_In_Pixels", true);
     int color_by_time = SettingsMap.GetBool("CHECKBOX_Fill_Color_Time", false);
     int wrap = SettingsMap.GetBool("CHECKBOX_Fill_Wrap", true);

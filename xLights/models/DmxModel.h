@@ -33,6 +33,7 @@ class DmxModel : public ModelWithScreenLocation<BoxedScreenLocation>
         int GetRedChannel() {return red_channel;}
         int GetGreenChannel() {return green_channel;}
         int GetBlueChannel() {return blue_channel;}
+        int GetWhiteChannel() {return white_channel;}
         int GetPanChannel() {return pan_channel;}
         int GetPanMinLimit() {return pan_min_limit;}
         int GetPanMaxLimit() {return pan_max_limit;}
@@ -61,12 +62,13 @@ class DmxModel : public ModelWithScreenLocation<BoxedScreenLocation>
         void InitVMatrix(int firstExportStrand = 0);
         void InitHMatrix();
 
+        void DrawFloodOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulator &va, const xlColor *c, float &sx, float &sy, bool active);
         void DrawSkullModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulator &va, const xlColor *c, float &sx, float &sy, bool active);
         void DrawModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulator &va, const xlColor *c, float &sx, float &sy, bool active);
         int GetChannelValue( int channel );
 
-        void Draw3DDMXBaseLeft(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle);
-        void Draw3DDMXBaseRight(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle);
+        void Draw3DDMXBaseLeft(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle, float& rot_angle);
+        void Draw3DDMXBaseRight(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle, float& rot_angle);
         void Draw3DDMXHead(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle, float &tilt_angle);
 
         bool style_changed;
@@ -82,6 +84,7 @@ class DmxModel : public ModelWithScreenLocation<BoxedScreenLocation>
         int red_channel;
         int green_channel;
         int blue_channel;
+        int white_channel;
         int pan_orient;
         int pan_deg_of_rot;
         int tilt_orient;

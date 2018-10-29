@@ -11,12 +11,17 @@ class VideoEffect : public RenderableEffect
         virtual ~VideoEffect();
         virtual void Render(Effect *effect, SettingsMap &settings, RenderBuffer &buffer) override;
         void Render(RenderBuffer &buffer,
-					std::string filename, double starttime, bool keepaspectratio, std::string durationTreatment, bool synchroniseAudio);
+					std::string filename, double starttime, int cropLeft, int cropRight, int cropTop, int cropBottom, bool keepaspectratio, std::string durationTreatment, bool synchroniseAudio, bool transparentBlack ,int transparentBlackLevel, double speed);
         virtual bool CanBeRandom() override {return false;}
-        virtual void SetDefaultParameters(Model *cls) override;
+        virtual void SetDefaultParameters() override;
         virtual std::list<std::string> CheckEffectSettings(const SettingsMap& settings, AudioManager* media, Model* model, Effect* eff) override;
         virtual std::list<std::string> GetFileReferences(const SettingsMap &SettingsMap) override;
-        static bool IsVideo(const std::string& file);
+        virtual bool AppropriateOnNodes() const override { return false; }
+        virtual bool SupportsRenderCache() const override { return true; }
+        static bool IsVideoFile(std::string filename);
+
+        // Currently not possible but I think changes could be made to make it support partial
+        //virtual bool CanRenderPartialTimeInterval() const override { return true; }
 
     protected:
         virtual wxPanel *CreatePanel(wxWindow *parent)override;

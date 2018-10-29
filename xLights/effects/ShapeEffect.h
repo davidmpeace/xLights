@@ -31,11 +31,16 @@ class ShapeEffect : public RenderableEffect
     public:
         ShapeEffect(int id);
         virtual ~ShapeEffect();
-        virtual void SetDefaultParameters(Model *cls) override;
+        virtual void SetDefaultParameters() override;
         virtual void Render(Effect *effect, SettingsMap &settings, RenderBuffer &buffer) override;
         virtual void SetPanelStatus(Model *cls) override;
         virtual void RenameTimingTrack(std::string oldname, std::string newname, Effect* effect) override;
         virtual std::list<std::string> CheckEffectSettings(const SettingsMap& settings, AudioManager* media, Model* model, Effect* eff) override;
+        virtual bool AppropriateOnNodes() const override { return false; }
+        virtual bool SupportsRenderCache() const override { return true; }
+#ifdef LINUX
+        virtual bool CanRenderOnBackgroundThread(Effect *effect, const SettingsMap &settings, RenderBuffer &buffer) override { return false; };
+#endif
 protected:
         virtual wxPanel *CreatePanel(wxWindow *parent) override;
     private:
@@ -49,6 +54,9 @@ protected:
         void Drawsnowflake(RenderBuffer &buffer, int xc, int yc, double radius, int sides, xlColor color, double rotation = 0) const;
         void Drawtree(RenderBuffer &buffer, int xc, int yc, double radius, xlColor color, int thickness) const;
         void Drawcandycane(RenderBuffer &buffer, int xc, int yc, double radius, xlColor color, int thickness) const;
+        void Drawcrucifix(RenderBuffer &buffer, int xc, int yc, double radius, xlColor color, int thickness) const;
+        void Drawpresent(RenderBuffer &buffer, int xc, int yc, double radius, xlColor color, int thickness) const;
+        void Drawemoji(RenderBuffer &buffer, int xc, int yc, double radius, xlColor color, int emoji, wxFontInfo& font) const;
 };
 
 #endif // SHAPEEFFECT_H

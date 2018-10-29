@@ -116,35 +116,46 @@ bool HttpConnection::HandleRequest()
 
 bool HttpConnection::SendResponse(HttpResponse &response)
 {
+    _socket->SetFlags(wxSOCKET_WAITALL);
 	wxString row = wxString::Format("%s %d %s\r\n", response.Version(), response.Status().Code(), response.Status().Description());
 	_socket->Write(row.ToAscii(), row.Length());
-	if (_socket->Error())
-		return false;
+    if (_socket->Error()) {
+        _socket->SetFlags(wxSOCKET_NOWAIT);
+        return false;
+    }
 
 	for (size_t i = 0; i < response.Headers().Count(); i++)
 	{
 		wxString header = response[i];
 		_socket->Write(header.ToAscii(), header.Length());
-		if (_socket->Error())
-			return false;
+        if (_socket->Error()) {
+            _socket->SetFlags(wxSOCKET_NOWAIT);
+            return false;
+        }
 	}
 
 	_socket->Write("\r\n", 2);
-	if (_socket->Error())
-		return false;
-
+    if (_socket->Error()) {
+        _socket->SetFlags(wxSOCKET_NOWAIT);
+        return false;
+    }
+    
 	if (!response._content.IsEmpty())
 	{
 		_socket->Write(response._content.GetData(), response._content.GetDataLen());
-		if (_socket->Error())
-			return false;
+        if (_socket->Error()) {
+            _socket->SetFlags(wxSOCKET_NOWAIT);
+            return false;
+        }
 	}
 
+    _socket->SetFlags(wxSOCKET_NOWAIT);
 	return true;
 }
 
 bool HttpConnection::SendMessage(WebSocketMessage &message)
 {
+    _socket->SetFlags(wxSOCKET_WAITALL);
 	wxMemoryBuffer header;
 
 	header.AppendByte((wxUint8)0x80 | message._type); // final + type
@@ -267,6 +278,8 @@ bool HttpConnection::ParseFrame(wxMemoryBuffer &buffer)
                 SendMessage(wsm);
             }
             break;
+            default:
+            break;
             }
 
             delete _message;
@@ -300,7 +313,7 @@ bool HttpConnection::WebSocketHandshake(HttpRequest &request)
 	uint8_t     sha[20] = { 0 };
 
 	SHA1Reset(&ctx);
-	SHA1Input(&ctx, (unsigned char *)(const char *)handshake, handshake.Length());
+	SHA1Input(&ctx, (unsigned char *)(const char *)handshake.c_str(), handshake.Length());
 	SHA1Result(&ctx, sha);
 
 	HttpResponse response(*this, request, HttpStatus::SwitchingProtocols);

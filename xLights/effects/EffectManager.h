@@ -59,7 +59,8 @@ public:
 		eff_TWINKLE,
 		eff_VIDEO,
 		eff_VUMETER,
-		eff_WAVE,
+        eff_WARP,
+        eff_WAVE,
         eff_LASTEFFECT //Always the last entry
     };
 
@@ -70,14 +71,14 @@ public:
 
 
         RenderableEffect *GetEffect(int i) const {
-            if (i >= size() || i < 0) {
+            if (i >= (int)size() || i < 0) {
                 return nullptr;
             }
             return effects[i];
         }
 
         RenderableEffect *GetEffect(const std::string &str) const;
-        int GetLastEffectId() const { return size() - 1; }
+        int GetLastEffectId() const { return (int)size() - 1; }
 
         int GetEffectIndex(const std::string &effectName) const;
         const std::string &GetEffectName(int idx) const;

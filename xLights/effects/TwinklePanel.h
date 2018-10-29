@@ -3,13 +3,15 @@
 
 //(*Headers(TwinklePanel)
 #include <wx/panel.h>
-class wxCheckBox;
-class wxTextCtrl;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
+class wxCheckBox;
 class wxFlexGridSizer;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
+
+#include "../BulkEditControls.h"
 
 class TwinklePanel: public wxPanel
 {
@@ -19,26 +21,26 @@ class TwinklePanel: public wxPanel
 		virtual ~TwinklePanel();
 
 		//(*Declarations(TwinklePanel)
-		wxCheckBox* CheckBox_Twinkle_Strobe;
-		wxBitmapButton* BitmapButton24;
-		wxCheckBox* CheckBox_Twinkle_ReRandom;
-		wxBitmapButton* BitmapButton_TwinkleCount;
-		wxSlider* Slider_Twinkle_Count;
-		wxSlider* Slider_Twinkle_Steps;
-		wxBitmapButton* BitmapButton_TwinkleSteps;
-		wxStaticText* StaticText85;
+		BulkEditCheckBox* CheckBox_Twinkle_ReRandom;
+		BulkEditCheckBox* CheckBox_Twinkle_Strobe;
+		BulkEditSlider* Slider_Twinkle_Count;
+		BulkEditSlider* Slider_Twinkle_Steps;
 		wxStaticText* StaticText104;
-		wxBitmapButton* BitmapButton_TwinkleStrobe;
+		wxStaticText* StaticText85;
+		xlLockButton* BitmapButton24;
+		xlLockButton* BitmapButton_TwinkleCount;
+		xlLockButton* BitmapButton_TwinkleSteps;
+		xlLockButton* BitmapButton_TwinkleStrobe;
 		//*)
 
 	protected:
 
 		//(*Identifiers(TwinklePanel)
-		static const long ID_STATICTEXT86;
+		static const long ID_STATICTEXT_Twinkle_Count;
 		static const long ID_SLIDER_Twinkle_Count;
 		static const long IDD_TEXTCTRL_Twinkle_Count;
 		static const long ID_BITMAPBUTTON_SLIDER_Twinkle_Count;
-		static const long ID_STATICTEXT105;
+		static const long ID_STATICTEXT_Twinkle_Steps;
 		static const long ID_SLIDER_Twinkle_Steps;
 		static const long IDD_TEXTCTRL_Twinkle_Steps;
 		static const long ID_BITMAPBUTTON_SLIDER_Twinkle_Steps;
@@ -51,22 +53,12 @@ class TwinklePanel: public wxPanel
 	public:
 
 		//(*Handlers(TwinklePanel)
-    void UpdateLinkedSliderFloat(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-    void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-    void UpdateLinkedSlider360(wxCommandEvent& event);
-    void UpdateLinkedTextCtrl(wxScrollEvent& event);
-    void UpdateLinkedSlider(wxCommandEvent& event);
     void OnLockButtonClick(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-    void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
     void OnVCButtonClick(wxCommandEvent& event);
     void OnVCChanged(wxCommandEvent& event);
-    void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
     //*)
 
-		DECLARE_EVENT_TABLE()
+    DECLARE_EVENT_TABLE()
 };
 
 #endif

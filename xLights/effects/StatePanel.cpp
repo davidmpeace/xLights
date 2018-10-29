@@ -1,15 +1,14 @@
 #include "StatePanel.h"
-#include "../../include/padlock16x16-blue.xpm"
 #include "EffectPanelUtils.h"
 #include <list>
 #include "StateEffect.h"
 
 //(*InternalHeaders(StatePanel)
-#include <wx/sizer.h>
-#include <wx/stattext.h>
-#include <wx/radiobut.h>
 #include <wx/choice.h>
 #include <wx/intl.h>
+#include <wx/radiobut.h>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
 #include <wx/string.h>
 //*)
 
@@ -20,9 +19,9 @@ const long StatePanel::IDD_RADIOBUTTON_State_State = wxNewId();
 const long StatePanel::ID_CHOICE_State_State = wxNewId();
 const long StatePanel::IDD_RADIOBUTTON_State_TimingTrack = wxNewId();
 const long StatePanel::ID_CHOICE_State_TimingTrack = wxNewId();
-const long StatePanel::ID_STATICTEXT1 = wxNewId();
+const long StatePanel::ID_STATICTEXT_State_Mode = wxNewId();
 const long StatePanel::ID_CHOICE_State_Mode = wxNewId();
-const long StatePanel::ID_STATICTEXT2 = wxNewId();
+const long StatePanel::ID_STATICTEXT_State_Color = wxNewId();
 const long StatePanel::ID_CHOICE_State_Color = wxNewId();
 //*)
 
@@ -33,15 +32,15 @@ END_EVENT_TABLE()
 
 StatePanel::StatePanel(wxWindow* parent)
 {
-    _effect = NULL;
-    _model = NULL;
+    _effect = nullptr;
+    _model = nullptr;
 
 	//(*Initialize(StatePanel)
-	wxStaticBoxSizer* StaticBoxSizer2;
+	wxFlexGridSizer* FlexGridSizer1;
 	wxFlexGridSizer* FlexGridSizer47;
 	wxFlexGridSizer* FlexGridSizer97;
 	wxFlexGridSizer* FlexGridSizer98;
-	wxFlexGridSizer* FlexGridSizer1;
+	wxStaticBoxSizer* StaticBoxSizer2;
 
 	Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("wxID_ANY"));
 	FlexGridSizer47 = new wxFlexGridSizer(0, 1, 0, 0);
@@ -63,25 +62,25 @@ StatePanel::StatePanel(wxWindow* parent)
 	FlexGridSizer97->Add(Choice_State_State, 1, wxALL|wxEXPAND, 5);
 	RadioButton2 = new wxRadioButton(this, IDD_RADIOBUTTON_State_TimingTrack, _("Timing Track"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("IDD_RADIOBUTTON_State_TimingTrack"));
 	FlexGridSizer97->Add(RadioButton2, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
-	Choice_State_TimingTrack = new wxChoice(this, ID_CHOICE_State_TimingTrack, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_State_TimingTrack"));
+	Choice_State_TimingTrack = new BulkEditChoice(this, ID_CHOICE_State_TimingTrack, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_State_TimingTrack"));
 	Choice_State_TimingTrack->Disable();
 	FlexGridSizer97->Add(Choice_State_TimingTrack, 1, wxALL|wxEXPAND, 5);
 	StaticBoxSizer2->Add(FlexGridSizer97, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 1);
 	FlexGridSizer47->Add(StaticBoxSizer2, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer1 = new wxFlexGridSizer(0, 2, 0, 0);
 	FlexGridSizer1->AddGrowableCol(0);
-	StaticText1 = new wxStaticText(this, ID_STATICTEXT1, _("Mode"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
+	StaticText1 = new wxStaticText(this, ID_STATICTEXT_State_Mode, _("Mode"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_State_Mode"));
 	FlexGridSizer1->Add(StaticText1, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
-	Choice_State_Mode = new wxChoice(this, ID_CHOICE_State_Mode, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_State_Mode"));
+	Choice_State_Mode = new BulkEditChoice(this, ID_CHOICE_State_Mode, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_State_Mode"));
 	Choice_State_Mode->SetSelection( Choice_State_Mode->Append(_("Default")) );
 	Choice_State_Mode->Append(_("Countdown"));
 	Choice_State_Mode->Append(_("Time Countdown"));
 	Choice_State_Mode->Append(_("Number"));
 	Choice_State_Mode->Append(_("Iterate"));
 	FlexGridSizer1->Add(Choice_State_Mode, 1, wxALL|wxEXPAND, 2);
-	StaticText2 = new wxStaticText(this, ID_STATICTEXT2, _("Color"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT2"));
+	StaticText2 = new wxStaticText(this, ID_STATICTEXT_State_Color, _("Color"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT_State_Color"));
 	FlexGridSizer1->Add(StaticText2, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
-	Choice_State_Color = new wxChoice(this, ID_CHOICE_State_Color, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_State_Color"));
+	Choice_State_Color = new BulkEditChoice(this, ID_CHOICE_State_Color, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE_State_Color"));
 	Choice_State_Color->SetSelection( Choice_State_Color->Append(_("Graduate")) );
 	Choice_State_Color->Append(_("Cycle"));
 	Choice_State_Color->Append(_("Allocate"));

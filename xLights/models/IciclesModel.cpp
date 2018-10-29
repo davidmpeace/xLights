@@ -84,8 +84,8 @@ void IciclesModel::InitModel() {
 static wxPGChoices LEFT_RIGHT;
 void IciclesModel::AddTypeProperties(wxPropertyGridInterface *grid) {
     if (LEFT_RIGHT.GetCount() == 0) {
-        LEFT_RIGHT.Add("Left");
-        LEFT_RIGHT.Add("Right");
+        LEFT_RIGHT.Add("Green Square");
+        LEFT_RIGHT.Add("Blue Square");
     }
 
     wxPGProperty *p = grid->Append(new wxUIntProperty("# Strings", "IciclesStrings", parm1));
@@ -105,9 +105,9 @@ void IciclesModel::AddTypeProperties(wxPropertyGridInterface *grid) {
         p->SetEditor("SpinCtrl");
     }
 
-    p = grid->Append(new wxStringProperty("Drop Pattern", "IciclesDrops", GetModelXml()->GetAttribute("DropPattern", "3,4,5,4")));
+    grid->Append(new wxStringProperty("Drop Pattern", "IciclesDrops", GetModelXml()->GetAttribute("DropPattern", "3,4,5,4")));
 
-    p = grid->Append(new wxEnumProperty("Starting Location", "IciclesStart", LEFT_RIGHT, IsLtoR ? 0 : 1));
+    grid->Append(new wxEnumProperty("Starting Location", "IciclesStart", LEFT_RIGHT, IsLtoR ? 0 : 1));
 }
 
 int IciclesModel::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEvent& event) {

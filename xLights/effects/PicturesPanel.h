@@ -3,22 +3,23 @@
 
 //(*Headers(PicturesPanel)
 #include <wx/panel.h>
-class wxFilePickerCtrl;
-class wxGridBagSizer;
-class wxCheckBox;
-class wxTextCtrl;
-class wxNotebookEvent;
-class wxNotebook;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
-class wxFlexGridSizer;
+class wxCheckBox;
 class wxChoice;
+class wxFilePickerCtrl;
+class wxFlexGridSizer;
+class wxGridBagSizer;
+class wxNotebook;
+class wxNotebookEvent;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
 
 #include <wx/filepicker.h>
+#include "../BulkEditControls.h"
 
-class xlPictureFilePickerCtrl : public wxFilePickerCtrl {
+class xlPictureFilePickerCtrl : public BulkEditFilePickerCtrl {
 public:
     xlPictureFilePickerCtrl(wxWindow *parent,
         wxWindowID id,
@@ -30,7 +31,7 @@ public:
         long style = wxFLP_DEFAULT_STYLE,
         const wxValidator& validator = wxDefaultValidator,
         const wxString& name = wxFilePickerCtrlNameStr)
-        : wxFilePickerCtrl(parent, id, path, message, wxImage::GetImageExtWildcard(), pos, size, style, validator, name) {
+        : BulkEditFilePickerCtrl(parent, id, path, message, wxImage::GetImageExtWildcard(), pos, size, style, validator, name) {
 
     }
     virtual ~xlPictureFilePickerCtrl() {}
@@ -42,65 +43,86 @@ class PicturesPanel: public wxPanel
 
 		PicturesPanel(wxWindow* parent);
 		virtual ~PicturesPanel();
+        void ValidateWindow();
 
 		//(*Declarations(PicturesPanel)
-		wxSlider* Slider_PicturesEndXC;
-		wxChoice* Choice_Scaling;
-		wxCheckBox* CheckBox_Pictures_PixelOffsets;
-		wxSlider* Slider_Pictures_Speed;
-		wxCheckBox* CheckBox_Pictures_WrapX;
-		wxChoice* Choice_Pictures_Direction;
-		wxBitmapButton* BitmapButton_PicturesDirection;
-		wxBitmapButton* BitmapButton_PicturesSpeed;
-		wxSlider* Slider_Pictures_EndScale;
-		wxCheckBox* CheckBox_LoopGIF;
-		wxSlider* Slider_PicturesXC;
-		wxSlider* Slider_Pictures_StartScale;
-		xlPictureFilePickerCtrl* FilePickerCtrl1;
-		wxSlider* Slider_PicturesYC;
-		wxCheckBox* CheckBox_Pictures_Shimmer;
-		wxBitmapButton* BitmapButton6;
+		BulkEditCheckBox* CheckBox_LoopGIF;
+		BulkEditCheckBox* CheckBox_Pictures_PixelOffsets;
+		BulkEditCheckBox* CheckBox_Pictures_Shimmer;
+		BulkEditCheckBox* CheckBox_Pictures_WrapX;
+		BulkEditCheckBox* CheckBox_SuppressGIFBackground;
+		BulkEditCheckBox* CheckBox_TransparentBlack;
+		BulkEditChoice* Choice_Pictures_Direction;
+		BulkEditChoice* Choice_Scaling;
+		BulkEditSlider* Slider1;
+		BulkEditSlider* Slider_PicturesEndXC;
+		BulkEditSlider* Slider_PicturesEndYC;
+		BulkEditSlider* Slider_PicturesXC;
+		BulkEditSlider* Slider_PicturesYC;
+		BulkEditSlider* Slider_Pictures_EndScale;
+		BulkEditSlider* Slider_Pictures_StartScale;
+		BulkEditSliderF1* Slider_Pictures_FR;
+		BulkEditSliderF1* Slider_Pictures_Speed;
+		BulkEditTextCtrl* TextCtrl3;
 		wxPanel* PictureEndPositionPanel;
-		wxBitmapButton* BitmapButton_PicturesFilename;
-		wxStaticText* StaticText68;
-		wxSlider* Slider_Pictures_FR;
-		wxSlider* Slider_PicturesEndYC;
+		wxStaticText* StaticText160;
+		wxStaticText* StaticText161;
+		wxStaticText* StaticText1;
+		wxStaticText* StaticText2;
 		wxStaticText* StaticText46;
+		wxStaticText* StaticText68;
+		wxStaticText* StaticText96;
+		wxStaticText* StaticText_Pictures_XC;
+		wxStaticText* StaticText_Pictures_YC;
+		xlLockButton* BitmapButton_PicturesDirection;
+		xlLockButton* BitmapButton_PicturesFrameRateAdj;
+		xlLockButton* BitmapButton_PicturesSpeed;
+		xlPictureFilePickerCtrl* FilePickerCtrl1;
 		//*)
 
 	protected:
 
 		//(*Identifiers(PicturesPanel)
 		static const long ID_FILEPICKER_Pictures_Filename;
-		static const long ID_BITMAPBUTTON_BUTTON_PICTURES_FILENAME;
-		static const long ID_STATICTEXT46;
+		static const long ID_STATICTEXT_Pictures_Direction;
 		static const long ID_CHOICE_Pictures_Direction;
 		static const long ID_BITMAPBUTTON_CHOICE_Pictures_Direction;
-		static const long ID_STATICTEXT27;
+		static const long ID_STATICTEXT_Pictures_Speed;
 		static const long IDD_SLIDER_Pictures_Speed;
 		static const long ID_TEXTCTRL_Pictures_Speed;
-		static const long ID_BITMAPBUTTON25;
+		static const long ID_BITMAPBUTTON_SLIDER_Pictures_Speed;
+		static const long ID_STATICTEXT_Pictures_FrameRateAdj;
 		static const long IDD_SLIDER_Pictures_FrameRateAdj;
 		static const long ID_TEXTCTRL_Pictures_FrameRateAdj;
-		static const long ID_BITMAPBUTTON_SLIDER_Pictures_GifSpeed;
+		static const long ID_BITMAPBUTTON_SLIDER_Pictures_FrameRateAdj;
 		static const long ID_CHECKBOX_Pictures_PixelOffsets;
 		static const long ID_CHOICE_Scaling;
 		static const long ID_CHECKBOX_Pictures_Shimmer;
 		static const long ID_CHECKBOX_LoopGIF;
+		static const long ID_CHECKBOX_SuppressGIFBackground;
+		static const long ID_CHECKBOX_Pictures_TransparentBlack;
+		static const long IDD_SLIDER_Pictures_TransparentBlack;
+		static const long ID_TEXTCTRL_Pictures_TransparentBlack;
+		static const long ID_STATICTEXT_PicturesXC;
 		static const long ID_SLIDER_PicturesXC;
 		static const long ID_CHECKBOX_Pictures_WrapX;
 		static const long IDD_TEXTCTRL_PicturesXC;
+		static const long ID_STATICTEXT_PicturesYC;
 		static const long IDD_TEXTCTRL_PicturesYC;
 		static const long ID_SLIDER_PicturesYC;
 		static const long ID_PANEL43;
+		static const long ID_STATICTEXT_PicturesEndXC;
 		static const long ID_SLIDER_PicturesEndXC;
 		static const long IDD_TEXTCTRL_PicturesEndXC;
+		static const long ID_STATICTEXT_PicturesEndYC;
 		static const long IDD_TEXTCTRL_PicturesEndYC;
 		static const long ID_SLIDER_PicturesEndYC;
 		static const long ID_PANEL45;
+		static const long ID_STATICTEXT_Pictures_StartScale;
 		static const long ID_SLIDER_Pictures_StartScale;
 		static const long IDD_TEXTCTRL_Pictures_StartScale;
 		static const long ID_PANEL1;
+		static const long ID_STATICTEXT_Pictures_EndScale;
 		static const long ID_SLIDER_Pictures_EndScale;
 		static const long IDD_TEXTCTRL_Pictures_EndScale;
 		static const long ID_PANEL2;
@@ -110,18 +132,8 @@ class PicturesPanel: public wxPanel
 	public:
 
 		//(*Handlers(PicturesPanel)
-		void UpdateLinkedSliderFloat(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-		void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-		void UpdateLinkedSlider360(wxCommandEvent& event);
-		void UpdateLinkedTextCtrl(wxScrollEvent& event);
-		void UpdateLinkedSlider(wxCommandEvent& event);
 		void OnLockButtonClick(wxCommandEvent& event);
 		void OnChoicePicturesDirectionSelect(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-		void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
-        void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-        void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
         void OnVCButtonClick(wxCommandEvent& event);
 		void OnVCChanged(wxCommandEvent& event);
 		void OnFilePickerCtrl1FileChanged(wxFileDirPickerEvent& event);

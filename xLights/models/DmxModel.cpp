@@ -100,6 +100,7 @@ enum DMX_STYLE {
     DMX_STYLE_MOVING_HEAD_TOP_BARS,
     DMX_STYLE_MOVING_HEAD_SIDE_BARS,
     DMX_STYLE_MOVING_HEAD_3D,
+    DMX_STYLE_BASIC_FLOOD,
     DMX_STYLE_SKULLTRONIX_SKULL
 };
 
@@ -129,6 +130,7 @@ void DmxModel::AddTypeProperties(wxPropertyGridInterface *grid) {
         DMX_STYLES.Add("Moving Head Top Bars");
         DMX_STYLES.Add("Moving Head Side Bars");
         DMX_STYLES.Add("Moving Head 3D");
+        DMX_STYLES.Add("Flood Light");
         DMX_STYLES.Add("Skulltronix Skull");
     }
 
@@ -139,147 +141,149 @@ void DmxModel::AddTypeProperties(wxPropertyGridInterface *grid) {
     p->SetAttribute("Max", 512);
     p->SetEditor("SpinCtrl");
 
-    p = grid->Append(new wxUIntProperty("Pan Channel", "DmxPanChannel", pan_channel));
-    p->SetAttribute("Min", 0);
-    p->SetAttribute("Max", 512);
-    p->SetEditor("SpinCtrl");
-
-    p = grid->Append(new wxUIntProperty("Pan Orientation", "DmxPanOrient", pan_orient));
-    p->SetAttribute("Min", 0);
-    p->SetAttribute("Max", 360);
-    p->SetEditor("SpinCtrl");
-
-    p = grid->Append(new wxUIntProperty("Pan Deg of Rot", "DmxPanDegOfRot", pan_deg_of_rot));
-    p->SetAttribute("Min", 0);
-    p->SetAttribute("Max", 1000);
-    p->SetEditor("SpinCtrl");
-
-    p = grid->Append(new wxFloatProperty("Pan Slew Limit (deg/sec)", "DmxPanSlewLimit", pan_slew_limit));
-    p->SetAttribute("Min", 0);
-    p->SetAttribute("Max", 500);
-    p->SetAttribute("Precision", 2);
-    p->SetAttribute("Step", 0.1);
-    p->SetEditor("SpinCtrl");
-
-    if( dmx_style_val == DMX_STYLE_SKULLTRONIX_SKULL ) {
-        p = grid->Append(new wxUIntProperty("Pan Min Limit", "DmxPanMinLimit", pan_min_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
-
-        p = grid->Append(new wxUIntProperty("Pan Max Limit", "DmxPanMaxLimit", pan_max_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
-    }
-
-    p = grid->Append(new wxUIntProperty("Tilt Channel", "DmxTiltChannel", tilt_channel));
-    p->SetAttribute("Min", 0);
-    p->SetAttribute("Max", 512);
-    p->SetEditor("SpinCtrl");
-
-    p = grid->Append(new wxUIntProperty("Tilt Orientation", "DmxTiltOrient", tilt_orient));
-    p->SetAttribute("Min", 0);
-    p->SetAttribute("Max", 360);
-    p->SetEditor("SpinCtrl");
-
-    p = grid->Append(new wxUIntProperty("Tilt Deg of Rot", "DmxTiltDegOfRot", tilt_deg_of_rot));
-    p->SetAttribute("Min", 0);
-    p->SetAttribute("Max", 1000);
-    p->SetEditor("SpinCtrl");
-
-    p = grid->Append(new wxFloatProperty("Tilt Slew Limit (deg/sec)", "DmxTiltSlewLimit", tilt_slew_limit));
-    p->SetAttribute("Min", 0);
-    p->SetAttribute("Max", 500);
-    p->SetAttribute("Precision", 2);
-    p->SetAttribute("Step", 0.1);
-    p->SetEditor("SpinCtrl");
-
-    if( dmx_style_val == DMX_STYLE_SKULLTRONIX_SKULL ) {
-        p = grid->Append(new wxUIntProperty("Tilt Min Limit", "DmxTiltMinLimit", tilt_min_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
-
-        p = grid->Append(new wxUIntProperty("Tilt Max Limit", "DmxTiltMaxLimit", tilt_max_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
-
-        p = grid->Append(new wxUIntProperty("Nod Channel", "DmxNodChannel", nod_channel));
+    if( dmx_style_val != DMX_STYLE_BASIC_FLOOD ) {
+        p = grid->Append(new wxUIntProperty("Pan Channel", "DmxPanChannel", pan_channel));
         p->SetAttribute("Min", 0);
         p->SetAttribute("Max", 512);
         p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Nod Orientation", "DmxNodOrient", nod_orient));
+        p = grid->Append(new wxUIntProperty("Pan Orientation", "DmxPanOrient", pan_orient));
         p->SetAttribute("Min", 0);
         p->SetAttribute("Max", 360);
         p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Nod Deg of Rot", "DmxNodDegOfRot", nod_deg_of_rot));
+        p = grid->Append(new wxUIntProperty("Pan Deg of Rot", "DmxPanDegOfRot", pan_deg_of_rot));
         p->SetAttribute("Min", 0);
         p->SetAttribute("Max", 1000);
         p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Nod Min Limit", "DmxNodMinLimit", nod_min_limit));
+        p = grid->Append(new wxFloatProperty("Pan Slew Limit (deg/sec)", "DmxPanSlewLimit", pan_slew_limit));
         p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
+        p->SetAttribute("Max", 500);
+        p->SetAttribute("Precision", 2);
+        p->SetAttribute("Step", 0.1);
         p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Nod Max Limit", "DmxNodMaxLimit", nod_max_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
+        if( dmx_style_val == DMX_STYLE_SKULLTRONIX_SKULL ) {
+            p = grid->Append(new wxUIntProperty("Pan Min Limit", "DmxPanMinLimit", pan_min_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Jaw Channel", "DmxJawChannel", jaw_channel));
+            p = grid->Append(new wxUIntProperty("Pan Max Limit", "DmxPanMaxLimit", pan_max_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+        }
+
+        p = grid->Append(new wxUIntProperty("Tilt Channel", "DmxTiltChannel", tilt_channel));
         p->SetAttribute("Min", 0);
         p->SetAttribute("Max", 512);
         p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Jaw Min Limit", "DmxJawMinLimit", jaw_min_limit));
+        p = grid->Append(new wxUIntProperty("Tilt Orientation", "DmxTiltOrient", tilt_orient));
         p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
+        p->SetAttribute("Max", 360);
         p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Jaw Max Limit", "DmxJawMaxLimit", jaw_max_limit));
+        p = grid->Append(new wxUIntProperty("Tilt Deg of Rot", "DmxTiltDegOfRot", tilt_deg_of_rot));
         p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
+        p->SetAttribute("Max", 1000);
         p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Eye UD Channel", "DmxEyeUDChannel", eye_ud_channel));
+        p = grid->Append(new wxFloatProperty("Tilt Slew Limit (deg/sec)", "DmxTiltSlewLimit", tilt_slew_limit));
         p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 512);
+        p->SetAttribute("Max", 500);
+        p->SetAttribute("Precision", 2);
+        p->SetAttribute("Step", 0.1);
         p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Eye UD Min Limit", "DmxEyeUDMinLimit", eye_ud_min_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
+        if( dmx_style_val == DMX_STYLE_SKULLTRONIX_SKULL ) {
+            p = grid->Append(new wxUIntProperty("Tilt Min Limit", "DmxTiltMinLimit", tilt_min_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Eye UD Max Limit", "DmxEyeUDMaxLimit", eye_ud_max_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
+            p = grid->Append(new wxUIntProperty("Tilt Max Limit", "DmxTiltMaxLimit", tilt_max_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Eye LR Channel", "DmxEyeLRChannel", eye_lr_channel));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 512);
-        p->SetEditor("SpinCtrl");
+            p = grid->Append(new wxUIntProperty("Nod Channel", "DmxNodChannel", nod_channel));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 512);
+            p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Eye LR Min Limit", "DmxEyeLRMinLimit", eye_lr_min_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
+            p = grid->Append(new wxUIntProperty("Nod Orientation", "DmxNodOrient", nod_orient));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 360);
+            p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Eye LR Max Limit", "DmxEyeLRMaxLimit", eye_lr_max_limit));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 2500);
-        p->SetEditor("SpinCtrl");
+            p = grid->Append(new wxUIntProperty("Nod Deg of Rot", "DmxNodDegOfRot", nod_deg_of_rot));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 1000);
+            p->SetEditor("SpinCtrl");
 
-        p = grid->Append(new wxUIntProperty("Eye Brightness Channel", "DmxEyeBrtChannel", eye_brightness_channel));
-        p->SetAttribute("Min", 0);
-        p->SetAttribute("Max", 512);
-        p->SetEditor("SpinCtrl");
+            p = grid->Append(new wxUIntProperty("Nod Min Limit", "DmxNodMinLimit", nod_min_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Nod Max Limit", "DmxNodMaxLimit", nod_max_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Jaw Channel", "DmxJawChannel", jaw_channel));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 512);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Jaw Min Limit", "DmxJawMinLimit", jaw_min_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Jaw Max Limit", "DmxJawMaxLimit", jaw_max_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Eye UD Channel", "DmxEyeUDChannel", eye_ud_channel));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 512);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Eye UD Min Limit", "DmxEyeUDMinLimit", eye_ud_min_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Eye UD Max Limit", "DmxEyeUDMaxLimit", eye_ud_max_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Eye LR Channel", "DmxEyeLRChannel", eye_lr_channel));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 512);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Eye LR Min Limit", "DmxEyeLRMinLimit", eye_lr_min_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Eye LR Max Limit", "DmxEyeLRMaxLimit", eye_lr_max_limit));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 2500);
+            p->SetEditor("SpinCtrl");
+
+            p = grid->Append(new wxUIntProperty("Eye Brightness Channel", "DmxEyeBrtChannel", eye_brightness_channel));
+            p->SetAttribute("Min", 0);
+            p->SetAttribute("Max", 512);
+            p->SetEditor("SpinCtrl");
+        }
     }
 
     p = grid->Append(new wxUIntProperty("Red Channel", "DmxRedChannel", red_channel));
@@ -297,7 +301,12 @@ void DmxModel::AddTypeProperties(wxPropertyGridInterface *grid) {
     p->SetAttribute("Max", 512);
     p->SetEditor("SpinCtrl");
 
-    if( dmx_style_val != DMX_STYLE_SKULLTRONIX_SKULL ) {
+    p = grid->Append(new wxUIntProperty("White Channel", "DmxWhiteChannel", white_channel));
+    p->SetAttribute("Min", 0);
+    p->SetAttribute("Max", 512);
+    p->SetEditor("SpinCtrl");
+
+    if( dmx_style_val != DMX_STYLE_SKULLTRONIX_SKULL && dmx_style_val != DMX_STYLE_BASIC_FLOOD ) {
         p = grid->Append(new wxUIntProperty("Shutter Channel", "DmxShutterChannel", shutter_channel));
         p->SetAttribute("Min", 0);
         p->SetAttribute("Max", 512);
@@ -363,7 +372,10 @@ int DmxModel::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGrid
             dmx_style = "Moving Head SideBars";
         } else if( dmx_style_val == DMX_STYLE_MOVING_HEAD_3D ) {
             dmx_style = "Moving Head 3D";
-        } else if( dmx_style_val == DMX_STYLE_SKULLTRONIX_SKULL ) {
+        } else if( dmx_style_val == DMX_STYLE_BASIC_FLOOD ) {
+            dmx_style = "Flood Light";
+			style_changed = true;
+		} else if( dmx_style_val == DMX_STYLE_SKULLTRONIX_SKULL ) {
             dmx_style = "Skulltronix Skull";
             style_changed = true;
         }
@@ -525,6 +537,11 @@ int DmxModel::OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGrid
         ModelXml->AddAttribute("DmxBlueChannel", wxString::Format("%d", (int)event.GetPropertyValue().GetLong()));
         SetFromXml(ModelXml, zeroBased);
         return 3;
+    } else if ("DmxWhiteChannel" == event.GetPropertyName()) {
+        ModelXml->DeleteAttribute("DmxWhiteChannel");
+        ModelXml->AddAttribute("DmxWhiteChannel", wxString::Format("%d", (int)event.GetPropertyValue().GetLong()));
+        SetFromXml(ModelXml, zeroBased);
+        return 3;
     } else if ("DmxShutterChannel" == event.GetPropertyName()) {
         ModelXml->DeleteAttribute("DmxShutterChannel");
         ModelXml->AddAttribute("DmxShutterChannel", wxString::Format("%d", (int)event.GetPropertyValue().GetLong()));
@@ -553,15 +570,22 @@ void DmxModel::InitModel() {
 
 	dmx_style = ModelXml->GetAttribute("DmxStyle", "Moving Head Top");
     if( style_changed ) {
-        if (wxMessageBox("Would you like to reset to default Skulltronix settings?", "Restore Defaults?", wxYES_NO | wxCENTER) == wxNO) {
+       if( dmx_style == "Skulltronix Skull" ) {
+            if (wxMessageBox("Would you like to reset to default Skulltronix settings?", "Restore Defaults?", wxYES_NO | wxCENTER) == wxNO) {
                 style_changed = false;
-        } else {
-            if( dmx_style == "Skulltronix Skull" ) {
-                parm1 = 18;
+            } else {
+                parm1 = 26;
                 ModelXml->DeleteAttribute("parm1");
                 ModelXml->AddAttribute("parm1", wxString::Format("%d", parm1));
             }
-        }
+       } else if( dmx_style == "Flood Light" ) {
+           pixelSize = 200;
+           ModelXml->DeleteAttribute("PixelSize");
+           ModelXml->AddAttribute("PixelSize", wxString::Format(wxT("%i"), pixelSize));
+           pixelStyle = 3;
+           ModelXml->DeleteAttribute("Antialias");
+           ModelXml->AddAttribute("Antialias", wxString::Format(wxT("%i"), pixelStyle));
+       }
     }
 
     int numChannels = parm1;
@@ -600,6 +624,7 @@ void DmxModel::InitModel() {
 	red_channel = wxAtoi(ModelXml->GetAttribute("DmxRedChannel", "0"));
 	green_channel = wxAtoi(ModelXml->GetAttribute("DmxGreenChannel", "0"));
 	blue_channel = wxAtoi(ModelXml->GetAttribute("DmxBlueChannel", "0"));
+	white_channel = wxAtoi(ModelXml->GetAttribute("DmxWhiteChannel", "0"));
 	shutter_channel = wxAtoi(ModelXml->GetAttribute("DmxShutterChannel", "0"));
 	shutter_threshold = wxAtoi(ModelXml->GetAttribute("DmxShutterOpen", "1"));
 	beam_length = wxAtof(ModelXml->GetAttribute("DmxBeamLength", "4.0"));
@@ -615,70 +640,97 @@ void DmxModel::InitModel() {
         dmx_style_val = DMX_STYLE_MOVING_HEAD_SIDE_BARS;
     } else if( dmx_style == "Moving Head 3D" ) {
         dmx_style_val = DMX_STYLE_MOVING_HEAD_3D;
+    } else if( dmx_style == "Flood Light" ) {
+        dmx_style_val = DMX_STYLE_BASIC_FLOOD;
     } else if( dmx_style == "Skulltronix Skull" ) {
         dmx_style_val = DMX_STYLE_SKULLTRONIX_SKULL;
         if( !style_changed ) {
-            pan_channel = wxAtoi(ModelXml->GetAttribute("DmxPanChannel", "5"));
+            pan_channel = wxAtoi(ModelXml->GetAttribute("DmxPanChannel", "13"));
             pan_orient = wxAtoi(ModelXml->GetAttribute("DmxPanOrient", "90"));
             pan_deg_of_rot = wxAtoi(ModelXml->GetAttribute("DmxPanDegOfRot", "180"));
             pan_slew_limit = wxAtof(ModelXml->GetAttribute("DmxPanSlewLimit", "0"));
-            tilt_channel = wxAtoi(ModelXml->GetAttribute("DmxTiltChannel", "11"));
+            tilt_channel = wxAtoi(ModelXml->GetAttribute("DmxTiltChannel", "19"));
             tilt_orient = wxAtoi(ModelXml->GetAttribute("DmxTiltOrient", "315"));
             tilt_deg_of_rot = wxAtoi(ModelXml->GetAttribute("DmxTiltDegOfRot", "90"));
             tilt_slew_limit = wxAtof(ModelXml->GetAttribute("DmxTiltSlewLimit", "0"));
-            red_channel = wxAtoi(ModelXml->GetAttribute("DmxRedChannel", "16"));
-            green_channel = wxAtoi(ModelXml->GetAttribute("DmxGreenChannel", "17"));
-            blue_channel = wxAtoi(ModelXml->GetAttribute("DmxBlueChannel", "18"));
+            red_channel = wxAtoi(ModelXml->GetAttribute("DmxRedChannel", "24"));
+            green_channel = wxAtoi(ModelXml->GetAttribute("DmxGreenChannel", "25"));
+            blue_channel = wxAtoi(ModelXml->GetAttribute("DmxBlueChannel", "26"));
+            white_channel = wxAtoi(ModelXml->GetAttribute("DmxWhiteChannel", "0"));
             tilt_min_limit = wxAtoi(ModelXml->GetAttribute("DmxTiltMinLimit", "442"));
             tilt_max_limit = wxAtoi(ModelXml->GetAttribute("DmxTiltMaxLimit", "836"));
             pan_min_limit = wxAtoi(ModelXml->GetAttribute("DmxPanMinLimit", "250"));
             pan_max_limit = wxAtoi(ModelXml->GetAttribute("DmxPanMaxLimit", "1250"));
-            nod_channel = wxAtoi(ModelXml->GetAttribute("DmxNodChannel", "3"));
+            nod_channel = wxAtoi(ModelXml->GetAttribute("DmxNodChannel", "11"));
             nod_orient = wxAtoi(ModelXml->GetAttribute("DmxNodOrient", "331"));
             nod_deg_of_rot = wxAtoi(ModelXml->GetAttribute("DmxNodDegOfRot", "58"));
             nod_min_limit = wxAtoi(ModelXml->GetAttribute("DmxNodMinLimit", "452"));
             nod_max_limit = wxAtoi(ModelXml->GetAttribute("DmxNodMaxLimit", "745"));
-            jaw_channel = wxAtoi(ModelXml->GetAttribute("DmxJawChannel", "1"));
+            jaw_channel = wxAtoi(ModelXml->GetAttribute("DmxJawChannel", "9"));
             jaw_min_limit = wxAtoi(ModelXml->GetAttribute("DmxJawMinLimit", "500"));
             jaw_max_limit = wxAtoi(ModelXml->GetAttribute("DmxJawMaxLimit", "750"));
-            eye_brightness_channel = wxAtoi(ModelXml->GetAttribute("DmxEyeBrtChannel", "15"));
-            eye_ud_channel = wxAtoi(ModelXml->GetAttribute("DmxEyeUDChannel", "7"));
+            eye_brightness_channel = wxAtoi(ModelXml->GetAttribute("DmxEyeBrtChannel", "23"));
+            eye_ud_channel = wxAtoi(ModelXml->GetAttribute("DmxEyeUDChannel", "15"));
             eye_ud_min_limit = wxAtoi(ModelXml->GetAttribute("DmxEyeUDMinLimit", "575"));
             eye_ud_max_limit = wxAtoi(ModelXml->GetAttribute("DmxEyeUDMaxLimit", "1000"));
-            eye_lr_channel = wxAtoi(ModelXml->GetAttribute("DmxEyeLRChannel", "9"));
+            eye_lr_channel = wxAtoi(ModelXml->GetAttribute("DmxEyeLRChannel", "17"));
             eye_lr_min_limit = wxAtoi(ModelXml->GetAttribute("DmxEyeLRMinLimit", "499"));
             eye_lr_max_limit = wxAtoi(ModelXml->GetAttribute("DmxEyeLRMaxLimit", "878"));
         } else {
             style_changed = false;
-            pan_channel = 5;
+            pan_channel = 13;
             pan_orient = 90;
             pan_deg_of_rot = 180;
             pan_slew_limit = 0;
-            tilt_channel = 11;
+            tilt_channel = 19;
             tilt_orient = 315;
             tilt_deg_of_rot = 90;
             tilt_slew_limit = 0;
-            red_channel = 16;
-            green_channel = 17;
-            blue_channel = 18;
+            red_channel = 24;
+            green_channel = 25;
+            blue_channel = 26;
+            white_channel = 0;
             tilt_min_limit = 442;
             tilt_max_limit = 836;
             pan_min_limit = 250;
             pan_max_limit = 1250;
-            nod_channel = 3;
+            nod_channel = 11;
             nod_orient = 331;
             nod_deg_of_rot = 58;
             nod_min_limit = 452;
             nod_max_limit = 745;
-            jaw_channel = 1;
+            jaw_channel = 9;
             jaw_min_limit = 500;
             jaw_max_limit = 750;
-            eye_ud_channel = 7;
+            eye_ud_channel = 15;
             eye_ud_min_limit = 575;
             eye_ud_max_limit = 1000;
-            eye_lr_channel = 9;
+            eye_lr_channel = 17;
             eye_lr_min_limit = 499;
             eye_lr_max_limit = 878;
+
+            // provide default node names
+            wxString nn = wxString::Format("%s", ",,,,,,,Power,Jaw,-Jaw Fine,Nod,-Nod Fine,Pan,-Pan Fine,Eye UD,-Eye UD Fine,Eye LR,-Eye LR Fine,Tilt,-Tilt Fine,-Torso,-Torso Fine,Eye Brightness,Eye Red,Eye Green,Eye Blue");
+            wxString tempstr = nn;
+            nodeNames.clear();
+            while (tempstr.size() > 0) {
+                std::string t2 = tempstr.ToStdString();
+                if (tempstr[0] == ',') {
+                    t2 = "";
+                    tempstr = tempstr(1, tempstr.length());
+                }
+                else if (tempstr.Contains(",")) {
+                    t2 = tempstr.SubString(0, tempstr.Find(",") - 1);
+                    tempstr = tempstr.SubString(tempstr.Find(",") + 1, tempstr.length());
+                }
+                else {
+                    tempstr = "";
+                }
+                nodeNames.push_back(t2);
+            }
+            SetProperty("NodeNames", nn);
+            ModelXml->DeleteAttribute("NodeNames");
+            ModelXml->AddAttribute("NodeNames", nn);
 
             ModelXml->DeleteAttribute("DmxPanChannel");
             ModelXml->AddAttribute("DmxPanChannel", wxString::Format("%d", pan_channel));
@@ -740,6 +792,8 @@ void DmxModel::InitModel() {
             ModelXml->AddAttribute("DmxGreenChannel", wxString::Format("%d", green_channel));
             ModelXml->DeleteAttribute("DmxBlueChannel");
             ModelXml->AddAttribute("DmxBlueChannel", wxString::Format("%d", blue_channel));
+            ModelXml->DeleteAttribute("DmxWhiteChannel");
+            ModelXml->AddAttribute("DmxWhiteChannel", wxString::Format("%d", white_channel));
         }
     }
 }
@@ -766,6 +820,8 @@ void DmxModel::DisplayEffectOnWindow(ModelPreview* preview, double pointSize)
 
         if( dmx_style_val == DMX_STYLE_SKULLTRONIX_SKULL ) {
             DrawSkullModelOnWindow(preview, va, nullptr, sx, sy, true);
+        } else if( dmx_style_val == DMX_STYLE_BASIC_FLOOD ) {
+            DrawFloodOnWindow(preview, va, nullptr, sx, sy, true);
         } else {
             DrawModelOnWindow(preview, va, nullptr, sx, sy, true);
         }
@@ -794,6 +850,8 @@ void DmxModel::DisplayModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumu
 
     if( dmx_style_val == DMX_STYLE_SKULLTRONIX_SKULL ) {
         DrawSkullModelOnWindow(preview, va, c, sx, sy, !allowSelected);
+    } else if( dmx_style_val == DMX_STYLE_BASIC_FLOOD ) {
+        DrawFloodOnWindow(preview, va, c, sx, sy, !allowSelected);
     } else {
         DrawModelOnWindow(preview, va, c, sx, sy, !allowSelected);
     }
@@ -801,6 +859,69 @@ void DmxModel::DisplayModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumu
     if (Selected && c != nullptr && allowSelected) {
         GetModelScreenLocation().DrawHandles(va);
     }
+}
+
+void DmxModel::DrawFloodOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulator &va, const xlColor *c, float &sx, float &sy, bool active)
+{
+    size_t NodeCount=Nodes.size();
+
+    if( red_channel > NodeCount ||
+        green_channel > NodeCount ||
+        blue_channel > NodeCount ||
+        white_channel > NodeCount )
+    {
+        return;
+    }
+
+	xlColor color;
+	xlColor ecolor;
+	xlColor beam_color(xlWHITE);
+	if (c != nullptr) {
+		color = *c;
+		ecolor = *c;
+	}
+
+	int trans = color == xlBLACK ? blackTransparency : transparency;
+	if (red_channel > 0 && green_channel > 0 && blue_channel > 0) {
+
+        xlColor proxy = xlBLACK;
+        if (white_channel > 0)
+        {
+            Nodes[white_channel - 1]->GetColor(proxy);
+            beam_color = proxy;
+        }
+
+        if (proxy == xlBLACK)
+        {
+            Nodes[red_channel - 1]->GetColor(proxy);
+            beam_color.red = proxy.red;
+            Nodes[green_channel - 1]->GetColor(proxy);
+            beam_color.green = proxy.red;
+            Nodes[blue_channel - 1]->GetColor(proxy);
+            beam_color.blue = proxy.red;
+        }
+	}
+    else if (white_channel > 0)
+    {
+        xlColor proxy;
+        Nodes[white_channel - 1]->GetColor(proxy);
+        beam_color.red = proxy.red;
+        beam_color.green = proxy.red;
+        beam_color.blue = proxy.red;
+    }
+
+	if (!active) {
+		beam_color = color;
+	}
+
+	ApplyTransparency(beam_color, trans);
+    ApplyTransparency(ecolor, pixelStyle == 2 ? trans : 100);
+
+    float rh = ((BoxedScreenLocation)screenLocation).GetMWidth();
+    float rw = ((BoxedScreenLocation)screenLocation).GetMHeight();
+	float min_size = (float)(std::min(rh, rw));
+    va.AddTrianglesCircle(sx, sy, min_size/2.0f, beam_color, ecolor);
+    va.Finish(GL_TRIANGLES);
 }
 
 void DmxModel::DrawModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulator &va, const xlColor *c, float &sx, float &sy, bool active)
@@ -814,7 +935,8 @@ void DmxModel::DrawModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulat
         tilt_channel > NodeCount ||
         red_channel > NodeCount ||
         green_channel > NodeCount ||
-        blue_channel > NodeCount )
+        blue_channel > NodeCount ||
+        white_channel > NodeCount)
     {
         return;
     }
@@ -836,16 +958,36 @@ void DmxModel::DrawModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulat
     xlColor color_angle;
 
     int trans = color == xlBLACK ? blackTransparency : transparency;
-    if( red_channel > 0 && green_channel > 0 && blue_channel > 0 ) {
+
+    if (red_channel > 0 && green_channel > 0 && blue_channel > 0) {
+
+        xlColor proxy = xlBLACK;
+        if (white_channel > 0)
+        {
+            Nodes[white_channel - 1]->GetColor(proxy);
+            beam_color = proxy;
+        }
+
+        if (proxy == xlBLACK)
+        {
+            Nodes[red_channel - 1]->GetColor(proxy);
+            beam_color.red = proxy.red;
+            Nodes[green_channel - 1]->GetColor(proxy);
+            beam_color.green = proxy.red;
+            Nodes[blue_channel - 1]->GetColor(proxy);
+            beam_color.blue = proxy.red;
+        }
+    }
+    else if (white_channel > 0)
+    {
         xlColor proxy;
-        Nodes[red_channel-1]->GetColor(proxy);
+        Nodes[white_channel - 1]->GetColor(proxy);
         beam_color.red = proxy.red;
-        Nodes[green_channel-1]->GetColor(proxy);
         beam_color.green = proxy.red;
-        Nodes[blue_channel-1]->GetColor(proxy);
         beam_color.blue = proxy.red;
     }
-    if( (beam_color.red == 0 && beam_color.green == 0 && beam_color.blue == 0) || !active ) {
+
+    if( !active ) {
         beam_color = xlWHITE;
     } else {
         marker_color = beam_color;
@@ -860,6 +1002,7 @@ void DmxModel::DrawModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulat
     float old_pan_angle = 0.0f;
     float old_tilt_angle = 0.0f;
     long old_ms = 0;
+    float rot_angle = (float)(((BoxedScreenLocation)screenLocation).GetRotation());
 
     std::vector<std::string> old_state = GetModelState();
     if( old_state.size() > 0  && active ) {
@@ -1056,6 +1199,7 @@ void DmxModel::DrawModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulat
         xlColor red(xlRED);
         xlColor green(xlGREEN);
         xlColor blue(xlBLUE);
+        xlColor white(xlWHITE);
         xlColor pink(255,51,255);
         xlColor turqoise(64,224,208);
         ApplyTransparency(red, trans);
@@ -1083,6 +1227,8 @@ void DmxModel::DrawModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulat
                 proxy = green;
             } else if( i == blue_channel ) {
                 proxy = blue;
+            } else if( i == white_channel ) {
+                proxy = white;
             } else {
                 proxy = ccolor;
             }
@@ -1098,51 +1244,54 @@ void DmxModel::DrawModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccumulat
         pan_angle_raw = 360.0f - pan_angle_raw;
         bool facing_right = pan_angle_raw <= 90.0f || pan_angle_raw >= 270.0f;
 
-        if( shutter_open ) {
-            dmxPoint3 p1(beam_length_displayed,-5,-5, sx, sy, scale, pan_angle_raw, tilt_angle);
-            dmxPoint3 p2(beam_length_displayed,-5,5, sx, sy, scale, pan_angle_raw, tilt_angle);
-            dmxPoint3 p3(beam_length_displayed,5,-5, sx, sy, scale, pan_angle_raw, tilt_angle);
-            dmxPoint3 p4(beam_length_displayed,5,5, sx, sy, scale, pan_angle_raw, tilt_angle);
-            dmxPoint3 p0(0,0,0, sx, sy, scale, pan_angle_raw, tilt_angle);
+        float combined_angle = tilt_angle + rot_angle;
+        if( beam_color.red != 0 || beam_color.green != 0 || beam_color.blue != 0 ) {
+            if( shutter_open ) {
+                dmxPoint3 p1(beam_length_displayed,-5,-5, sx, sy, scale, pan_angle_raw, combined_angle);
+                dmxPoint3 p2(beam_length_displayed,-5,5, sx, sy, scale, pan_angle_raw, combined_angle);
+                dmxPoint3 p3(beam_length_displayed,5,-5, sx, sy, scale, pan_angle_raw, combined_angle);
+                dmxPoint3 p4(beam_length_displayed,5,5, sx, sy, scale, pan_angle_raw, combined_angle);
+                dmxPoint3 p0(0,0,0, sx, sy, scale, pan_angle_raw, combined_angle);
 
 
-            if( facing_right ) {
+                if( facing_right ) {
+                    va.AddVertex(p2.x, p2.y, beam_color_end);
+                    va.AddVertex(p4.x, p4.y, beam_color_end);
+                    va.AddVertex(p0.x, p0.y, beam_color);
+                } else {
+                    va.AddVertex(p1.x, p1.y, beam_color_end);
+                    va.AddVertex(p3.x, p3.y, beam_color_end);
+                    va.AddVertex(p0.x, p0.y, beam_color);
+                }
+
+                va.AddVertex(p1.x, p1.y, beam_color_end);
                 va.AddVertex(p2.x, p2.y, beam_color_end);
+                va.AddVertex(p0.x, p0.y, beam_color);
+
+                va.AddVertex(p3.x, p3.y, beam_color_end);
                 va.AddVertex(p4.x, p4.y, beam_color_end);
                 va.AddVertex(p0.x, p0.y, beam_color);
-            } else {
-                va.AddVertex(p1.x, p1.y, beam_color_end);
-                va.AddVertex(p3.x, p3.y, beam_color_end);
-                va.AddVertex(p0.x, p0.y, beam_color);
-            }
 
-            va.AddVertex(p1.x, p1.y, beam_color_end);
-            va.AddVertex(p2.x, p2.y, beam_color_end);
-            va.AddVertex(p0.x, p0.y, beam_color);
-
-            va.AddVertex(p3.x, p3.y, beam_color_end);
-            va.AddVertex(p4.x, p4.y, beam_color_end);
-            va.AddVertex(p0.x, p0.y, beam_color);
-
-            if( !facing_right ) {
-                va.AddVertex(p2.x, p2.y, beam_color_end);
-                va.AddVertex(p4.x, p4.y, beam_color_end);
-                va.AddVertex(p0.x, p0.y, beam_color);
-            } else {
-                va.AddVertex(p1.x, p1.y, beam_color_end);
-                va.AddVertex(p3.x, p3.y, beam_color_end);
-                va.AddVertex(p0.x, p0.y, beam_color);
+                if( !facing_right ) {
+                    va.AddVertex(p2.x, p2.y, beam_color_end);
+                    va.AddVertex(p4.x, p4.y, beam_color_end);
+                    va.AddVertex(p0.x, p0.y, beam_color);
+                } else {
+                    va.AddVertex(p1.x, p1.y, beam_color_end);
+                    va.AddVertex(p3.x, p3.y, beam_color_end);
+                    va.AddVertex(p0.x, p0.y, beam_color);
+                }
             }
         }
 
         if( facing_right ) {
-            Draw3DDMXBaseRight(va, base_color, sx, sy, scale, pan_angle_raw);
-            Draw3DDMXHead(va, base_color2, sx, sy, scale, pan_angle_raw, tilt_angle);
-            Draw3DDMXBaseLeft(va, base_color, sx, sy, scale, pan_angle_raw);
+            Draw3DDMXBaseRight(va, base_color, sx, sy, scale, pan_angle_raw, rot_angle);
+            Draw3DDMXHead(va, base_color2, sx, sy, scale, pan_angle_raw, combined_angle);
+            Draw3DDMXBaseLeft(va, base_color, sx, sy, scale, pan_angle_raw, rot_angle);
         } else {
-            Draw3DDMXBaseLeft(va, base_color, sx, sy, scale, pan_angle_raw);
-            Draw3DDMXHead(va, base_color2, sx, sy, scale, pan_angle_raw, tilt_angle);
-            Draw3DDMXBaseRight(va, base_color, sx, sy, scale, pan_angle_raw);
+            Draw3DDMXBaseLeft(va, base_color, sx, sy, scale, pan_angle_raw, rot_angle);
+            Draw3DDMXHead(va, base_color2, sx, sy, scale, pan_angle_raw, combined_angle);
+            Draw3DDMXBaseRight(va, base_color, sx, sy, scale, pan_angle_raw, rot_angle);
         }
     }
 
@@ -1463,15 +1612,15 @@ void DmxModel::DrawSkullModelOnWindow(ModelPreview* preview, DrawGLUtils::xlAccu
     va.Finish(GL_TRIANGLES);
 }
 
-void DmxModel::Draw3DDMXBaseLeft(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle)
+void DmxModel::Draw3DDMXBaseLeft(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle, float& rot_angle)
 {
-    dmxPoint3 p10(-3,-1,-5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p11(3,-1,-5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p12(-3,-5,-5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p13(3,-5,-5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p14(0,-1,-5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p15(-1,1,-5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p16(1,1,-5, sx, sy, scale, pan_angle, 0);
+    dmxPoint3 p10(-3,-1,-5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p11(3,-1,-5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p12(-3,-5,-5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p13(3,-5,-5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p14(0,-1,-5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p15(-1,1,-5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p16(1,1,-5, sx, sy, scale, pan_angle, rot_angle);
 
     va.AddVertex(p10.x, p10.y, c);
     va.AddVertex(p11.x, p11.y, c);
@@ -1489,13 +1638,13 @@ void DmxModel::Draw3DDMXBaseLeft(DrawGLUtils::xlAccumulator &va, const xlColor &
     va.AddVertex(p14.x, p14.y, c);
     va.AddVertex(p16.x, p16.y, c);
 
-    dmxPoint3 p210(-3,-1,-3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p211(3,-1,-3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p212(-3,-5,-3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p213(3,-5,-3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p214(0,-1,-3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p215(-1,1,-3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p216(1,1,-3, sx, sy, scale, pan_angle, 0);
+    dmxPoint3 p210(-3,-1,-3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p211(3,-1,-3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p212(-3,-5,-3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p213(3,-5,-3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p214(0,-1,-3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p215(-1,1,-3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p216(1,1,-3, sx, sy, scale, pan_angle, rot_angle);
 
     va.AddVertex(p210.x, p210.y, c);
     va.AddVertex(p211.x, p211.y, c);
@@ -1545,15 +1694,15 @@ void DmxModel::Draw3DDMXBaseLeft(DrawGLUtils::xlAccumulator &va, const xlColor &
     va.AddVertex(p11.x, p11.y, c);
 }
 
-void DmxModel::Draw3DDMXBaseRight(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle)
+void DmxModel::Draw3DDMXBaseRight(DrawGLUtils::xlAccumulator &va, const xlColor &c, float &sx, float &sy, float &scale, float &pan_angle, float& rot_angle)
 {
-    dmxPoint3 p20(-3,-1,5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p21(3,-1,5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p22(-3,-5,5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p23(3,-5,5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p24(0,-1,5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p25(-1,1,5, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p26(1,1,5, sx, sy, scale, pan_angle, 0);
+    dmxPoint3 p20(-3,-1,5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p21(3,-1,5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p22(-3,-5,5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p23(3,-5,5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p24(0,-1,5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p25(-1,1,5, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p26(1,1,5, sx, sy, scale, pan_angle, rot_angle);
 
     va.AddVertex(p20.x, p20.y, c);
     va.AddVertex(p21.x, p21.y, c);
@@ -1571,13 +1720,13 @@ void DmxModel::Draw3DDMXBaseRight(DrawGLUtils::xlAccumulator &va, const xlColor 
     va.AddVertex(p24.x, p24.y, c);
     va.AddVertex(p26.x, p26.y, c);
 
-    dmxPoint3 p220(-3,-1,3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p221(3,-1,3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p222(-3,-5,3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p223(3,-5,3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p224(0,-1,3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p225(-1,1,3, sx, sy, scale, pan_angle, 0);
-    dmxPoint3 p226(1,1,3, sx, sy, scale, pan_angle, 0);
+    dmxPoint3 p220(-3,-1,3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p221(3,-1,3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p222(-3,-5,3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p223(3,-5,3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p224(0,-1,3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p225(-1,1,3, sx, sy, scale, pan_angle, rot_angle);
+    dmxPoint3 p226(1,1,3, sx, sy, scale, pan_angle, rot_angle);
 
     va.AddVertex(p220.x, p220.y, c);
     va.AddVertex(p221.x, p221.y, c);
@@ -1753,40 +1902,41 @@ void DmxModel::ExportXlightsModel()
     wxString rc = ModelXml->GetAttribute("DmxRedChannel","0");
     wxString gc = ModelXml->GetAttribute("DmxGreenChannel","0");
     wxString bc = ModelXml->GetAttribute("DmxBlueChannel","0");
+    wxString wc = ModelXml->GetAttribute("DmxWhiteChannel","0");
     wxString sc = ModelXml->GetAttribute("DmxShutterChannel","0");
     wxString so = ModelXml->GetAttribute("DmxShutterOpen","1");
 
     // I need to do this because there are different defaults
     if (s == "Skulltronix Skull")
     {
-        pc = ModelXml->GetAttribute("DmxPanChannel", "5");
+        pc = ModelXml->GetAttribute("DmxPanChannel", "13");
         po = ModelXml->GetAttribute("DmxPanOrient", "90");
         pdr = ModelXml->GetAttribute("DmxPanDegOfRot", "180");
-        tc = ModelXml->GetAttribute("DmxTiltChannel", "11");
+        tc = ModelXml->GetAttribute("DmxTiltChannel", "19");
         to = ModelXml->GetAttribute("DmxTiltOrient", "315");
         tdr = ModelXml->GetAttribute("DmxTiltDegOfRot", "90");
-        rc = ModelXml->GetAttribute("DmxRedChannel", "16");
-        gc = ModelXml->GetAttribute("DmxGreenChannel", "17");
-        bc = ModelXml->GetAttribute("DmxBlueChannel", "18");
+        rc = ModelXml->GetAttribute("DmxRedChannel", "24");
+        gc = ModelXml->GetAttribute("DmxGreenChannel", "25");
+        bc = ModelXml->GetAttribute("DmxBlueChannel", "26");
     }
 
     wxString tml = ModelXml->GetAttribute("DmxTiltMinLimit", "442");
     wxString tmxl = ModelXml->GetAttribute("DmxTiltMaxLimit", "836");
     wxString pml = ModelXml->GetAttribute("DmxPanMinLimit", "250");
     wxString pmxl = ModelXml->GetAttribute("DmxPanMaxLimit", "1250");
-    wxString nc = ModelXml->GetAttribute("DmxNodChannel", "3");
+    wxString nc = ModelXml->GetAttribute("DmxNodChannel", "11");
     wxString no = ModelXml->GetAttribute("DmxNodOrient", "331");
     wxString ndr = ModelXml->GetAttribute("DmxNodDegOfRot", "58");
     wxString nml = ModelXml->GetAttribute("DmxNodMinLimit", "452");
     wxString nmxl = ModelXml->GetAttribute("DmxNodMaxLimit", "745");
-    wxString jc = ModelXml->GetAttribute("DmxJawChannel", "1");
+    wxString jc = ModelXml->GetAttribute("DmxJawChannel", "9");
     wxString jml = ModelXml->GetAttribute("DmxJawMinLimit", "500");
     wxString jmxl = ModelXml->GetAttribute("DmxJawMaxLimit", "750");
-    wxString eb = ModelXml->GetAttribute("DmxEyeBrtChannel","15");
-    wxString eudc = ModelXml->GetAttribute("DmxEyeUDChannel", "7");
+    wxString eb = ModelXml->GetAttribute("DmxEyeBrtChannel","23");
+    wxString eudc = ModelXml->GetAttribute("DmxEyeUDChannel", "15");
     wxString eudml = ModelXml->GetAttribute("DmxEyeUDMinLimit", "575");
     wxString eudmxl = ModelXml->GetAttribute("DmxEyeUDMaxLimit", "1000");
-    wxString elrc = ModelXml->GetAttribute("DmxEyeLRChannel", "9");
+    wxString elrc = ModelXml->GetAttribute("DmxEyeLRChannel", "17");
     wxString elml = ModelXml->GetAttribute("DmxEyeLRMinLimit", "499");
     wxString elrmxl = ModelXml->GetAttribute("DmxEyeLRMaxLimit", "878");
 
@@ -1818,6 +1968,7 @@ void DmxModel::ExportXlightsModel()
     f.Write(wxString::Format("DmxRedChannel=\"%s\" ", rc));
     f.Write(wxString::Format("DmxGreenChannel=\"%s\" ", gc));
     f.Write(wxString::Format("DmxBlueChannel=\"%s\" ", bc));
+    f.Write(wxString::Format("DmxWhiteChannel=\"%s\" ", wc));
     f.Write(wxString::Format("DmxShutterChannel=\"%s\" ", sc));
     f.Write(wxString::Format("DmxShutterOpen=\"%s\" ", so));
 
@@ -1893,6 +2044,7 @@ void DmxModel::ImportXlightsModel(std::string filename, xLightsFrame* xlights, f
             wxString rc = root->GetAttribute("DmxRedChannel");
             wxString gc = root->GetAttribute("DmxGreenChannel");
             wxString bc = root->GetAttribute("DmxBlueChannel");
+            wxString wc = root->GetAttribute("DmxWhiteChannel");
             wxString sc = root->GetAttribute("DmxShutterChannel");
             wxString so = root->GetAttribute("DmxShutterOpen");
             wxString bl = root->GetAttribute("DmxBeamLimit");
@@ -1946,6 +2098,7 @@ void DmxModel::ImportXlightsModel(std::string filename, xLightsFrame* xlights, f
             SetProperty("DmxRedChannel", rc);
             SetProperty("DmxGreenChannel", gc);
             SetProperty("DmxBlueChannel", bc);
+            SetProperty("DmxWhiteChannel", wc);
             SetProperty("DmxShutterChannel", sc);
             SetProperty("DmxShutterOpen", so);
             SetProperty("DmxBeamLimit", bl);

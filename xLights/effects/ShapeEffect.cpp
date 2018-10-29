@@ -7,14 +7,13 @@
 #include "../models/Model.h"
 #include "../sequencer/SequenceElements.h"
 #include "UtilFunctions.h"
-#include "SequenceCheck.h"
+#include "AudioManager.h"
 
 #include "../../include/shape-16.xpm"
 #include "../../include/shape-24.xpm"
 #include "../../include/shape-32.xpm"
 #include "../../include/shape-48.xpm"
 #include "../../include/shape-64.xpm"
-#include "AudioManager.h"
 
 #define REPEATTRIGGER 20
 
@@ -102,8 +101,11 @@ wxPanel *ShapeEffect::CreatePanel(wxWindow *parent) {
 #define RENDER_SHAPE_TREE       8
 #define RENDER_SHAPE_CANDYCANE  9
 #define RENDER_SHAPE_SNOWFLAKE  10
+#define RENDER_SHAPE_CRUCIFIX   11
+#define RENDER_SHAPE_PRESENT    12
+#define RENDER_SHAPE_EMOJI      13
 
-void ShapeEffect::SetDefaultParameters(Model *cls) {
+void ShapeEffect::SetDefaultParameters() {
     ShapePanel *sp = (ShapePanel*)panel;
     if (sp == nullptr) {
         return;
@@ -115,6 +117,7 @@ void ShapeEffect::SetDefaultParameters(Model *cls) {
     sp->BitmapButton_Shape_LifetimeVC->SetActive(false);
     sp->BitmapButton_Shape_GrowthVC->SetActive(false);
     sp->BitmapButton_Shape_CountVC->SetActive(false);
+    sp->BitmapButton_Shape_StartSizeVC->SetActive(false);
 
     SetChoiceValue(sp->Choice_Shape_ObjectToDraw, "Circle");
 
@@ -132,6 +135,7 @@ void ShapeEffect::SetDefaultParameters(Model *cls) {
     SetCheckBoxValue(sp->CheckBox_Shape_FadeAway, true);
     SetCheckBoxValue(sp->CheckBox_Shape_UseMusic, false);
     SetCheckBoxValue(sp->CheckBox_Shape_FireTiming, false);
+    SetCheckBoxValue(sp->CheckBox_Shape_RandomInitial, true);
 }
 
 struct ShapeData
@@ -169,6 +173,7 @@ public:
     std::list<ShapeData*> _shapes;
     int _lastColorIdx;
     int _sinceLastTriggered;
+    wxFontInfo _font;
 
     void AddShape(wxPoint centre, float size, xlColor color, int oset, int shape)
     {
@@ -246,8 +251,21 @@ int ShapeEffect::DecodeShape(const std::string& shape)
     {
         return RENDER_SHAPE_SNOWFLAKE;
     }
+    else if (shape == "Crucifix")
+    {
+        return RENDER_SHAPE_CRUCIFIX;
+    }
+    else if (shape == "Present")
+    {
+        return RENDER_SHAPE_PRESENT;
+    }
+    // this must be the last as we dont want to randomly select it
+    else if (shape == "Emoji")
+    {
+        return RENDER_SHAPE_EMOJI;
+    }
 
-    return rand01() * 11;
+    return rand01() * 13; // exclude emoji
 }
 
 void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer &buffer) {
@@ -255,16 +273,19 @@ void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
 	float oset = buffer.GetEffectTimeIntervalPosition();
 
 	std::string Object_To_DrawStr = SettingsMap["CHOICE_Shape_ObjectToDraw"];
-    int thickness = GetValueCurveInt("Shape_Thickness", 1, SettingsMap, oset, SHAPE_THICKNESS_MIN, SHAPE_THICKNESS_MAX);
+    int thickness = GetValueCurveInt("Shape_Thickness", 1, SettingsMap, oset, SHAPE_THICKNESS_MIN, SHAPE_THICKNESS_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     int points = SettingsMap.GetInt("SLIDER_Shape_Points", 5);
     bool randomLocation = SettingsMap.GetBool("CHECKBOX_Shape_RandomLocation", true);
     bool fadeAway = SettingsMap.GetBool("CHECKBOX_Shape_FadeAway", true);
-    int xc = GetValueCurveInt("Shape_CentreX", 50, SettingsMap, oset, SHAPE_CENTREX_MIN, SHAPE_CENTREX_MAX) * buffer.BufferWi / 100;
-    int yc = GetValueCurveInt("Shape_CentreY", 50, SettingsMap, oset, SHAPE_CENTREY_MIN, SHAPE_CENTREY_MAX) * buffer.BufferHt / 100;
-    int lifetime = GetValueCurveInt("Shape_Lifetime", 5, SettingsMap, oset, SHAPE_LIFETIME_MIN, SHAPE_LIFETIME_MAX);
-    int growth = GetValueCurveInt("Shape_Growth", 10, SettingsMap, oset, SHAPE_GROWTH_MIN, SHAPE_GROWTH_MAX);
-    int count = GetValueCurveInt("Shape_Count", 5, SettingsMap, oset, SHAPE_COUNT_MIN, SHAPE_COUNT_MAX);
-    int startSize = GetValueCurveInt("Shape_StartSize", 5, SettingsMap, oset, SHAPE_STARTSIZE_MIN, SHAPE_STARTSIZE_MAX);
+    bool startRandomly = SettingsMap.GetBool("CHECKBOX_Shape_RandomInitial", true);
+    int xc = GetValueCurveInt("Shape_CentreX", 50, SettingsMap, oset, SHAPE_CENTREX_MIN, SHAPE_CENTREX_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS()) * buffer.BufferWi / 100;
+    int yc = GetValueCurveInt("Shape_CentreY", 50, SettingsMap, oset, SHAPE_CENTREY_MIN, SHAPE_CENTREY_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS()) * buffer.BufferHt / 100;
+    int lifetime = GetValueCurveInt("Shape_Lifetime", 5, SettingsMap, oset, SHAPE_LIFETIME_MIN, SHAPE_LIFETIME_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int growth = GetValueCurveInt("Shape_Growth", 10, SettingsMap, oset, SHAPE_GROWTH_MIN, SHAPE_GROWTH_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int count = GetValueCurveInt("Shape_Count", 5, SettingsMap, oset, SHAPE_COUNT_MIN, SHAPE_COUNT_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int startSize = GetValueCurveInt("Shape_StartSize", 5, SettingsMap, oset, SHAPE_STARTSIZE_MIN, SHAPE_STARTSIZE_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
+    int emoji = SettingsMap.GetInt("SPINCTRL_Shape_Char", 65);
+    std::string font = SettingsMap["FONTPICKER_Shape_Font"];
 
     int Object_To_Draw = DecodeShape(Object_To_DrawStr);
 
@@ -294,6 +315,7 @@ void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
     std::list<ShapeData*>& _shapes = cache->_shapes;
     int& _lastColorIdx = cache->_lastColorIdx;
     int& _sinceLastTriggered = cache->_sinceLastTriggered;
+    wxFontInfo& _font = cache->_font;
 
     float lifetimeFrames = (float)(buffer.curEffEndPer - buffer.curEffStartPer) * lifetime / 100.0;
     if (lifetimeFrames < 1) lifetimeFrames = 1;
@@ -302,6 +324,20 @@ void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
     if (buffer.needToInit)
     {
         buffer.needToInit = false;
+
+        _sinceLastTriggered = 0;
+
+        if (Object_To_Draw == RENDER_SHAPE_EMOJI)
+        {
+            wxFont ff(font);
+            ff.SetNativeFontInfoUserDesc(font);
+
+            _font = wxFontInfo(wxSize(0, 12));
+            _font.FaceName(ff.GetFaceName());
+            _font.Light();
+            _font.AntiAliased(false);
+            _font.Encoding(ff.GetEncoding());
+        }
 
         cache->DeleteShapes();
         _lastColorIdx = -1;
@@ -327,7 +363,11 @@ void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
                     _lastColorIdx = 0;
                 }
 
-                int os = rand01() * lifetimeFrames;
+                int os = 0;
+                if (startRandomly)
+                {
+                    os = rand01() * lifetimeFrames;
+                }
 
                 cache->AddShape(pt, startSize + os * growthPerFrame, buffer.palette.GetColor(_lastColorIdx), os, Object_To_Draw);
             }
@@ -462,8 +502,22 @@ void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
         }
     }
 
+    if (Object_To_Draw == RENDER_SHAPE_EMOJI)
+    {
+        auto context = buffer.GetTextDrawingContext();
+        context->Clear();
+    }
+
     for (auto it = _shapes.begin(); it != _shapes.end(); ++it)
     {
+        // if location is not random then update it to whatever the current location is
+        // as it may be value curve controlled
+        if (!randomLocation)
+        {
+            (*it)->_centre = wxPoint(xc, yc);
+        }
+
+
         (*it)->_oset++;
         (*it)->_size += growthPerFrame;
 
@@ -475,7 +529,8 @@ void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
         {
             float brightness = (float)(lifetimeFrames - (*it)->_oset) / lifetimeFrames;
 
-            if (buffer.allowAlpha) {
+            // draw text does not respect alpha
+            if (buffer.allowAlpha && Object_To_Draw != RENDER_SHAPE_EMOJI) {
                 color.alpha = 255.0 * brightness;
             }
             else {
@@ -511,6 +566,15 @@ void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
         case RENDER_SHAPE_TREE:
             Drawtree(buffer, (*it)->_centre.x, (*it)->_centre.y, (*it)->_size, color, thickness);
             break;
+        case RENDER_SHAPE_CRUCIFIX:
+            Drawcrucifix(buffer, (*it)->_centre.x, (*it)->_centre.y, (*it)->_size, color, thickness);
+            break;
+        case RENDER_SHAPE_PRESENT:
+            Drawpresent(buffer, (*it)->_centre.x, (*it)->_centre.y, (*it)->_size, color, thickness);
+            break;
+        case RENDER_SHAPE_EMOJI:
+            Drawemoji(buffer, (*it)->_centre.x, (*it)->_centre.y, (*it)->_size, color, emoji, _font);
+            break;
         case RENDER_SHAPE_CANDYCANE:
             Drawcandycane(buffer, (*it)->_centre.x, (*it)->_centre.y, (*it)->_size, color, thickness);
             break;
@@ -523,6 +587,32 @@ void ShapeEffect::Render(Effect *effect, SettingsMap &SettingsMap, RenderBuffer 
         default:
             wxASSERT(false);
             break;
+        }
+    }
+
+    if (Object_To_Draw == RENDER_SHAPE_EMOJI)
+    {
+        wxImage *i = buffer.GetTextDrawingContext()->FlushAndGetImage();
+        unsigned char* data = i->GetData();
+        unsigned char* alpha = i->HasAlpha() ? i->GetAlpha() : nullptr;
+        int w = i->GetWidth();
+        int h = i->GetHeight();
+        int cur = 0;
+        int curA = 0;
+        for (int y = h - 1; y >= 0; y--)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                xlColor c(data[cur], data[cur + 1], data[cur + 2]);
+                if (alpha) {
+                    c.SetAlpha(alpha[curA]);
+                }
+                if (c != xlBLACK) {
+                    buffer.SetPixel(x, y, c);
+                }
+                cur += 3;
+                ++curA;
+            }
         }
     }
 
@@ -555,7 +645,7 @@ void ShapeEffect::Drawcircle(RenderBuffer &buffer, int xc, int yc, double radius
 
 void ShapeEffect::Drawstar(RenderBuffer &buffer, int xc, int yc, double radius, int points, xlColor color, int thickness) const
 {
-    double interpolation = 0.75;
+    double interpolation = 0.6;
     double t = (double)thickness - 1.0 + interpolation;
     double offsetangle = 0.0;
     switch (points)
@@ -752,6 +842,134 @@ void ShapeEffect::Drawtree(RenderBuffer &buffer, int xc, int yc, double radius, 
         }
         radius -= interpolation;
     }
+}
+
+void ShapeEffect::Drawcrucifix(RenderBuffer &buffer, int xc, int yc, double radius, xlColor color, int thickness) const
+{
+    struct line
+    {
+        wxPoint start;
+        wxPoint end;
+
+        line(const wxPoint s, const wxPoint e)
+        {
+            start = s;
+            end = e;
+        }
+    };
+
+    const line points[] = {line(wxPoint(2,0), wxPoint(2,6)),
+                           line(wxPoint(2,6), wxPoint(0,6)),
+                           line(wxPoint(0,6), wxPoint(0,7)),
+                           line(wxPoint(0,7), wxPoint(2,7)),
+                           line(wxPoint(2,7), wxPoint(2,10)),
+                           line(wxPoint(2,10), wxPoint(3,10)),
+                           line(wxPoint(3,10), wxPoint(3,7)),
+                           line(wxPoint(3,7), wxPoint(5,7)),
+                           line(wxPoint(5,7), wxPoint(5,6)),
+                           line(wxPoint(5,6), wxPoint(3,6)),
+                           line(wxPoint(3,6), wxPoint(3,0)),
+                           line(wxPoint(3,0), wxPoint(2,0))
+    };
+    int count = sizeof(points) / sizeof(line);
+
+    double interpolation = 0.75;
+    double t = (double)thickness - 1.0 + interpolation;
+
+    for (double i = 0; i < t; i += interpolation)
+    {
+        if (radius >= 0)
+        {
+            for (int j = 0; j < count; ++j)
+            {
+                int x1 = std::round(((double)points[j].start.x - 2.5) / 7.0 * radius);
+                int y1 = std::round(((double)points[j].start.y - 6.5) / 10.0 * radius);
+                int x2 = std::round(((double)points[j].end.x - 2.5) / 7.0 * radius);
+                int y2 = std::round(((double)points[j].end.y - 6.5) / 10.0 * radius);
+                buffer.DrawLine(xc + x1, yc + y1, xc + x2, yc + y2, color);
+            }
+        }
+        else
+        {
+            break;
+        }
+        radius -= interpolation;
+    }
+}
+
+void ShapeEffect::Drawpresent(RenderBuffer &buffer, int xc, int yc, double radius, xlColor color, int thickness) const
+{
+    struct line
+    {
+        wxPoint start;
+        wxPoint end;
+
+        line(const wxPoint s, const wxPoint e)
+        {
+            start = s;
+            end = e;
+        }
+    };
+
+    const line points[] = {line(wxPoint(0,0), wxPoint(0,9)),
+                           line(wxPoint(0,9), wxPoint(10,9)),
+                           line(wxPoint(10,9), wxPoint(10,0)),
+                           line(wxPoint(10,0), wxPoint(0,0)),
+                           line(wxPoint(5,0), wxPoint(5,9)),
+                           line(wxPoint(5,9), wxPoint(2,11)),
+                           line(wxPoint(2,11), wxPoint(2,9)),
+                           line(wxPoint(5,9), wxPoint(8,11)),
+                           line(wxPoint(8,11), wxPoint(8,9))
+    };
+    int count = sizeof(points) / sizeof(line);
+
+    double interpolation = 0.75;
+    double t = (double)thickness - 1.0 + interpolation;
+
+    for (double i = 0; i < t; i += interpolation)
+    {
+        if (radius >= 0)
+        {
+            for (int j = 0; j < count; ++j)
+            {
+                int x1 = std::round(((double)points[j].start.x - 5) / 7.0 * radius);
+                int y1 = std::round(((double)points[j].start.y - 5.5) / 10.0 * radius);
+                int x2 = std::round(((double)points[j].end.x - 5) / 7.0 * radius);
+                int y2 = std::round(((double)points[j].end.y - 5.5) / 10.0 * radius);
+                buffer.DrawLine(xc + x1, yc + y1, xc + x2, yc + y2, color);
+            }
+        }
+        else
+        {
+            break;
+        }
+        radius -= interpolation;
+    }
+}
+
+void ShapeEffect::Drawemoji(RenderBuffer& buffer, int xc, int yc, double radius, xlColor color, int emoji, wxFontInfo& font) const
+{
+    if (radius < 1) return;
+
+    auto context = buffer.GetTextDrawingContext();
+
+    wxFontInfo fi(wxSize(0, radius));
+    fi.FaceName(font.GetFaceName());
+    fi.Light(font.GetWeight() == wxFONTWEIGHT_LIGHT);
+    fi.AntiAliased(font.IsAntiAliased());
+    fi.Encoding(font.GetEncoding());
+    
+    context->SetFont(fi, color);
+
+    wchar_t ch = emoji;
+
+    auto text = wxString(ch);
+
+    double width;
+    double height;
+    context->GetTextExtent(text, &width, &height);
+
+    context->DrawText(text, std::round((float)xc - width / 2.0), std::round((float)yc - height / 2.0));
 }
 
 void ShapeEffect::Drawcandycane(RenderBuffer &buffer, int xc, int yc, double radius, xlColor color, int thickness) const

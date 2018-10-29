@@ -2,6 +2,7 @@
 #include <wx/file.h>
 #include <wx/filename.h>
 #include <log4cpp/Category.hh>
+#include "../xLights/UtilFunctions.h"
 
 ESEQFile::ESEQFile()
 {
@@ -19,13 +20,13 @@ ESEQFile::ESEQFile(const std::string& filename)
 {
     _offset = 0;
     _channelsPerFrame = 0;
-    _filename = filename;
+    _filename = FixFile("", filename);
     _frames = 0;
     _fh = nullptr;
     _frameBuffer = nullptr;
     _frame0Offset = 0;
     _ok = true;
-    Load(filename);
+    Load(_filename);
 }
 
 ESEQFile::~ESEQFile()
@@ -97,8 +98,8 @@ void ESEQFile::Load(const std::string& filename)
 
     Close();
 
-    _filename = filename;
-    _fh = new wxFile(filename);
+    _filename = FixFile("", filename);
+    _fh = new wxFile(_filename);
 
     if (_fh->IsOpened())
     {
@@ -111,24 +112,24 @@ void ESEQFile::Load(const std::string& filename)
             ReadInt32(_fh); // models count ... should be 1
             _channelsPerFrame = ReadInt32(_fh);
             _offset = ReadInt32(_fh);
-            ReadInt32(_fh); // model size
+            _modelSize = ReadInt32(_fh); // model size
             //_frames = ReadInt32(_fh);
             _frameBuffer = (wxByte*)malloc(_channelsPerFrame);
 
-            wxFileName fn(filename);
+            wxFileName fn(_filename);
             _frames = (size_t)(fn.GetSize().ToULong() - _frame0Offset) / _channelsPerFrame;
 
-            logger_base.info("ESEQ file %s opened.", (const char *)filename.c_str());
+            logger_base.info("ESEQ file %s opened.", (const char *)_filename.c_str());
         }
         else
         {
-            logger_base.error("ESEQ file %s format does not look valid.", (const char *)filename.c_str());
+            logger_base.error("ESEQ file %s format does not look valid.", (const char *)_filename.c_str());
             Close();
         }
     }
     else
     {
-        logger_base.error("ESEQ file %s could not be opened.", (const char *)filename.c_str());
+        logger_base.error("ESEQ file %s could not be opened.", (const char *)_filename.c_str());
         Close();
     }
 }
@@ -146,5 +147,5 @@ void ESEQFile::ReadData(wxByte* buffer, size_t buffersize, size_t frame, APPLYME
     // read in the frame from disk
     _fh->Read(_frameBuffer, _channelsPerFrame);
 
-    Blend(buffer, buffersize, _frameBuffer, _channelsPerFrame, applyMethod, _offset);
+    Blend(buffer, buffersize, _frameBuffer, _modelSize, applyMethod, _offset - 1);
 }

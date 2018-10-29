@@ -4,6 +4,7 @@
 #include "ModelPreview.h"
 #include "DimmingCurve.h"
 #include "SevenSegmentDialog.h"
+#include "NodeSelectGrid.h"
 
 //(*InternalHeaders(ModelStateDialog)
 #include <wx/intl.h>
@@ -209,6 +210,8 @@ ModelStateDialog::ModelStateDialog(wxWindow* parent,wxWindowID id,const wxPoint&
     FlexGridSizer1->SetSizeHints(this);
     Center();
 
+    SetEscapeId(wxID_CANCEL);
+
     ValidateWindow();
 }
 
@@ -226,7 +229,7 @@ void ModelStateDialog::SetStateInfo(Model *cls, std::map< std::string, std::map<
     modelPreview->SetModel(cls);
 
     for (std::map< std::string, std::map<std::string, std::string> >::iterator it = finfo.begin();
-         it != finfo.end(); it++) {
+         it != finfo.end(); ++it) {
 
         std::string name = it->first;
         std::map<std::string, std::string> &info = it->second;
@@ -302,7 +305,7 @@ void ModelStateDialog::SetStateInfo(Model *cls, std::map< std::string, std::map<
 void ModelStateDialog::GetStateInfo(std::map< std::string, std::map<std::string, std::string> > &finfo) {
     finfo.clear();
     for (std::map<std::string, std::map<std::string, std::string> >::iterator it = stateData.begin();
-         it != stateData.end(); it++) {
+         it != stateData.end(); ++it) {
         if (!it->second.empty()) {
             finfo[it->first] = it->second;
         }
@@ -514,7 +517,19 @@ void ModelStateDialog::OnStateTypeChoicePageChanged(wxChoicebookEvent& event)
 
 void ModelStateDialog::OnNodeRangeGridCellLeftDClick(wxGridEvent& event)
 {
-    if (event.GetCol() == COLOUR_COL) {
+    if (event.GetCol() == CHANNEL_COL) {
+        std::string name = NameChoice->GetString(NameChoice->GetSelection()).ToStdString();
+        wxColor c = NodeRangeGrid->GetCellBackgroundColour(event.GetRow(), CHANNEL_COL);
+
+        NodeSelectGrid dialog(model, NodeRangeGrid->GetCellValue(event.GetRow(), CHANNEL_COL), this);
+
+        if (dialog.ShowModal() == wxID_OK)
+        {
+            NodeRangeGrid->SetCellValue(event.GetRow(), CHANNEL_COL, dialog.GetNodeList());
+            dialog.Close();
+        }
+    }
+    else if (event.GetCol() == COLOUR_COL) {
         std::string name = NameChoice->GetString(NameChoice->GetSelection()).ToStdString();
         wxColor c = NodeRangeGrid->GetCellBackgroundColour(event.GetRow(), COLOUR_COL);
         wxColourData data;

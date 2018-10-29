@@ -53,10 +53,10 @@ bool HttpServer::Start(const HttpContext &context)
 	_address.Service(_context.Port);
 
 	wxLogMessage(_("starting server on %s:%u..."), _address.IPAddress(), _address.Service());
-    logger_base.info(_("starting server on %s:%u..."), (const char *)_address.IPAddress().c_str(), _address.Service());
+    logger_base.info("starting server on %s:%u...", (const char *)_address.IPAddress().c_str(), _address.Service());
 
 	// Create the socket
-	_server = new wxSocketServer(_address);
+	_server = new wxSocketServer(_address, wxSOCKET_REUSEADDR);
 
 	// We use IsOk() here to see if the server is really listening
     if (!_server->IsOk())
@@ -75,7 +75,7 @@ bool HttpServer::Start(const HttpContext &context)
         else
         {
             wxLogMessage(_("server running on %s:%u"), address.IPAddress(), address.Service());
-            logger_base.info(_("server running on %s:%u"), (const char *)address.IPAddress().c_str(), address.Service());
+            logger_base.info("server running on %s:%u", (const char *)address.IPAddress().c_str(), address.Service());
         }
 
 		// Setup the event handler and subscribe to connection events
@@ -223,6 +223,8 @@ void HttpServer::OnSocketEvent(wxSocketEvent& event)
 			socket->Destroy();
 			break;
 		}
+    default:
+        break;
 	}
 
 #ifdef DETAILED_LOGGING

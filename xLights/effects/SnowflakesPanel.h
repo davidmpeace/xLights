@@ -3,73 +3,74 @@
 
 //(*Headers(SnowflakesPanel)
 #include <wx/panel.h>
-class wxTextCtrl;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
-class wxFlexGridSizer;
 class wxChoice;
+class wxFlexGridSizer;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
+
+#include "../BulkEditControls.h"
 
 class SnowflakesPanel: public wxPanel
 {
+    void ValidateWindow();
+
 	public:
 
 		SnowflakesPanel(wxWindow* parent);
 		virtual ~SnowflakesPanel();
 
 		//(*Declarations(SnowflakesPanel)
-		wxChoice* Choice_Falling;
-		wxSlider* Slider_Snowflakes_Type;
-		wxStaticText* StaticText80;
-		wxBitmapButton* BitmapButton16;
-		wxBitmapButton* BitmapButton_SnowflakesType;
-		wxStaticText* StaticText2;
-		wxBitmapButton* BitmapButton_SnowflakesCount;
-		wxSlider* Slider_Snowflakes_Count;
+		BulkEditChoice* Choice_Falling;
+		BulkEditSlider* Slider_Snowflakes_Count;
+		BulkEditSlider* Slider_Snowflakes_Speed;
+		BulkEditSlider* Slider_Snowflakes_Type;
+		BulkEditValueCurveButton* BitmapButton_Snowflakes_Count;
+		BulkEditValueCurveButton* BitmapButton_Snowflakes_Speed;
+		wxStaticText* StaticText181;
 		wxStaticText* StaticText1;
-		wxBitmapButton* BitmapButton1;
-		wxSlider* Slider_Snowflakes_Speed;
+		wxStaticText* StaticText2;
 		wxStaticText* StaticText79;
+		wxStaticText* StaticText80;
+		xlLockButton* BitmapButton_Falling;
+		xlLockButton* BitmapButton_SnowflakesCount;
+		xlLockButton* BitmapButton_SnowflakesSpeed;
+		xlLockButton* BitmapButton_SnowflakesType;
 		//*)
 
 	protected:
 
 		//(*Identifiers(SnowflakesPanel)
-		static const long ID_STATICTEXT80;
+		static const long ID_STATICTEXT_Snowflakes_Count;
 		static const long ID_SLIDER_Snowflakes_Count;
+		static const long ID_VALUECURVE_Snowflakes_Count;
 		static const long IDD_TEXTCTRL_Snowflakes_Count;
 		static const long ID_BITMAPBUTTON_SLIDER_Snowflakes_Count;
-		static const long ID_STATICTEXT81;
+		static const long ID_STATICTEXT_Snowflakes_Type;
 		static const long ID_SLIDER_Snowflakes_Type;
 		static const long IDD_TEXTCTRL_Snowflakes_Type;
 		static const long ID_BITMAPBUTTON_SLIDER_Snowflakes_Type;
+		static const long ID_STATICTEXT_Snowflakes_Speed;
 		static const long ID_SLIDER_Snowflakes_Speed;
+		static const long ID_VALUECURVE_Snowflakes_Speed;
 		static const long IDD_TEXTCTRL_Snowflakes_Speed;
-		static const long ID_BITMAPBUTTON34;
-		static const long ID_STATICTEXT1;
+		static const long ID_BITMAPBUTTON_SLIDER_Snowflakes_Speed;
+		static const long ID_STATICTEXT_Falling;
 		static const long ID_CHOICE_Falling;
 		static const long ID_STATICTEXT2;
-		static const long ID_BITMAPBUTTON1;
+		static const long ID_BITMAPBUTTON_CHOICE_Falling;
 		//*)
 
 	public:
 
 		//(*Handlers(SnowflakesPanel)
-    void UpdateLinkedSliderFloat(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-    void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-    void UpdateLinkedSlider360(wxCommandEvent& event);
-    void UpdateLinkedTextCtrl(wxScrollEvent& event);
-    void UpdateLinkedSlider(wxCommandEvent& event);
-    void OnLockButtonClick(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-    void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
-    void OnVCButtonClick(wxCommandEvent& event);
-    void OnVCChanged(wxCommandEvent& event);
-    void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-    void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
-    //*)
+		void OnLockButtonClick(wxCommandEvent& event);
+		void OnVCButtonClick(wxCommandEvent& event);
+		void OnVCChanged(wxCommandEvent& event);
+		void OnChoice_FallingSelect(wxCommandEvent& event);
+		//*)
 
 		DECLARE_EVENT_TABLE()
 };

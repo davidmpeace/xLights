@@ -40,7 +40,7 @@ wxString DecodeStart(long start)
 int EncodeStarts(const wxString& start)
 {
     int i = 0;
-    for (auto it = TOP_BOT_LEFT_RIGHT.GetLabels().begin(); it != TOP_BOT_LEFT_RIGHT.GetLabels().end(); it++)
+    for (auto it = TOP_BOT_LEFT_RIGHT.GetLabels().begin(); it != TOP_BOT_LEFT_RIGHT.GetLabels().end(); ++it)
     {
         if (*it == start)
         {
@@ -84,7 +84,7 @@ void SpinnerModel::AddTypeProperties(wxPropertyGridInterface *grid) {
     p->SetAttribute("Max", 360);
     p->SetEditor("SpinCtrl");
 
-    p = grid->Append(new wxEnumProperty("Starting Location", "MatrixStart", TOP_BOT_LEFT_RIGHT, IsLtoR ? (isBotToTop ? 2 : 0) : (isBotToTop ? 3 : 1)));
+    grid->Append(new wxEnumProperty("Starting Location", "MatrixStart", TOP_BOT_LEFT_RIGHT, IsLtoR ? (isBotToTop ? 2 : 0) : (isBotToTop ? 3 : 1)));
 
     p = grid->Append(new wxBoolProperty("Zig-Zag Start", "ZigZag", zigzag));
     p->SetEditor("CheckBox");
@@ -180,15 +180,16 @@ void SpinnerModel::InitModel() {
         }
     }
     else {
+        int chanPerNode = GetNodeChannelCount(StringType);
         SetBufferSize(nodesperarm, armcount);
         for (size_t x = 0; x < armcount; x++) {
             int stringnum = x / armsperstring;
             int segmentnum = x % armsperstring;
             for (size_t y = 0; y < nodesperarm; y++)
             {
-                size_t idx = stringnum * pixelsperstring + segmentnum * nodesperarm + y;
-                Nodes[idx]->ActChan = stringStartChan[stringnum] + segmentnum * nodesperarm * 3 + y * 3;
-                Nodes[idx]->Coords[0].bufX = IsLtoR != (segmentnum % 2 == 0) ? x : armcount - x - 1;
+                size_t idx = x * nodesperarm + y;
+                Nodes[idx]->ActChan = stringStartChan[stringnum] + segmentnum * nodesperarm * chanPerNode + y * chanPerNode;
+                Nodes[idx]->Coords[0].bufX = IsLtoR ? x : armcount - x - 1;
                 if (!zigzag)
                 {
                     Nodes[idx]->Coords[0].bufY = isBotToTop ? y : nodesperarm - y - 1;
@@ -223,15 +224,27 @@ void SpinnerModel::InitRenderBufferNodes(const std::string &type, const std::str
         int nodesperarm = parm2;
         int armsperstring = parm3;
         int cur = 0;
-        for (size_t y = 0; y < stringcount*armsperstring; y++) {
-            for (int x = 0; x<nodesperarm; x++) {
-                int idx = y * nodesperarm + x;
-                newNodes.push_back(NodeBaseClassPtr(Nodes[idx]->clone()));
-                for (size_t c = 0; c < newNodes[cur]->Coords.size(); c++) {
-                    newNodes[cur]->Coords[c].bufX = cur;
-                    newNodes[cur]->Coords[c].bufY = 0;
+        if (SingleNode)
+        {
+            newNodes.push_back(NodeBaseClassPtr(Nodes[0]->clone()));
+            for (size_t c = 0; c < newNodes[cur]->Coords.size(); c++) {
+                newNodes[cur]->Coords[c].bufX = cur;
+                newNodes[cur]->Coords[c].bufY = 0;
+            }
+            cur++;
+        }
+        else
+        {
+            for (size_t y = 0; y < stringcount*armsperstring; y++) {
+                for (int x = 0; x < nodesperarm; x++) {
+                    int idx = y * nodesperarm + x;
+                    newNodes.push_back(NodeBaseClassPtr(Nodes[idx]->clone()));
+                    for (size_t c = 0; c < newNodes[cur]->Coords.size(); c++) {
+                        newNodes[cur]->Coords[c].bufX = cur;
+                        newNodes[cur]->Coords[c].bufY = 0;
+                    }
+                    cur++;
                 }
-                cur++;
             }
         }
         ApplyTransform(transform, newNodes, BufferWi, BufferHi);
@@ -338,8 +351,8 @@ void SpinnerModel::SetSpinnerCoord() {
     
     float min = 99999;
     float max = -9999;
-    for (auto it = Nodes.begin(); it != Nodes.end(); it++) {
-        for (auto it2 = (*it)->Coords.begin(); it2 != (*it)->Coords.end(); it2++) {
+    for (auto it = Nodes.begin(); it != Nodes.end(); ++it) {
+        for (auto it2 = (*it)->Coords.begin(); it2 != (*it)->Coords.end(); ++it2) {
             min = std::min(min, it2->screenY);
             max = std::max(max, it2->screenY);
         }
@@ -357,5 +370,9 @@ int SpinnerModel::CalcCannelsPerString() {
     if (SingleNode) {
         return GetNodeChannelCount(StringType);
     }
-    return GetNodeChannelCount(StringType) * parm2;
+    return GetNodeChannelCount(StringType) * parm2 * parm3;
+}
+
+int SpinnerModel::NodesPerString() {
+    return SingleNode ? 1 : parm2 * parm3;
 }

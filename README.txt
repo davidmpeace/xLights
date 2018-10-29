@@ -1,5 +1,5 @@
-﻿xLights is a show sequencer and player/scheduler designed to control
-USB/sACN(e1.31)/ArtNET(e.1.17) controllers.
+xLights is a show sequencer and player/scheduler designed to control
+USB/sACN(e1.31)/ArtNET(e.1.17)/DDP controllers.
 xLights also integrates with the Falcon Player.
 xLights imports and exports sequence data from sequencers such as LOR (SE & SS),
 Vixen2, LSP, HLS.
@@ -9,20 +9,736 @@ Videos tutorials are found at videos.xlights.org
 Forums are located at nutcracker123.com/forum
 Issue Tracker is found here: www.github.com/smeighan/xLights/issues
 
-XLIGHTS/NUTCRACKER RELEASE NOTES: 
+XLIGHTS/NUTCRACKER RELEASE NOTES
 ---------------------------------
+2018.40 October 29, 2018
+   -- enh (keith)  Allow user to change row header text colour and fix time/frame rate text unreadable on OSX
+   -- enh (keith)  Increase maximum DMX channels
+   -- bug (keith)  Fix crash caused by exporting small model ESEQ files
+   -- bug (keith)  Add tracing of frames intervals that are twice as long as they should be
+   -- bug (keith)  Try again to fix OSX schedule time issues
+   -- bug (keith)  Fix crash creating LCB files
+   -- bug (keith)  More fixes to rendered faces
+   -- bug (keith)  Fixes to Falcon F4 upload
+2018.39 October 27, 2018
+   -- enh (keith)  Add Not So Big Buttons plugin to xschedule
+   -- bug (keith)  Fix face effect not rendering the mouth
+2018.38 October 26, 2018
+   -- enh (gil)    Resize FSEQ data during save if sequence timing has changed.
+   -- bug (dkulp)  Fix dimming/gamma curves on single channel models
+   -- enh (keith)  Add music value curves that track music intensity
+   -- enh (keith)  #1297 Add a to text playlist item ability to count down a number of seconds
+   -- bug (keith)  #1299 Fix start channel cancel button does not work
+   -- bug (keith)  #1300 Crash on initialising single channel spinner model
+   -- bug (keith)  #1287/#1288 Fix controller connection not updating into model list
+   -- bug (keith)  #1289 xschedule eseq off by one problem
+   -- enh (keith)  xCapture allow user to set frame time to specific MS
+   -- enh (keith)  Add bulk edit of filename and pathname on picture, video and glediator effect file picker
+   -- enh (keith)  Add xSchedule API to "Clear background playlist"
+   -- bug (keith)  #1286 switching musical sequence to animation does not completely remove audio
+   -- bug (keith)  Fix xSchedule looks like it needs saving immediately after it is loaded
+   -- enh (keith)  Add to model list right click menu ability to remove all empty groups
+   -- bug (keith)  Fix crash when deleting models on layout panel
+   -- bug (keith)  Address a bunch of issues with the rendered face effect not behaving like other face effects
+   -- bug (keith)  Address start/end schedule time not saving correctly on OSX
+2018.37 October 21, 2018
+   -- bug (keith)  Redevelop EDM RDS playlistitem to use radiotext
+   -- bug (keith)  Face and state effect dont recognise backward ranges
+   -- bug (keith)  Force xSchedule to only recognise HH:MM:SS time format
+   -- enh (keith)  Add export to an really large image file the wiring diagram ... useful for really dense models
+   -- enh (keith)  Add bulk controller upload ... upload to multiple controllers (of the same type).
+   -- bug (keith)  Fix cant add groups into groups
+   -- enh (keith)  Allow subbuffer to be moved (use ctrl/shift-ctrl to constrain axis of movement)
+   -- enh (keith)  Add ability to apply a subbuffer to selected effects - kind of like bulk edit
+   -- bug (keith)  Effects copied/imported from groups using group only buffer styles dont render on models when placed there
+2018.36 October 12, 2018
+   -- end (will)   Ability to hide header/footer on buttons plugin. Add &args=noheader to URL.
+   -- enh (gil)    Increase the packet sized for the LOROptimisedOutput.
+   -- enh (gil)    Fix horizontal and vertical distribute in Layout panel.  Fixes #1219.
+   -- enh (gil)    Prevent creating LOR data unless sequence timing is a multiple of 10ms.  Add warnings.
+   -- enh (keith)  Add Vixen 3 timing mark import
+   -- enh (keith)  Add higher priority schedules optional graceful interruption of lower priority schedules
+   -- enh (keith)  Add to check sequence check on matrix face effect files
+   -- bug (keith)  Fix F48 upload where controller in as new state and attempting to put 1074 or more pixels on bank 1 & 2.
+   -- bug (keith)  Fix audio controls dont work properly on tabs other than sequencer
+   -- enh (keith)  Add to face effect the ability to auto hide when no phoneme to single
+   -- enh (keith)  Add more bulk edits to the face effect
+   -- enh (keith)  Add more rotozoom and subbuffer checks to face effect ... these produce unexpected results that are hard to troubleshoot
+   -- enh (keith)  Make it easier to define virtual matrices 1:1 sized with pixel data and even multiples thereof
+   -- enh (keith)  Add a fade in/out play list item
+   -- enh (keith)  Add manual video speed control to video effect including the ability to play it backwards
+   -- enh (keith)  Add a "Set playlist as background" api to xschedule
+   -- bug (keith)  Handle overlapping models better in falcon/esp pixel stick uploads
+   -- enh (keith)  Smart entry of start channel and controller connection. #1 -> #1:1, 1 -> WS2811:1
+   -- enh (keith)  In start channel dialog allow user to filter to just models in current preview
+   -- enh (keith)  Get ESC working as shortcut to cancel most dialogs
+2018.35 October 6, 2018
+   -- enh (gil)    Add New Timing Track from row header right-click now provides all timing options. Fixes #377.
+   -- bug (gil)    Fix multi-arch nodes incorrectly ordered when using Blue Square start.  Fixes #1162 and Fixes #454.
+   -- bug (gil)    Fix WiringDialog scaling for some Windows machines.
+   -- bug (gil)    Prevent Arches and Icicles from drawing upside down when drawn right to left.
+   -- enh (gil)    LOROptimised output nows skips frames when not keeping up.  Prevents blue screen crash when turning off output to lights.
+   -- bug (gil)    Fix LOROptimised output to work in Test dialog. Fixes #1262.
+   -- bug (dkulp)  Fix issues if rgbeffects.xml does not contain ALL the colors we need to things get mapped to black
+   -- bug (dkulp)  When clicking/modifying a single effect, the restricted node range was not being used correctly
+                   (all channels above the max node in the model were not considered restricted)
+                   Fixes #1253
+   -- bug (keith)  Flag as an error attempts to define too many input universes on a falcon controller
+   -- bug (keith)  Prevent crash in animation sequence if length is changes to zero
+   -- bug (keith)  Fix ctrl-shift-right arrow doesnt always stretch effects
+   -- bug (keith)  Guarantee minimum size of the display elements panel when it is shown
+   -- bug (keith)  Fix vixen export generates illegal sequence timing
+   -- enh (keith)  Add new xSchedule APIs for stopping event playlists: Stop event playlist; Stop event playlist if playing step
+2018.34 October 1, 2018
+   -- enh (dkulp)  On OSX, detect if default audio device changes and move audio to new device
+   -- enh (dkulp)  Update to newer standard dictionary
+   -- bug (dkulp)  Loading dictionaries did not properly use utf-8.  Fixes #1247
+   -- enh (scott)  Added Start and End Time to the Lyric Dialog
+   -- bug (scott)  Fixed Missing Nodes on Node Select Dialog
+   -- bug (keith)  Fix row paste always pastes to top row on model
+   -- bug (keith)  Get artnet timecode working correctly proven with TimeLord and Madrix
+   -- enh (keith)  Add MIDI timecode support
+   -- bug (keith)  Fix crash on right click after undoing an effect add
+   -- bug (keith)  Fix start channel dialog does not list outputs which use ids rather than universes
+   -- bug (keith)  Fix on effect cycles should be 0-100 not 0-1000 and value of 10 acted like 1
+   -- bug (keith)  Fix models list export gets end channel on model groups wrong
+   -- bug (keith)  Fix xschedule rapid restart on linux unable to listen on http port
+   -- bug (keith)  Fix custom model background image does weird colour things when you dim it down
+   -- enh (keith)  Add 7 pixel fonts to text effect
+   -- bug (keith)  Allow blink for rest and off static phonemes
+   -- bug (keith)  Fix some quirks in xschedule date handling that only show up in months with less than 31 days
+2018.33 September 7, 2018
+   -- enh (dkulp)  Bunch of performance updates for Test dialog on OSX
+   -- bug (keith)  FPP Upload extra logging and delete any existing file before upload
+   -- bug (keith)  Change the way we detect falcon model/version as 2.01 firmware broke it
+   -- bug (keith)  Fix hang selecting model group on layout panel
+2018.32 September 6, 2018
+   -- enh (scott)  Added Node Select Dialog to the SubModel, Faces, and State Dialogs
+   -- enh (scott)  Added import/export to colour manager dialog
+   -- bug (keith)  Fix output to lights incorrect for grouped universes
+   -- bug (keith)  Some fixes for text effect
+   -- bug (keith)  Fix value curves not resetting on some effects
+   -- bug (keith)  Fix falcon upload serial validation incorrect
+   -- bug (keith)  Fix screen wont update after exporting preview to video
+   -- bug (keith)  Fix some number pad keys dont work
+   -- enh (keith)  Consolidate render cache folders
+2018.31 August 30, 2018
+   -- bug (dkulp)  Fix performance regression for "Sparkles reflect music"
+   -- bug (gil)    Fix timings not snapping when not zoomed in. Fixes #1221.
+   -- enh (scott)  Added Submodel Draw Dialog
+   -- enh (keith)  Rewrite falcon and espixel stick upload to reduce edge cases which cannot be supported for upload
+   -- bug (keith)  Fix window frame model wont accept anti-clockwise setting
+   -- bug (keith)  Insert gap for node in custom model renumbering all nodes
+   -- bug (keith)  When start channel on model changed models in groups can become invalid causing crashes on layout panel
+   -- bug (keith)  xCapture does not handle properly when it cant listen for e131/artnet
+   -- bug (keith)  Fix xSchedule lags every second on Linux ... these changes will also improve all platforms when the on second processing runs
+   -- enh (keith)  Replace model prompts to copy replaced model start channel if it doesnt look like you have set the start channel on the replacement model
+   -- bug (keith)  Fix zoom link
+   -- bug (keith)  Fix non ip outputs not listed in the universe dropdown on start channel dialog
+   -- bug (dkulp)  Fix esc to stop render on osx
+   -- bug (dkulp)  Fix occasional crash when changing show directories
+2018.30 August 22, 2018
+   -- bug (kevin)  Fix house preview video export on Windows with high DPI settings
+   -- enh (keith)  Change the colour panel update button to purely apply the colour palette. All other colour settings are ignored.
+   -- enh (keith)  Add the ability to change custom model background image from within the model data dialog
+   -- enh (keith)  Strip out some buttons and replace them with a right click menu with enhancements to create
+                   gaps in node numbers, compress node numbers to remove gaps, trim blank rows and columns from the edges of the
+				   model and a shrink function that helps reduce the model size.
+   -- enh (keith)  Give user some ability to influence minimum model size generated by Generate Custom Model and prevent some over
+                   optimised custom models being generated
+   -- fix (keith)  Crash if use home/end while editing a field
+   -- fix (keith)  Hang or slowness opening a new sequence after previously rendering another sequence
+2018.29 August 19, 2018
+   -- enh (keith)  Add key binding support for presets
+   -- enh (keith)  Add a link to zoom in the help menu
+   -- bug (keith)  Unable to enter text in controls if key is assigned in keybindings
+   -- enh (keith)  Add warning about setting which stops FSEQ save as that setting is undesirable for most users
+   -- bug (keith)  Fix a bunch of minor errors in xSchedule - play random step in specified playlist, some play list item names not saving, high midi cpu
+   -- enh (keith)  Allow timing mark creation after pausing playback
+   -- bug (keith)  Fix timing tags dont load properly
+   -- bug (keith)  Fix morph text control is not editable
+2018.28 August 18, 2018
+   -- bug (gil)    Fix VSA Imports with multiple event types and treat DMX relays as 8bit effects.
+   -- enh (keith)  Extend significantly the keybindings available functions
+   -- bug (keith)  Fix text boxes with sliders where zero is not valid are hard to edit
+   -- bug (keith)  Fix single segment polyline allows individual start channels
+   -- bug (keith)  Fix video drift in generate custom model video watcher
+   -- bug (keith)  Yet another tweak to the animated GIF reader
+   -- bug (keith)  Fix right click after selecting models to create a group omits selected model
+   -- bug (keith)  Minimise render events when bulk editing
+   -- bug (keith)  Direct user in check sequence how to fix legacy value curves
+   -- bug (dkulp)  Fix reading back from render cache changes pixel colour
+2018.27 August 11, 2018
+   -- bug (dkulp)  Fix some issues with subbuffers
+   -- bug (dkulp)  Dont double up the windows menu
+   -- enh (keith)  Allow matrix faces to be dropped on submodels
+2018.26 August 10, 2018
+   -- enh (dkulp)  Use parallel algorithms in Twinkle/Butterfly/Plasma/Warp/Meteors effects to speed them up
+   -- bug (keith)  Fix variable subbuffers not calculating correctly
+   -- bug (keith)  Fix yet more animated gif issues
+   -- bug (keith)  Fix some effects are wrapping pixels (eg picture, pinwheel)
+   -- bug (keith)  Add back start parameter to sine based curves because timeoffset was not quite equivalent
+   -- enh (kevinp) New save icons
+2018.25 August 8, 2018
+   -- bug (keith)  Prevent a crash due to value curves on sub-buffers. This stops the crash but the subbuffer is wrong ... further fixes to come.
+   -- enh (keith)  Remove flag that prevents effects grid paste until a copy has been performed
+   -- bug (keith)  Fix non default perspective with floating windows does not load correctly
+   -- bug (keith)  Fix a problem with transparent gifs
+   -- bug (keith)  Fix a few bugs with render cache
+   -- bug (keith)  Fix check sequence flags controller upload issue on multicast universes ... these should be ignored
+   -- bug (keith/scott)  FPP Connect unable to find/upload sequences if not saving FSEQ files in show folder
+   -- enh (scott)  Added Refresh Button to FPP Connect USB Upload
+2018.24 August 5, 2018
+   -- enh (keith)  Allow exclusion of channels in xFade from blending/brightness control
+   -- enh (keith)  Add a sample on warp mode which samples a pixel from the underlying layer and sets the whole model to that colour
+   -- enh (keith)  Add optional render cache ... likely to improve average render times by 30-50%.
+   -- bug (keith)  Fix initialisation of model individual start channels
+   -- bug (keith)  Rework unmask again as the last rework only handled pure black ... this version restores the old unmask which doesnt really unmask and adds a true unmask.
+   -- enh (keith)  Add ESC key to cancel of render all
+   -- bug (keith)  Fix transparent GIFs not rendering correctly
+   -- enh (keith)  Add "Play specified playlist if not playing <playlist name>" and "Play specified playlist if nothing playing <playlist name>" commands to xSchedule
+   -- enh (dkulp)  Introduce multithreading to layer blending
+2018.23 July 27, 2018
+   -- enh (gil)    Increase DMX Effect/Panel to 40 channels.
+   -- enh (gil)    Changed the default channel assignments for the Skulltronix Skull option so that you can set
+                   the start channel to 1 and the Power channel will start at channel 8, Jaw at 9, etc.
+   -- enh (gil)    Added the default Node Names for the Skulltronix Skull option.
+   -- enh (gil)    Timing duration is now read from VSA file instead of a hard-coded 33ms.
+   -- bug (gil)    Corrected VSA import issue when there are inactive tracks mixed in with active tracks.  Fixes #1190.
+   -- bug (keith)  Add in bulk edit for canvas mode
+   -- bug (keith)  Fix bug which crashed house video export when writing last frame
+   -- bug (keith)  Fix audio/video sync for some video files
+   -- bug (keith)  Fix crash due to some GIF files where first frame was not the full frame size. Include support for GIF backgrounds
+   -- bug (keith)  Fix check sequence Canvas mode checks
+   -- enh (keith)  Add Y offset to wave effect
+   -- bug (keith)  Fix square wave to make it recognise thickness and mirror properties
+   -- bug (keith)  Fix strobe and meteors incorrectly drawing when responding to music but no music present
+   -- bug (keith)  Fix Add DDP not disabled when outputting to lights
+   -- bug (keith)  Fix align models does not save positions correctly.
+   -- bug (keith)  Fix audio frame data not always prepared correctly leading to audio dependent effects not working as expected
+   -- enh (keith)  Add MIDI scan to setup of MIDI triggered events in xSchedule
+   -- bug (scott)  Fix crash if new group name is blank
+   -- bug (cjd)    Revert to GTK2 due to ongoing instability in GTK3/wxWidgets support
+2018.22 July 8, 2018
+   -- bug (scott)  Fix FSEQ not being saved by default in same folder as xml
+   -- enh (scott)  Add custom papagayo dictionary editor
+   -- enh (keith)  Remove emptry vendor model categories
+   -- bug (keith)  Fix memory leak impacting xschedule and xlights
+   -- enh (keith)  Allow user to decide how interactively crashes are handled
+   -- bug (keith)  Fix windows upgrade detection because xLights website page it was using is broken
+   -- enh (keith)  Add a library of DMX fixtures
+   -- bug (keith)  Fix bug in spirals effect rotation value curve
+   -- enh (keith)  Add checksequence check for spurious use of canvas blend style which slows down rendering
+   -- bug (gil)    Fix VSA import.
+2018.21 July 4, 2018
+   -- bug (scott)  Fix Roto-Zoom reset bug
+2018.20 July 2, 2018
+   -- bug (keith)  Fix warp treatment flips to constant
+   -- bug (keith)  Fix bulk edit crash
+   -- bug (keith)  Fix changing audio speed starts audio playback
+   -- enh (scott)  Enhance submodel copy to prompt about overwriting like named submodels
+   -- bug (scott)  Prevent blank submodel names
+2018.19 June 30, 2018
+   -- bug (keith)  Fix warp treatment flips to constant
+   -- bug (keith)  Fix bulk edit crash
+   -- bug (keith)  Fix submodel dialog crash
+   -- bug (keith)  Fix mapping to strands does not work after a model is renamed
+   -- bug (keith)  Fix unmask blend style so it doesnt turn black areas white
+   -- bug (keith)  Change the way rendering is triggered to try to stop some crashes
+   -- enh (keith)  Add value curves to marquee
+   -- enh (keith)  Fully script the windows release process
+   -- enh (keith)  Optimise xSchedule performance
+2018.18 June 25, 2018
+   -- bug (keith)  Fix audio wont stop playing
+   -- enh (keith)  Add support for Falcon F48
+2018.17 June 24, 2018
+   -- enh (kevin)  Add 'circular swirl' to warp effect
+   -- enh (kevin)  Add 'drop' to warp effect
+   -- enh (kevin)  Add 'wavy' to warp effect
+   -- bug (kevin)  Fix issues with warp effect panel
+   -- bug (keith)  Some xFade fixes and improved UI information
+   -- bug (keith)  Fix layered RGB star doesnt render more than 1 node
+   -- enh (keith)  Add display of % location in morph effect assist
+   -- bug (keith)  Some tweaks to wiring view display
+   -- enh (keith)  Some jukebox configuration improvements
+   -- enh (keith)  Add advance button to xFade for shows on rails
+   -- bug (keith)  Fix blank city name sunrise/set crash
+   -- enh (keith)  Recognise sunup and sundown and similies for sunset and sunrise
+   -- enh (scott)  Submodel import should skip submodels that already exist in the model
+   -- enh (keith)  For multiple firing schedule make the fire time relative the the schedule start time.
+   -- bug (keith)  Fix some issues with multi-firing schedules.
+   -- enh (keith)  Add activate and deactivate a schedule via an API call to xSchedule
+   -- enh (keith)  Add a microphone playlist item to xSchedule to set pixel colors in real time
+   -- enh (keith)  Add ability to make black transparent in video, pictures and matrix faces
+   -- bug (keith)  Fix servo effect values incorrect
+   -- bug (keith)  Fix bulk edit doesnt work on effects with two word names
+   -- bug (keith)  Loading sequence to non existing model wont map to strands or submodels
+2018.16 June 17, 2018
+   -- enh (kevin)  Added warp effect for use with canvas blend style
+   -- enh (scott)  Added Vixen FSEQ File Support to xSchedule
+   -- enh (dkulp)  Scale bitmap buttons for locks/value curves, color panels on HiDPI screens
+   -- enh (dkulp)  New high-res lock/unlock icons
+   -- enh (dkulp)  Initial support for using system background colors
+   -- bug (dkulp)  TouchBar forward/back buttons reversed
+   -- enh (scott)  Added "Copy", "Import from Model", and "Import from File" Buttons to the Submodel Dialog.
+					- Copy The Currently Selected SubModel.
+					- Import SubModels from another Model.
+					- Import SubModels from a xmodel files.
+   -- enh (keith)  Add xFade
+   -- bug (keith)  Windows update does not directly download zip file
+   -- bug (keith)  xCapture doesnt filter out non ArtDMX packets
+2018.15 June 10, 2018
+   -- enh (dkulp)  Big speedup for Canvas mode
+   -- enh (keith)  Add PixelEditor import
+   -- bug (keith)  Fix LMS CCR imports not working correctly
+   -- bug (keith)  Fix delete and select on a node row not working
+   -- enh (keith)  Add ability for xSchedule to trigger a jukebox item
+   -- enh (keith)  Add the ability to shift a set of selected effects by a given time interval
+   -- enh (keith)  Add collapse all layers to row heading right click menu
+   -- enh (keith)  Add parent model to submodel names when they are in groups and the group is expanded in sequencer
+   -- enh (keith)  Add the ability to time shift value curves
+   -- enh (keith)  Add -o command line option to turn on output to lights when xlights starts
+   -- bug (keith)  Fixes for crashes in xLights, xSchedule and xCapture
+2018.14 May 23, 2018
+   -- enh (keith)  Add select/copy/paste all effects on a model
+   -- enh (keith)  Add windows check for newer version
+   -- enh (keith)  Add search to sequences/lyrics download
+   -- enh (keith)  Add CSV format to Glediator effect. Each line is a frame, each column is a channel.
+   -- bug (keith)  Fix image model does not work in a group correctly
+   -- enh (keith)  Add ability to syncronise shape effects
+   -- bug (keith)  Add fixes to keep available render buffers correct
+   -- enh (keith)  Add white channel support to the DMX model
+   -- enh (keith)  Add video render caching to eliminate the need to continually shrink large videos
+   -- enh (keith)  Add support for sunrise and sunset to schedule
+   -- bug (keith)  Fix some anomalies with resetting schedules
+   -- bug (scott)  Fix for new sequence files saving in the FSEQ folder not the show folder
+   -- enh (scott)  Added File Read option to Text Playlist Item in xSchedule
+2018.13 May 12, 2018
+   -- bug (scott)  Fix an issue with xml/fseq saving
+   -- bug (keith)  Fix music download doesnt show artist tag
+   -- enh (keith)  Add ability to periodically schedule a playlist within a time interval - hourly, half hourly, etc
+2018.12 May 11, 2018 - withdrawn
+   -- enh (dkulp)  Support for 4 channel pixel strings (RGBW variants)
+   -- enh (dkulp)  Allow specifying how to handle mapping of RGB -> RGBW
+   -- bug (dkulp)  Hostnames were not usable in several places, had to use IP addresses
+   -- enh (dkulp)  FPP Connect - upload output settings for DDP outputs
+   -- bug (dkulp)  Fix crash if uploading zig zag settings to FPP controller
+   -- enh (scott)  Added Folder Setting dialog for Media, FSEQ, Backup, and Alt Backup Directories.
+   -- bug (keith)  Fix tendril crash when movement was set to zero
+   -- bug (keith)  Upgrade some check sequence warnings to errors
+   -- bug (keith)  More fixes for images on resizing buffers
+   -- bug (keith)  Fix test dialog issues for model groups that contain submodels
+   -- bug (keith)  Fix import from sequence with nothing to import causes crash
+   -- enh (keith)  Add value curves to snowflakes and meteors
+   -- bug (keith)  Fix discard on exit prompts for recovery when sequence next opened
+   -- bug (keith)  Fix bulk edit not working on some effects
+   -- enh (keith)  Add the ability to drop an image, video or glediator files onto grid and create the right effects
+   -- enh (keith)  Rework canvas blend style to support canvas and blend at the same time
+   -- bug (keith)  Fix a bunch of problems with output id's such as not saving them, missing on LOR etc
+   -- enh (keith)  Add the ability to save and load face mappings
+   -- bug (keith)  Get xCapture working correctly with multicast data
+   -- enh (keith)  Rework PJLink. Existing PJLinks will stop working replaced by a new projector play list item which
+                   knows how to control many more projector models
+   -- enh (keith)  Add support for sparse submodel buffers and label rows more clearly
+   -- bug (keith)  Some fixes to auto custom model that significantly improve the model generated ... reduce the
+                   number of missed pixels and the ability to process poor video
+   -- enh (keith)  Add jukebox
+   -- enh (keith)  Add lyric track and sequence download
+   -- enh (keith)  Add random value curve setting. Convert to custom once you are happy with your curve or it will
+				   keep changing every time the effect is rendered.
+2018.11 Apr 14, 2018
+   -- enh (dkulp)  Add ability to upload string/dmx configs for various FPP v2 Capes/Hats
+   -- enh (dkulp)  Update FPP to support v2 channel input and output configs
+   -- enh (keith)  Add the ability to select the layers included in Canvas blend mode
+   -- bug (keith)  Rework the value curve fix
+   -- bug (keith)  Some fixes to FPP event sending in xSchedule
+   -- bug (keith)  Fix test mode RGB modes
+   -- bug (keith)  Fix some xSchedule crashes
+2018.10 Apr 9, 2018
+   -- enh (cjd)    Add -c/-x options to run xCapture/xSchedule via main binary on linux
+   -- bug (dkulp)  The "skips" in the Marquee effect should be "clear", not black
+   -- enh (keith)  Add xSchedule event which fires when a controller becomes unreachable
+   -- bug (keith)  Some fixes to value curves with divisors
+   -- bug (keith)  Fixes to x/y shape position value curves
+   -- bug (keith)  Fix for some issues with scaled pictures in resizing buffers
+   -- enh (keith)  Add the ability to delete timeline tags
+   -- enh (keith)  Add the ability to schedule a playlist every n days
+   -- enh (keith)  Add a play list item that sets a range of pixels to a particular colour
+   -- enh (keith)  Add controller upload support for ECG-P12S firmware 3.3
+   -- enh (keith)  Add conttoller upload for ESPixelStick firmware 3.0
+2018.9 Apr 1, 2018
+   -- enh (gil/dkulp)  Added ability to render a waveform range selection.  Fixes #489.
+   -- enh (keith)  Add xCapture for capturing E131/ArtNET data from the network and save it to a FSEQ or ESEQ file
+   -- bug (scott)  Added 3D fade to Single Strand Effect for Rainbow Pallet
+   -- enh (scott)  Added Search Box to Effect Preset Dialog
+   -- bug (dkulp)  Fix some window resizing issues
+   -- bug (gil)    Fix OpenGL not rendering correctly on some windows installs
+   -- bug (keith)  Fix fast start audio does not look like it saved
+   -- enh (keith)  Add xCapture tool for capturing e131/Artnet network data and save it to a FSEQ
+   -- enh (keith)  Optimise matrix face rendering
+   -- enh (cjd)    Move Linux to GTK 3
+2018.8 Mar 16, 2018
+   -- bug (dkulp)  "Black" static text labels on Windows
+   -- enh (dkulp)  Initial support for HiDPI displays on Windows
+   -- enh (gil)    Improve phoneme placement when breaking down words.
+   -- enh (keith)  Add a canvas blend mode and a transparent option to the off effect which will often be used together
+   -- bug (keith)  Fix FPP event not being recognised by FPP
+   -- enh (keith)  Add the option to loop event playlists when you start them
+   -- bug (keith)  Stop all doesnt stop event playlists
+   -- bug (keith)  Log illegal key bindings
+2018.7 Mar 11, 2018
+   -- enh (k.mojek) Add display of video when sequencing using a video track for the audio
+   -- enh (all)    Move to wxWidgets 3.1.1 on all platforms ... also codeblocks and gcc version upgrades on windows
+   -- enh (keith)  Rework test dialog to better support large shows
+   -- enh (keith)  Add submodels to test dialog
+   -- enh (keith)  Add option to suppress outputs not under test in the test dialog
+   -- enh (keith)  Add to xSchedule MIDI events
+   -- enh (Keith)  Add to xSchedule an event playlist list. This is an extra list of simultaneously running playlists
+				   which when triggered play one step once ... typically in response to an event. These are applied on
+				   top of any running playlist or background playlist. Great for on demand elements in your show without
+				   interrupting your show.
+   -- enh (keith)  Add an Id attribute to DDP/NULL and all the USB output types which can be used with the
+				   #universe:startchannel addressing mode as a substitute for the universe ... as long as you keep the id unique
+   -- enh (keith)  Add emojies to the shape effect ... in reality these are just characters from fonts ... not full colour emojies
+   -- enh (keith)  Add sustain output process ... when a channel goes to zero ... overwrite it with the last non zero value
+   -- enh (keith)  Add the ability to control the order in which the x, y and z + zoom rotozoom translations are applied.
+   -- bug (keith)  Fix some issues with effect selection
+   -- bug (keith)  Some performance fixes which impacted selecting effects and moving effects
+   -- enh (keith)  Enhance mapping lots of channels sequentially
+   -- enh (keith)  Add Spectrogram Peak to VUMeter
+   -- enh (keith)  Provide an easy way to replace a model without breaking all the groups it is a member of
+2018.6 Feb 06, 2018
+   -- enh (gil)    Add LOR event to xSchedule which should work with the Input Pup board.
+   -- enh (gil)    Update LOR events to work with multiple cards on one port.
+   -- bug (gil)    Fix model list in layout freezing.  Fixes #1090.
+   -- enh (gil)    Don't draw DMX head beams as white when color is black unless in Layout.
+   -- bug (gil)    Fix DMX Flood not drawing in correct location.  Fixes #1092.
+   -- enh (dkulp)  Bunch of updates to DDP output to allow future enhanced output to FPP
+   -- bug (dkulp)  Fix some render issues and crashes that occur after making changes to setup tab
+   -- enh (scott)  Add Effect Select Panel.
+   -- enh (keith)  xSchedule will now stop at the end of the FSEQ if it is shorter than the audio file
+   -- bug (keith)  Fix vendor model download only allows model to be used once
+   -- bug (keith)  When layout panel first opened models wont select
+   -- bug (keith)  Fix 172.17.*.* - 172.31.*.* ip addresses incorrectly reported as internet routable
+   -- enh (keith)  When configuring screen map in xSchedule show the area being mapped
+   -- enh (keith)  Increase Value Curve/Colour curve resolution from 40 to 100
+   -- enh (keith)  Improve the speed of number aware sort
+   -- enh (keith)  Rework the window frame model to allow it to go CW and CCW. This may break some existing models
+   -- enh (keith)  Check sequence to detect effects dropped on strands, submodels and models with no nodes
+   -- bug (scott)  Fixed FPP Connect USB Drive Upload
+2018.5 Feb 05, 2018
+   -- enh (gil)    Added a new LOR output that allows xLights to control CCRs, Pixies, and other
+                   existing controllers to run on a LOR network (LOR USB dongle).
+   -- bug (gil)    Protect against crash if user sets DMX flood light channel values higher than total changes.
+   -- bug (dkulp)  Fix brightness if contrast isnt set
+   -- enh (keith)  Add matrix face downloader
+   -- enh (keith)  Add the ability to lock effects. This will prevent moving and resizing only.
+   -- bug (keith)  Fix face centred not working all the time
+   -- bug (keith)  Fix brightness slider does not work with pictures effect
+   -- enh (keith)  Add some course grained volume controls to Audio menu
+   -- enh (keith)  Add waveform colours to the colour manager
+   -- enh (keith)  Add a screen mapper playlist item ... in theory this lets you do real time video on an element ... amongst other things.
+2018.4 Jan 30, 2018
+   -- bug (Billy)  Fixed xScheduleWeb to display proper version number
+   -- bug (dkulp)  Fix convert to effects not recognizing down ramps that hit the last frame
+   -- bug (dkulp)  Fix problems with LOR v4 lcb only outputting 100% effect values
+   -- bug (dkulp)  Convert To Effects only working for first node in model
+   -- bug (dkulp)  CandyCane tops are chopped off in Model preview
+   -- bug (dkulp)  CheckSequence erroneously flags 172.16 networks as broadcast. Fixes #1084
+   -- bug (dkulp)  Fix problem with individual start channels on strings cannot self reference
+   -- enh (craig)  Randomize only effect settings with a lock available.
+   -- bug (keith)  Fix the arches model when start is set to the blue square
+   -- enh (keith)  Force xtimging import to round down timing mark times if they occur between frames
+   -- enh (keith)  Add the ability to include multiple timings in a single xTiming file
+   -- enh (keith)  Add event triggers to scheduler which trigger command execution. Triggers available:
+						- On a channel value in the running sequence
+						- On a channel in a received E131 packet
+						- On a channel in a received ArtNet packet
+						- On a channel in a received DMX packet from a serial connection
+						- On a channel in a received OpenDMX packet from a serial connection - this looks like it will be less reliable than DMXModel
+						- On a OSC message
+						- On a FPP event
+	-- enh (keith) Add ability to send a FPP Event in a playlist step
+	-- enh (keith) Add ability to send to a serial device in a playlist step
+	-- enh (keith) Rework FPP/OSC remote so it works correctly with new event model and add ARTNet timecode support
+	-- enh (keith) Add magic fixes for overlapping channels and illegal start channels
+2018.3 Jan 21, 2018
+   -- enh (dkulp)  Bunch of render optimizations, particularly for groups with large number of models
+   -- enh (dkulp)  Bunch of startup optimizations - don't load rgbeffects.xml twice
+   -- enh (scott)  Added Ctrl-A to Selects all Effects in a Sequence.
+   -- enh (scott)  Add Select Row Effects to Sequencer Row Right Click Menu.
+   -- enh (scott)  Added Support for Sandevice Firmware 5
+   -- enh (gil)    Added a DMX Flood option to the DMX Model.
+   -- enh (gil)    Allow the rotate handle to Spin the DMX Model when in 3D mode.
+   -- bug (gil)    Fixed a LOR S4 clipboard export model issue.
+   -- enh (keith)  Add an image model
+   -- bug (keith)  Fix listbox column sizing in the model group panel
+   -- bug (keith)  Fix issues with mapping dialog
+   -- bug (keith)  Fix performance issue with setup tab when contains large number of universes
+   -- enh (keith)  Fix default model start channel to always be 1 channel after the model with the highest ending channel
+   -- bug (keith)  Fix some text controls not updating associated sliders
+   -- enh (keith)  Display in tooltip current effect being rendered in render progress dialog ... if it gets stuck you will know
+                   which effect is to blame
+   -- enh (keith)  Fix #1010 - If user cancels nominating a valid show directory xLights should exit.
+   -- bug (keith)  Fix xSchedule incorrectly calculates virtual model end when checking if it fits within channel range
+   -- bug (keith)  More improvements to number aware sorting which was not handling number sorts where more than the number
+                   component were different
+   -- bug (keith)  Circular model start channel references was hanging xLights
+2018.2 Jan 14, 2018
+   -- enh (dkulp)  Add House/Model preview and play controls to TouchBar
+   -- update (dkulp) Change minimum OSX requirement to 10.10
+   -- enh (dkulp)  Support exporting model to LOR S5 clipboard file
+   -- enh (k.mojek) Add "Export House Preview Video" to File menu
+   -- enh (gil)    Add Snap to Timing Marks feature.  Turn this on in Settings.  Only works for single effect resizing.  Fixes #132.
+   -- enh (gil)    Make snap to timing mark feature temporary toggle using control key.
+   -- bug (gil)    Prevent error message when importing ISEQ data layer not in show directory.  Fixes #1047.
+   -- bug (gil)    Make sure all models are available when creating new Views.  Fixes #1049.
+   -- bug (gil)    Fix Bulk Edit crash when right-clicking a TextEdit box.
+   -- enh (gil)    Correct certain scenarios of right/left arrow move/stretch operations and simplify Single vs Multiple effect movement.
+   -- bug (gil)    Fix PolyLine crash for case of 3 Channel RGB with Individual Start Channels set.
+   -- bug (keith)  Fix eseq frame size rounded by 4 when it shouldnt be.
+   -- bug (keith)  Newly created schedule doesnt play immediately
+   -- bug (keith)  Reset schedule does not reset
+   -- enh (keith)  Add a reset all schedules function to xschedule
+   -- bug (keith)  Fix cant double click on first song in a playlist to jump to it
+   -- enh (keith)  Add number aware model name sorting (layout, display elements, import effects)
+   -- enh (keith)  Enhance handling of invalid mappings loaded from mapping files so mappings are not lost when saved and invalid mappings are highlighted
+   -- enh (keith)  Add download of vendor custom models from licensed vendors
+   -- enh (Billy)  Added Controller Status to xSchedule WebUI
+   -- enh (scott)  Added Right Click Ping controller Option To Setup Tab
+2018.1 Jan 04, 2018
+   -- enh (k.mojek) Add "Print Layout" option to Layout popup menu
+   -- enh (dkulp)  Add WRGB 4 channel node type
+   -- enh (keith)  Add xSchedule output process which can scale pixels from 3 channel to 4 channels per pixel
+   -- bug (keith)  Fix xSchedule output processors not re-enabling
+   -- enh (keith)  Add bulk edit of mulitple model controller connection, dimming curve and preview
+   -- enh (keith)  Add create group of models by right clicking on a layout after selecting the models to be in the group
+   -- bug (keith)  Display node number relative to string in node layout rather that absolute node number within model
+   -- enh (keith)  Add to matrix face dialog attempt to fill in all the rows based on the pattern of an entered row
+   -- bug (scott)  Fix bars effect rounding problem
+   -- enh (k.mojek) Add ability to save the layout as an image via right click menu
+   -- bug (gil)    Last release broke DMX effect panel label updating.
+   -- bug (craig)  Fix crash of randomize effect after effect is deleted. Fixes #1052
+   -- bug (billy)  Fixed xSchedule webui timeout, it will now reconnect automatically.
+2017.45  Dec 29, 2017
+   -- enh (craig)  Added a randomize current selected effect button
+   -- bug (craig)  Fixed the create random effects to generate random settings
+   -- enh (keith)  Add Open Sound Control (OSC) Master and Remote sync
+   -- enh (keith)  Add Open Sound Control (OSC) sender as a play list item
+   -- enh (keith)  Show layers and layer number in row headings
+   -- enh (keith)  Expand the sizes of matrices xSchedule supports
+   -- bug (keith)  Fix audio override checkbox not set correctly when loaded
+   -- enh (keith)  Show controller status in xSchedule
+   -- bug (keith)  Fix audio send to specified device
+   -- enh (keith)  Add effect setting bulk editing to almost all settings
+   -- enh (keith)  Add horizontal and vertical stack buffer styles for groups ... makes text on groups possible.
+   -- enh (keith)  Show schedule end time when a schedule is running (including any extensions)
+   -- enh (keith)  In xSchedule text optionally suppress text rendering if the text to be rendered is blank ... letting the underlying effect through
+   -- enh (keith)  Add to VU meter "Level Color" and "Timing Event Pulse Color"
+   -- bug (gil)    Fix Shift Effects not shifting effects in collapsed layers. Fixes #1046.
+   -- bug (gil)    Fix Show All Effects not expanding collapsed model layers or strand layers.  Fixes #1045.
+2017.44  Dec 19, 2017
+   -- bug (dkulp)  Fix keyboard handling of numbers
+   -- enh (keith)  Add visual clue that xSchedule is serving web requests
+   -- bug (keith)  Add handling of mixed audio rates on windows/linux
+2017.43  Dec 18, 2017
+   -- bug (gil)    Fix bars gradient option when not alpha blending.  Fixes #1032.
+   -- bug (keith)  Fix xschedule text on single string vertical matrices
+   -- bug (keith)  Fix xmap node level mappings not loading from file correctly
+   -- enh (keith)  Add option to turn model blending off by default in new sequences
+   -- enh (keith)  Detect low proportion duplicate nodes in custom models indicating possible accidental duplication of nodes
+   -- enh (keith)  Ctrl-S works on all tabs as a shortcut to the relevant save button
+   -- enh (keith)  Warn users when they switch to a backup show folder. Also highlight in check sequence.
+2017.42  Dec 14, 2017
+   -- enh (chris)   Enable automatic application of patch for wxwidgets on linux
+   -- bug (chris)   Separate patches for wxwidgets on linux so can handle fixes for http://trac.wxwidgets.org/ticket/17683
+					and https://trac.wxwidgets.org/ticket/18021
+   -- bug (dkulp)  Fix crash when actions generate a ton of render events for the same models (like mouse resize of effect)
+					This fixes #1024
+   -- bug (keith)  Reverse a change which may have broken some picture effects
+   -- bug (keith)  Fix reopen audio device when it changes
+   -- bug (keith)  Fix restricted read from FSEQ doesnt work for offsets
+   -- enh (keith)  Add a way to manually force log render state
+2017.41  Dec 11, 2017
+   -- bug (dkulp)  Delay actually deleting effects and layers until the end of render to avoid potential crashes.
+   -- bug (dkulp)  Work on making sure selections are cleared bbefore effects are deleted
+   -- enh (dkulp)  Add undo to Delete Row Effects
+   -- bug (keith)  Fix some problems with vertical matrices in xSchedule
+   -- enh (keith)  Add some fast deleting of effects on a layer/model
+   -- bug (keith)  Fix a possible race condition when updating effect settings
+   -- enh (keith/dkulp) Add model as a pixel render style for model groups ... treats models within the group as a single pixel
+   -- bug (keith)  Prevent warnings about autosave newer than sequence after batch render
+   -- enh (keith)  Save selected batch render items between runs of batch render
+   -- enh (keith)  Add selectable audio devices on windows for xSchedule
+   -- bug (craig)  Fix the output of the xScheduleData/GetModels.dat file format as json
+   -- enh (scott)  Added Tree, Crucifix, Present, Candy Cane, Snowflake, and Heart Shapes to the VU Effect
+   -- bug (dkulp)  Fix dimming curves that are different for R/G/B
+   -- bug (dkulp)  Fix debug build popups on rendering on Linux
+   -- bug (dkulp)  Fix crash on text effect on Linux (fonts still look crappy)
+   -- enh (scott)  Warn windows 64 bit computer users using 32 bit that they should move to 64 bit
+   -- bug (scott)  Fix FPP connect wont upload sequences in subdirectories
+   -- bug (keith)  Fix xSchedule text properties not working in API
+   -- bug (keith)  Fix a number of problems with xSchedule channel constraints not saving
+   -- bug (keith)  Fix xSchedule fast start audio does not respect per song volume setting
+   -- bug (keith)  Fix virtual matrices not working reliably or correctly in xschedule
+   -- enh (keith)  Allow play list buttons like play schedule to work even if a schedule for that playlist is selected
+   -- enh (keith)  Add delete all effects on a layer or a model
+   -- bug (keith)  Fix some bugs in calculating pixels for some vertical matrices in xSchedule
+2017.40  Dec 05, 2017
+   -- enh (keith)  Add support for #universe:startchannel and output:startchannel to all xSchedule fields that define a start channel
+   -- bug (keith)  Fix test dialog tooltips dont display correct models
+   -- bug (keith)  Remove Master View from the new sequence default views
+   -- enh (dkulp)  Add undo to update effect and update palette actions
+   -- enh (rich)   Fix xSchedule web doesnt like spaces in some url parameters #1000
+   -- bug (scott)  Fix spinner calculate incorrect number of nodes #1008
+   -- bug (scott)  Fix bulk render not working with xml files in subdirectories
+   -- bug (keith)  Ensure all lights are off when xSchedule closes
+   -- enh (keith)  Add active timing marks to Value Curve and Colour Curve dialogs so you can line things up easier
+   -- bug (keith)  Fix xSchedule test mode does not display A-B-C-ALL and some other patterns correctly
+2017.39  Nov 28, 2017
+   -- bug (dkulp) Fix some memory leaks when open/close sequences as well as switching show directories
+   -- enh (dkulp) Import Superstar files onto a submodel
+   -- bug (dkulp) Fix a render bug which could leave artifacts on models
+   -- enh (keith) Begin to introduce output:startchannel and #universe:startchannel addressing into xSchedule.
+                  Initially in Matrices and Virtual matrices.
+   -- enh (keith) Display window position details to xSchedule for video and image display. Allows simple
+                  comparison of values without opening the positioning window.
+2017.38  Nov 25, 2017
+   -- bug (dkulp) Send render event for effect moves, previously not always sent
+   -- enh (dkulp) Add left/right starting locations for candy canes
+   -- enh (gil)   Add new Single Color Intensity string type that will react to any color.
+   -- bug (keith) F4V3 with expansion board should not limit pixels on any port
+   -- enh (keith) Add present shape effect
+   -- bug (keith) xSchedule should take duration of a step from the highest priority FSEQ over any audio or video item
+   -- bug (keith) xSchedule fpp master was sending too many media sync packets for audio/video only steps
+   -- enh (keith) Add timing event bars to vu meter ... like timing event bar but all bars are displayed and colours cycle
+   -- bug (keith) Erase background before rendering xyzzy so when playing on top of your show you can see the game
+   -- bug (keith) Prevent right click delete of submodels in model list on layout tab
+   -- bug (keith) Fix bug with remap and reverse in xSchedule output processors
+   -- bug (keith) Flag schedule as dirty if matrices/virtual matrices are edited
+   -- bug (keith) Fix crash with single colour spinners and the single line render style
+   -- bug (keith) Fix display elements window gets really small and hard to find
+   -- bug (keith) Fix problem where FSEQ data is dumped on load due to mismatch in size ... roundto4 problem
+   -- bug (keith) Attempt to fix lights not going off when background sequence stops
+   -- enh (keith) Allow video in scheduler to fade in and fade out
+   -- enh (keith) Allow video looping in scheduler
+   -- enh (keith) Add right click on setup to deactivate all unused outputs
+   -- enh (keith) Remove xseq as a target for conversions ... there is no obvious reason why people would still be creating them
+   -- bug (keith) Fix x/y text location mixed up when it is saved
+   -- bug (keith) Fix crash when loading xLight v3.x.x animation sequences
+   -- bug (keith) Fix audio preload in xSchedule
+   -- enh (keith) Add the ability to abort Generate Custom Model processes by holding down ESC key
+2017.37  Nov 14, 2017
+   -- enh (dkulp) If dimming curve would map to identity, remove it to avoid the extra processing it entails
+   -- enh (keith) Add ESCAPE key abort generate custom model scanning.
+   -- enh (keith) Prevent corruption of face info in rgbeffects
+   -- enh (keith) Add artnet to fpp connect upload
+   -- enh (dkulp) Fix Text effect crash on Windows only if mulitple colors are selected.  Fixes #982
+   -- enh (dkulp) If updating the palette of settings of a LOT of effects, aggregate the render events.
+                  Speeds it up a lot.
+2017.36  Nov 13, 2017
+   -- enh (dkulp)   Add multicolor suppport for non-rotated text
+   -- enh (dkulp)   Allow user to change number of universes in an e131 multi universe output
+   -- bug (scott)   Remove layer count from group lines in preset list
+   -- bug (gil)     Fix motion positions for XL fonts in Text effect.
+   -- enh (keith)   Move xSchedule video reading to a separate thread ... should make video performance more reliable but will use
+                    more of memory
+   -- enh (keith)   Add packets per second display to scheduler UI
+   -- bug (keith)   Strip duplicate test presets on load ... not sure how they got there but dont load them.
+   -- enh (keith)   Add to check sequence check for overlapping effects ... these should not be possible but I have seen some sequences
+                    where is has happened.
+2017.35  Nov 05, 2017
+   -- enh (cjd)     Update checker for Linux and OSX
+   -- enh (dkulp)   Set the thread name to the Model name it is rendering, makes it easier to find the right thread in the debugger
+   -- enh (dkulp)   Add a warning when loading/creating sequences that would result in massive amounts of memory being used
+   -- enh (dkulp)   Add batch render to tools menu
+   -- bug (keith)   Fix missing distribute horizontally and vertically in layout
+   -- bug (keith)   Force recreation of the render buffer if the frame size changes ... this will then require a full render
+   -- bug (keith)   Fix PJLink
+   -- enh (keith)   Add the ability to suppress virtual matrices if showing video or images.
+   -- bug (keith)   Fix FPP connect not enabling upload when IP address is entered.
+   -- enh (keith)   Add an option to shrink the waveform display
+   -- enh (keith)   Improve positioning in printing wiring view to avoid cutoff.
+   -- enh (keith)   Add keyboard cut & paste to custom model dialog
+   -- bug (keith)   Colour curve does not display position tooltip unless dragging
+   -- bug (keith)   Fix pixelnet should support 4096 channels.
+   -- enh (keith)   Add crucifix to shape effect
+   -- bug (keith)   Fix submodel start channels displaying incorrectly as invalid.
+2017.34  Oct 27, 2017
+   -- enh (keith)   Add a dead pixel colour output process to xSchedule which only blanks a pixel if the colour would be wrong
+   -- enh (keith)   Add the ability to disable output processes
+   -- bug (keith)   Fix multilight wiring dialog not displaying correctly
+   -- enh (keith)   Set model start channel back to one when user selects the end of model model as that is the most common desired resilt
+   -- enh (keith)   Some checks to warn if xSchedule and xLights are outputting to lights at once
+   -- enh (keith)   Add level pulse colour to VU Meter ... pulses a colour when music reaches specified intensity and changes colour each time it does
+   -- bug (keith)   Fix piano timing track setting not loading properly
+   -- bug (keith)   Fix xSchedule doesnt respect force local IP
+   -- enh (keith)   Add the ability to share xSchedule button definitions
+   -- enh (keith)   Add tooltip help to button parameters
+2017.33  Oct 15, 2017
+   -- bug (gil)     Fix Galaxy not blending when reverse is checked.  Fixes #949.
+   -- enh (keith)   Add xSchedule gamma processing on output
+   -- enh (keith)   Add FPP master support for pixel sticks and Falcons
+   -- bug (keith)   Fix xSchedule play last item only once plays repeatedly
+   -- bug (keith)   Fix scrolling sideways using Shift+scroll wheel stops paste using right click menu working
+   -- bug (keith)   xSchedule FSEQ, Video and audio dont respect the delay setting
+   -- bug (keith)   Fix upload to falcon hang if multistring element goes past configured string ports
+   -- enh (keith)   Add check sequence check for non contiguous models on the same controller connection
+   -- enh (keith)   Add xSchedule can act as a remote using the csv sync packets (which are routable)
+   -- enh (keith)   Add cropping to the video effect
+2017.32  Oct 09, 2017 - PRODUCTION RELEASE
+   -- bug (keith)   xSchedule crashes clearing the matrix when closing easter egg
+   -- bug (keith)   xSchedule does not turn off lights when sequence ends
+   -- bug (keith)   Falcon upload incorrect for multi-string elements
+   -- bug (keith)   Make splash screen not topmost
+   -- bug (keith)   Fix crash importing Vixen 2.x sequences
+   -- enh (keith)   Enhancements to check sequence
+						- empty model groups
+						- submodels with no nodes
+						- referenced files outside show directory
+2017.31  Oct 06, 2017
+   -- bug     (dkulp)  For HLS convert, it was failing to map channel names properly.
+   -- enh     (dkulp)  Reset OSX release mode flags for wxWidgets to disable assert popups
+   -- bug/enh (dkulp)  On OSX, resample audio to 48000 and use smaller buffers to reduce audio latency (I hope)
+   -- bug     (dkulp)  Fix wxAssert warnings when quitting from menu on OSX and using debug build
+   -- enh     (keith)  Add more check sequence checks ... checks of effects on strands, submodels and nodes, checks for effects that shouldnt be on nodes
+   -- enh     (keith)  Add more check schedule checks ... FSEQ files which dont match networks
+   -- bug     (keith)  Fix a stack of crashes and bugs
+   -- bug     (keith)  Fix #universe:start channel flagging as invalid
+   -- bug     (keith)  Fix rotozoom presets
+   -- enh     (keith)  Add remember custom colours in colour selection dialog
+2017.30  Sep  29, 2017
+   -- enh (scott)   Added Swap Start and End Points to Morph Effect.
+   -- enh (keith)   Add printing of wiring view
+   -- enh (keith)   Add display of actual time in value curve and color curve dialogs.
+   -- bug (dkulp)   Prevent crash when perspective is chosen from menu prior to flipping to the sequencer tab
+   -- bug (dkulp)   Fix memory leak in JobPool that was leaking thread objects consuming resources
+   -- enh (keith)   Add X and Y axis rotations to rotozoom
+   -- bug (keith)   Fix xlights not opening fseq files
+   -- bug (keith)   Fix zoom value curve not converting correctly
+   -- enh (keith)   Add splash screen courtesy Kevin Pankratz
+   -- enh (keith)   Add ctrl-. and ctrl-/ save and restore position in the sequencer
+   -- enh (keith)   Add crtl-shift 0-9 which jump to 0%-90% through the song in the sequencer
+   -- enh (keith)   Add tags using right click on the timeline ... then use ctrl-0-9 to jump to the tags
+   -- enh (gil)     Add built-in bitmap Fonts that match SuperStar.  Not every option works on these fonts but they
+                    do allow the color palette to be used.
+   -- bug (gil)     Fix Convert for LOR files being offset by 1.  Fixes #916.
+   -- enh (dkulp)   Optimize loading of test presets to make xLights start quicker
+   -- bug (dkulp)   Hopefully fix crash in CheckSequence if hostname doesn't resolve to local ip address
+   -- enh (keith)   Add new Ctrl left and right arrow and Ctrl Shift left and right arrow shortcuts in sequencer to move and expand effects to timing marks or next effect
+   -- bug (keith)   Fix problem with allocating too few channels if invalid start channels and not enough channels on setup tab
 2017.29  Sep  19, 2017
    -- bug (keith)   Fix regular crash due to slow rendering. This bug was introduced in 2017.28
    -- enh (cjd)     Add option to run xschedule via xlights on linux (for AppImage usage)
-   -- bug (scottH)  Custom Model Renumber (#917)
+   -- enh (scott)   Custom Model Renumber (#917)
    -- bug (dkulp)   Fix crash when changing show directories
    -- bug (dkulp)   OSX - flipping back and forth between tabs sometimes results in hidden panels appearing and moving to a docked state.
 2017.28  Sep  18, 2017
    -- bug (dkulp)   Fix crash on startup when ViesModelsPanel is not visible
-   -- bug (scottH)  Fixed Divide by zero error if main window is re-sized too small. (#913)
+   -- bug (scott)   Fixed Divide by zero error if main window is re-sized too small. (#913)
    -- enh (keith)   Add ability to import LAS files ... actually this existed ... it just wasnt selectable
    -- bug (keith)   Add warning if i am importing a datalayer that is bigger than the number of xlights channels
-   -- enh (keith)   Add a xSchedule file play list item which can write information about current song etc to a file 
+   -- enh (keith)   Add a xSchedule file play list item which can write information about current song etc to a file
    -- bug (dkulp)   OSX - Popup menu in "WiringView" dialog is completely disabled
    -- bug (keith)   Fix crash when change setup and then switch to layout
    -- bug (keith)   Fix crash when FPP master xschedule step finishes

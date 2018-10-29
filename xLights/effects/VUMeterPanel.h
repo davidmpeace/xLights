@@ -3,16 +3,16 @@
 
 //(*Headers(VUMeterPanel)
 #include <wx/panel.h>
-class wxCheckBox;
-class wxTextCtrl;
-class wxStaticText;
-class wxSlider;
 class wxBitmapButton;
-class wxFlexGridSizer;
+class wxCheckBox;
 class wxChoice;
+class wxFlexGridSizer;
+class wxSlider;
+class wxStaticText;
+class wxTextCtrl;
 //*)
 
-#include "../ValueCurveButton.h"
+#include "../BulkEditControls.h"
 
 class VUMeterPanel: public wxPanel
 {
@@ -22,69 +22,69 @@ class VUMeterPanel: public wxPanel
 		virtual ~VUMeterPanel();
 
 		//(*Declarations(VUMeterPanel)
+		BulkEditCheckBox* CheckBox_VUMeter_SlowDownFalls;
+		BulkEditChoice* Choice_VUMeter_Shape;
+		BulkEditChoice* Choice_VUMeter_TimingTrack;
+		BulkEditChoice* Choice_VUMeter_Type;
+		BulkEditSlider* Slider_VUMeter_Bars;
+		BulkEditSlider* Slider_VUMeter_EndNote;
+		BulkEditSlider* Slider_VUMeter_Sensitivity;
+		BulkEditSlider* Slider_VUMeter_StartNote;
+		BulkEditSlider* Slider_VUMeter_XOffset;
+		BulkEditSlider* Slider_VUMeter_YOffset;
+		BulkEditTextCtrl* TextCtrl_VUMeter_Bars;
+		BulkEditTextCtrl* TextCtrl_VUMeter_EndNote;
+		BulkEditTextCtrl* TextCtrl_VUMeter_Sensitivity;
+		BulkEditTextCtrl* TextCtrl_VUMeter_StartNote;
+		BulkEditTextCtrl* TextCtrl_VUMeter_XOffset;
+		BulkEditTextCtrl* TextCtrl_VUMeter_YOffset;
+		BulkEditValueCurveButton* BitmapButton_VUMeter_YOffsetVC;
 		wxStaticText* StaticText10;
-		wxStaticText* StaticText9;
-		wxTextCtrl* TextCtrl_VUMeter_StartNote;
-		wxBitmapButton* BitmapButton_VUMeter_EndNote;
-		wxSlider* Slider_VUMeter_Bars;
-		wxStaticText* StaticText13;
-		wxStaticText* StaticText2;
-		wxStaticText* StaticText14;
-		wxStaticText* StaticText6;
-		wxBitmapButton* BitmapButton_VUMeter_SlowDownFalls;
-		wxStaticText* StaticText8;
 		wxStaticText* StaticText11;
-		ValueCurveButton* BitmapButton_VUMeter_YOffsetVC;
-		wxBitmapButton* BitmapButton_VUMeter_Sensitivity;
-		wxStaticText* StaticText1;
-		wxSlider* Slider_VUMeter_YOffset;
-		wxStaticText* StaticText3;
-		wxBitmapButton* BitmapButton_VUMeter_Bars;
-		wxBitmapButton* BitmapButton_VUMeter_Type;
-		wxSlider* Slider_VUMeter_EndNote;
-		wxBitmapButton* BitmapButton_VUMeter_XOffset;
-		wxSlider* Slider_VUMeter_Sensitivity;
-		wxBitmapButton* BitmapButton_VUMeter_Shape;
-		wxStaticText* StaticText5;
-		wxStaticText* StaticText7;
-		wxBitmapButton* BitmapButton_VUMeter_YOffset;
-		wxTextCtrl* TextCtrl_VUMeter_XOffset;
-		wxTextCtrl* TextCtrl_VUMeter_YOffset;
-		wxCheckBox* CheckBox_VUMeter_SlowDownFalls;
-		wxBitmapButton* BitmapButton_VUMeter_TimingTrack;
 		wxStaticText* StaticText12;
-		wxTextCtrl* TextCtrl_VUMeter_Bars;
-		wxChoice* Choice_VUMeter_Type;
-		wxChoice* Choice_VUMeter_Shape;
-		wxSlider* Slider_VUMeter_StartNote;
-		wxChoice* Choice_VUMeter_TimingTrack;
-		wxSlider* Slider_VUMeter_XOffset;
-		wxBitmapButton* BitmapButton_VUMeter_StartNote;
+		wxStaticText* StaticText13;
+		wxStaticText* StaticText14;
+		wxStaticText* StaticText1;
+		wxStaticText* StaticText2;
+		wxStaticText* StaticText3;
 		wxStaticText* StaticText4;
-		wxTextCtrl* TextCtrl_VUMeter_Sensitivity;
-		wxTextCtrl* TextCtrl_VUMeter_EndNote;
+		wxStaticText* StaticText5;
+		wxStaticText* StaticText6;
+		wxStaticText* StaticText7;
+		wxStaticText* StaticText8;
+		wxStaticText* StaticText9;
+		xlLockButton* BitmapButton_VUMeter_Bars;
+		xlLockButton* BitmapButton_VUMeter_EndNote;
+		xlLockButton* BitmapButton_VUMeter_Sensitivity;
+		xlLockButton* BitmapButton_VUMeter_Shape;
+		xlLockButton* BitmapButton_VUMeter_SlowDownFalls;
+		xlLockButton* BitmapButton_VUMeter_StartNote;
+		xlLockButton* BitmapButton_VUMeter_TimingTrack;
+		xlLockButton* BitmapButton_VUMeter_Type;
+		xlLockButton* BitmapButton_VUMeter_XOffset;
+		xlLockButton* BitmapButton_VUMeter_YOffset;
 		//*)
 
 	protected:
 
 		//(*Identifiers(VUMeterPanel)
-		static const long ID_STATICTEXT1;
+		static const long ID_STATICTEXT_VUMeter_Bars;
 		static const long ID_SLIDER_VUMeter_Bars;
 		static const long IDD_TEXTCTRL_VUMeter_Bars;
-		static const long ID_BITMAPBUTTON_CHOICE_VUMeter_Bars;
-		static const long ID_STATICTEXT2;
+		static const long ID_BITMAPBUTTON_SLIDER_VUMeter_Bars;
+		static const long ID_STATICTEXT_VUMeter_Type;
 		static const long ID_CHOICE_VUMeter_Type;
 		static const long ID_STATICTEXT5;
 		static const long ID_BITMAPBUTTON_CHOICE_VUMeter_Type;
-		static const long ID_STATICTEXT3;
+		static const long ID_STATICTEXT_VUMeter_TimingTrack;
 		static const long ID_CHOICE_VUMeter_TimingTrack;
 		static const long ID_STATICTEXT4;
 		static const long ID_BITMAPBUTTON_CHOICE_VUMeter_TimingTrack;
-		static const long ID_STATICTEXT6;
+		static const long ID_STATICTEXT_VUMeter_Sensitivity;
 		static const long ID_SLIDER_VUMeter_Sensitivity;
 		static const long IDD_TEXTCTRL_VUMeter_Sensitivity;
 		static const long ID_BITMAPBUTTON_SLIDER_VUMeter_Sensitivity;
-		static const long ID_STATICTEXT7;
+		static const long ID_STATICTEXT_VUMeter_Shape;
 		static const long ID_CHOICE_VUMeter_Shape;
 		static const long ID_STATICTEXT8;
 		static const long ID_BITMAPBUTTON_CHOICE_VUMeter_Shape;
@@ -92,39 +92,29 @@ class VUMeterPanel: public wxPanel
 		static const long ID_CHECKBOX_VUMeter_SlowDownFalls;
 		static const long ID_STATICTEXT10;
 		static const long ID_BITMAPBUTTON_CHECKBOX_VUMeter_SlowDownFalls;
-		static const long ID_STATICTEXT12;
+		static const long ID_STATICTEXT_VUMeter_StartNote;
 		static const long ID_SLIDER_VUMeter_StartNote;
 		static const long IDD_TEXTCTRL_VUMeter_StartNote;
-		static const long ID_BITMAPBUTTON_VUMeter_StartNote;
-		static const long ID_STATICTEXT11;
+		static const long ID_BITMAPBUTTON_SLIDER_VUMeter_StartNote;
+		static const long ID_STATICTEXT_VUMeter_EndNote;
 		static const long ID_SLIDER_VUMeter_EndNote;
 		static const long IDD_TEXTCTRL_VUMeter_EndNote;
-		static const long ID_BITMAPBUTTON_VUMeter_EndNote;
-		static const long ID_STATICTEXT13;
+		static const long ID_BITMAPBUTTON_SLIDER_VUMeter_EndNote;
+		static const long ID_STATICTEXT_VUMeter_XOffset;
 		static const long ID_SLIDER_VUMeter_XOffset;
 		static const long IDD_TEXTCTRL_VUMeter_XOffset;
-		static const long ID_BITMAPBUTTON_VUMeter_XOffset;
-		static const long ID_STATICTEXT14;
+		static const long ID_BITMAPBUTTON_SLIDER_VUMeter_XOffset;
+		static const long ID_STATICTEXT_VUMeter_YOffset;
 		static const long ID_SLIDER_VUMeter_YOffset;
 		static const long ID_VALUECURVE_VUMeter_YOffset;
 		static const long IDD_TEXTCTRL_VUMeter_YOffset;
-		static const long ID_BITMAPBUTTON_VUMeter_YOffset;
+		static const long ID_BITMAPBUTTON_SLIDER_VUMeter_YOffset;
 		//*)
 
 	public:
 
 		//(*Handlers(VUMeterPanel)
-		void UpdateLinkedSliderFloat(wxCommandEvent& event);
-		void UpdateLinkedTextCtrlFloat(wxScrollEvent& event);
-		void UpdateLinkedTextCtrl360(wxScrollEvent& event);
-		void UpdateLinkedSlider360(wxCommandEvent& event);
-		void UpdateLinkedTextCtrl(wxScrollEvent& event);
-		void UpdateLinkedSlider(wxCommandEvent& event);
 		void OnLockButtonClick(wxCommandEvent& event);
-        void UpdateLinkedTextCtrlVC(wxScrollEvent& event);
-        void UpdateLinkedTextCtrlFloatVC(wxScrollEvent& event);
-        void UpdateLinkedSliderFloat2(wxCommandEvent& event);
-        void UpdateLinkedTextCtrlFloat2(wxScrollEvent& event);
         void OnChoice_VUMeter_TypeSelect(wxCommandEvent& event);
 		void OnSlider_VUMeter_StartNoteCmdSliderUpdated(wxScrollEvent& event);
 		void OnTextCtrl_VUMeter_StartNoteText(wxCommandEvent& event);
