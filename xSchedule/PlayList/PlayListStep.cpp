@@ -19,6 +19,7 @@
 #include "PlayListItemAllOff.h"
 #include "PlayListItemSetColour.h"
 #include "PlayListItemDelay.h"
+#include "PlayListItemDim.h"
 #include "PlayListItemRunProcess.h"
 #include "PlayListItemCURL.h"
 #include "PlayListItemSerial.h"
@@ -45,6 +46,7 @@ PlayListStep::PlayListStep(OutputManager* outputManager, wxXmlNode* node)
     _excludeFromRandom = false;
     _lastSavedChangeCount = 0;
     _changeCount = 0;
+    _everyStep = false;
     Load(outputManager, node);
 }
 
@@ -66,6 +68,7 @@ PlayListStep::PlayListStep()
     _lastSavedChangeCount = 0;
     _changeCount = 1;
     _excludeFromRandom = false;
+    _everyStep = false;
 }
 
 PlayListStep::PlayListStep(const PlayListStep& step)
@@ -80,6 +83,7 @@ PlayListStep::PlayListStep(const PlayListStep& step)
     _lastSavedChangeCount = step._lastSavedChangeCount;
     _changeCount = step._changeCount;
     _excludeFromRandom = step._excludeFromRandom;
+    _everyStep = step._everyStep;
     _id = step._id;
     {
         ReentrancyCounter rec(_reentrancyCounter);
@@ -134,6 +138,10 @@ wxXmlNode* PlayListStep::Save()
     {
         res->AddAttribute("ExcludeRandom", "TRUE");
     }
+    if (_everyStep)
+    {
+        res->AddAttribute("EveryStep", "TRUE");
+    }
 
     {
         ReentrancyCounter rec(_reentrancyCounter);
@@ -150,6 +158,7 @@ void PlayListStep::Load(OutputManager* outputManager, wxXmlNode* node)
 {
     _name = node->GetAttribute("Name", "");
     _excludeFromRandom = node->GetAttribute("ExcludeRandom", "FALSE") == "TRUE";
+    _everyStep = node->GetAttribute("EveryStep", "FALSE") == "TRUE";
 
     for (wxXmlNode* n = node->GetChildren(); n != nullptr; n = n->GetNext())
     {
@@ -229,6 +238,10 @@ void PlayListStep::Load(OutputManager* outputManager, wxXmlNode* node)
         else if (n->GetName() == "PLIDelay")
         {
             _items.push_back(new PlayListItemDelay(n));
+        }
+        else if (n->GetName() == "PLIDim")
+        {
+            _items.push_back(new PlayListItemDim(outputManager, n));
         }
         else if (n->GetName() == "PLIProcess")
         {
@@ -418,7 +431,7 @@ PlayListItem* PlayListStep::GetTimeSource(size_t &ms)
 
 bool PlayListStep::Frame(wxByte* buffer, size_t size, bool outputframe)
 {
-        ReentrancyCounter rec(_reentrancyCounter);
+    ReentrancyCounter rec(_reentrancyCounter);
 
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 

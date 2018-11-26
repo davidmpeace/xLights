@@ -83,7 +83,7 @@ class xScheduleFrame : public wxFrame
     void DeleteSelectedItem();
     void ValidateWindow();
     void CreateButtons();
-    void UpdateStatus();
+    void UpdateStatus(bool force = false);
     void UpdateSchedule();
     void SendReport(const wxString &loc, wxDebugReportCompress &report);
     std::string GetScheduleName(Schedule* schedule, const std::list<RunningSchedule*>& active) const;
@@ -92,10 +92,11 @@ class xScheduleFrame : public wxFrame
     bool HandleSpecialKeys(wxKeyEvent& event);
     void AddPlayList(bool  forceadvanced = false);
     void EditSelectedItem(bool  forceadvanced = false);
-    void UpdateUI();
+    void UpdateUI(bool force = false);
     void DoPaste();
     void DoCopy();
     void AddSchedule();
+    void RemoteWarning();
 
     wxBitmap _otlon;
     wxBitmap _otloff;
@@ -188,11 +189,13 @@ public:
         void OnMenuItem_MIDITimeCodeMasterSelected(wxCommandEvent& event);
         void OnMenuItem_MIDITimeCodeSlaveSelected(wxCommandEvent& event);
         void OnMenuItem5MenuItem_ConfigureMIDITimecodeSelected(wxCommandEvent& event);
+        void OnMenuItem_UsexLightsFolderSelected(wxCommandEvent& event);
         //*)
 
         bool IsPlayList(wxTreeItemId id) const;
         bool IsSchedule(wxTreeItemId id) const;
         void OnTreeCtrlMenu(wxCommandEvent &event);
+        void OnPingPopup(wxCommandEvent &event);
         void OnButton_UserClick(wxCommandEvent& event);
         void RateNotification(wxCommandEvent& event);
         void StatusMsgNotification(wxCommandEvent& event);
@@ -233,12 +236,14 @@ public:
         static const long ID_PANEL1;
         static const long ID_STATICTEXT1;
         static const long ID_STATICTEXT3;
+        static const long ID_STATICTEXT6;
         static const long ID_STATICTEXT4;
         static const long ID_STATICTEXT5;
         static const long ID_STATICTEXT2;
         static const long ID_STATICBITMAP1;
         static const long ID_PANEL4;
         static const long ID_MNU_SHOWFOLDER;
+        static const long ID_MNU_USEXLIGHTSFOLDER;
         static const long ID_MNU_SAVE;
         static const long idMenuQuit;
         static const long ID_MNU_MNUADDPLAYLIST;
@@ -273,6 +278,7 @@ public:
         static const long ID_TIMER2;
         //*)
 
+        static const long ID_MNU_EDIT_ADDITIONAL_IPS;
         static const long ID_MNU_ADDPLAYLIST;
         static const long ID_MNU_ADDADVPLAYLIST;
         static const long ID_MNU_DUPLICATEPLAYLIST;
@@ -302,6 +308,7 @@ public:
         wxFileDialog* FileDialog1;
         wxFlexGridSizer* FlexGridSizer1;
         wxFlexGridSizer* FlexGridSizer4;
+        wxFlexGridSizer* FlexGridSizer6;
         wxListView* ListView_Ping;
         wxListView* ListView_Running;
         wxMenu* Menu3;
@@ -331,6 +338,7 @@ public:
         wxMenuItem* MenuItem_Save;
         wxMenuItem* MenuItem_ShowFolder;
         wxMenuItem* MenuItem_Standalone;
+        wxMenuItem* MenuItem_UsexLightsFolder;
         wxMenuItem* MenuItem_ViewLog;
         wxMenuItem* MenuItem_VirtualMatrices;
         wxMenuItem* MenuItem_WebInterface;
@@ -348,6 +356,7 @@ public:
         wxStaticText* StaticText2;
         wxStaticText* StaticText_IP;
         wxStaticText* StaticText_PacketsPerSec;
+        wxStaticText* StaticText_RemoteWarning;
         wxStaticText* StaticText_ShowDir;
         wxStaticText* StaticText_Time;
         wxStatusBar* StatusBar1;

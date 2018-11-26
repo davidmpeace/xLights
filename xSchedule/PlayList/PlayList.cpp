@@ -56,6 +56,7 @@ void PlayList::ForgetChildren()
             logger_base.warn("PlayList forgetting our children but we appear to be manipulating it elsewhere. This may not end well.");
         }
 
+        _everySteps.clear();
         _steps.clear();
         _schedules.clear();
     }
@@ -81,6 +82,10 @@ PlayList& PlayList::operator=(PlayList& playlist)
         {
             _steps.push_back(*it);
         }
+        for (auto it: playlist._everySteps)
+        {
+            _everySteps.push_back(it);
+        }
     }
         //for (auto it = playlist._schedules.begin(); it != playlist._schedules.end(); ++it)
         //{
@@ -89,6 +94,7 @@ PlayList& PlayList::operator=(PlayList& playlist)
 
         // need to have the playlist we are copying from forget its children otherwise they belong to both of us and that will cause problems during deletion.
         playlist._steps.clear();
+        playlist._everySteps.clear();
 
     return *this;
 }
@@ -133,6 +139,10 @@ PlayList::PlayList(PlayList& playlist, bool newid)
         for (auto it = playlist._steps.begin(); it != playlist._steps.end(); ++it)
         {
             _steps.push_back(new PlayListStep(**it));
+        }
+        for (auto it: playlist._everySteps)
+        {
+            _everySteps.push_back(new PlayListStep(*it));
         }
     }
 }
@@ -214,6 +224,13 @@ void PlayList::RemoveAllSteps()
             _steps.remove(toremove);
             delete toremove;
         }
+
+        while (_everySteps.size() > 0)
+        {
+            auto toremove = _everySteps.front();
+            _everySteps.remove(toremove);
+            delete toremove;
+        }
     }
 }
 
@@ -240,6 +257,11 @@ wxXmlNode* PlayList::Save()
             res->AddChild((*it)->Save());
         }
 
+        for (auto it: _everySteps)
+        {
+            res->AddChild(it->Save());
+        }
+
         for (auto it = _schedules.begin(); it != _schedules.end(); ++it)
         {
             res->AddChild((*it)->Save());
@@ -262,6 +284,7 @@ void PlayList::Load(OutputManager* outputManager, wxXmlNode* node)
         }
 
         _steps.clear();
+        _everySteps.clear();
         _schedules.clear();
     }
 
@@ -273,7 +296,16 @@ void PlayList::Load(OutputManager* outputManager, wxXmlNode* node)
     {
         if (n->GetName() == "PlayListStep")
         {
-            _steps.push_back(new PlayListStep(outputManager, n));
+            PlayListStep* pls = new PlayListStep(outputManager, n);
+
+            if (pls->GetEveryStep())
+            {
+                _everySteps.push_back(pls);
+            }
+            else
+            {
+                _steps.push_back(pls);
+            }
         }
         else if (n->GetName() == "Schedule")
         {
@@ -321,6 +353,13 @@ bool PlayList::IsDirty()
             ++it;
         }
 
+        auto ites = _everySteps.begin();
+        while (!res && ites != _everySteps.end())
+        {
+            res = res || (*ites)->IsDirty();
+            ++ites;
+        }
+
         auto it2 = _schedules.begin();
         while (!res && it2 != _schedules.end())
         {
@@ -344,29 +383,59 @@ void PlayList::AddStep(PlayListStep* item, int pos)
     std::list<PlayListStep*> newsteps;
 
     bool inserted = false;
-    int i = 0;
+    if (item->GetEveryStep())
     {
-        ReentrancyCounter rec(_reentrancyCounter);
-        for (auto it = _steps.begin(); it != _steps.end(); ++it)
+        int i = 0;
         {
-            if (i == pos)
+            ReentrancyCounter rec(_reentrancyCounter);
+            for (auto it = _everySteps.begin(); it != _everySteps.end(); ++it)
+            {
+                if (i == pos)
+                {
+                    newsteps.push_back(item);
+                    inserted = true;
+                }
+                newsteps.push_back(*it);
+                i++;
+            }
+
+            if (!inserted)
             {
                 newsteps.push_back(item);
-                inserted = true;
             }
-            newsteps.push_back(*it);
-            i++;
-        }
 
-        if (!inserted)
+            _everySteps = newsteps;
+
+            // sort on priority
+            //_steps.sort();
+        }
+    }
+    else
+    {
+        int i = 0;
         {
-            newsteps.push_back(item);
+            ReentrancyCounter rec(_reentrancyCounter);
+            for (auto it = _steps.begin(); it != _steps.end(); ++it)
+            {
+                if (i == pos)
+                {
+                    newsteps.push_back(item);
+                    inserted = true;
+                }
+                newsteps.push_back(*it);
+                i++;
+            }
+
+            if (!inserted)
+            {
+                newsteps.push_back(item);
+            }
+
+            _steps = newsteps;
+
+            // sort on priority
+            //_steps.sort();
         }
-
-        _steps = newsteps;
-
-        // sort on priority
-        //_steps.sort();
     }
 }
 
@@ -379,6 +448,11 @@ void PlayList::ClearDirty()
         for (auto it = _steps.begin(); it != _steps.end(); ++it)
         {
             (*it)->ClearDirty();
+        }
+
+        for (auto it: _everySteps)
+        {
+            it->ClearDirty();
         }
 
         for (auto it = _schedules.begin(); it != _schedules.end(); ++it)
@@ -400,7 +474,14 @@ void PlayList::RemoveStep(PlayListStep* step)
             logger_base.warn("PlayList removing step but we appear to be manipulating it elsewhere. This may not end well.");
         }
 
-        _steps.remove(step);
+        if (step->GetEveryStep())
+        {
+            _everySteps.remove(step);
+        }
+        else
+        {
+            _steps.remove(step);
+        }
     }
     _changeCount++;
 }
@@ -411,7 +492,7 @@ void PlayList::RemoveSchedule(Schedule* schedule)
 
     {
         ReentrancyCounter rec(_reentrancyCounter);
-     
+
         if (!rec.SoleReference())
         {
             logger_base.warn("PlayList removing schedule but we appear to be manipulating it elsewhere. This may not end well.");
@@ -476,6 +557,7 @@ int PlayList::GetPos(PlayListStep* step)
 
 bool PlayList::Frame(wxByte* buffer, size_t size, bool outputframe)
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     if (_currentStep != nullptr)
     {
         if (IsPaused() || IsSuspended())
@@ -486,7 +568,13 @@ bool PlayList::Frame(wxByte* buffer, size_t size, bool outputframe)
         // This returns true if everything is done
         if (_currentStep->Frame(buffer, size, outputframe))
         {
+            logger_base.debug("PlayList: Frame moving to next step because step '%s' is done.", (const char *)_currentStep->GetNameNoTime().c_str());
             return !MoveToNextStep();
+        }
+
+        for (auto it : _everySteps)
+        {
+            it->Frame(buffer, size, outputframe);
         }
     }
 
@@ -512,12 +600,18 @@ void PlayList::Start(bool loop, bool random, int loops, const std::string& step)
     {
         ReentrancyCounter rec(_reentrancyCounter);
 
+        _played.clear();
         _loops = loops;
         _looping = loop;
         _random = random;
 
         static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
         logger_base.info("******** Playlist %s starting to play.", (const char*)GetName().c_str());
+        logger_base.info("********     %s %s %s",
+            (const char*)(_looping ? ("LOOPING" + (_loops > 0 ? wxString::Format(" Loops %d", _loops).c_str() : wxString("").c_str())).c_str() : wxString("").c_str()),
+            (const char*)(_random ? "RANDOM" : ""),
+            (const char*)(step == "" ? step.c_str() : wxString::Format("Step: %s", step).c_str())
+        );
 
         _forceNextStep = "";
         _loopStep = false;
@@ -561,6 +655,10 @@ void PlayList::Start(bool loop, bool random, int loops, const std::string& step)
         else
         {
             _currentStep->Start(-1);
+            for (auto it: _everySteps)
+            {
+                it->Start(-1);
+            }
         }
     }
 }
@@ -575,6 +673,10 @@ void PlayList::Stop()
     {
         ReentrancyCounter rec(_reentrancyCounter);
         _currentStep->Stop();
+        for (auto it: _everySteps)
+        {
+            it->Stop();
+        }
         _currentStep = nullptr;
     }
 }
@@ -767,23 +869,36 @@ int PlayList::Suspend(bool suspend)
 
 bool PlayList::JumpToPriorStep()
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    logger_base.debug("PlayList: JumpToPriorStep");
     bool success = false;
 
     if (_currentStep == nullptr) return false;
 
     _pauseTime = 0;
     _currentStep->Stop();
+    for (auto it: _everySteps)
+    {
+        it->Stop();
+    }
     _currentStep = GetPriorStep();
 
     if (_currentStep == nullptr) return false;
 
     _currentStep->Start(-1);
+    for (auto it: _everySteps)
+    {
+        it->Start(-1);
+    }
 
     return success;
 }
 
 bool PlayList::JumpToNextStep()
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    logger_base.debug("PlayList: JumpToNextStep");
+
     bool success = true;
 
     _pauseTime = 0;
@@ -793,6 +908,10 @@ bool PlayList::JumpToNextStep()
     if (_currentStep == nullptr) return false;
 
     _currentStep->Stop();
+    for (auto it: _everySteps)
+    {
+        it->Stop();
+    }
     bool didloop;
     _currentStep = GetNextStep(didloop);
     if (didloop) DoLoop();
@@ -800,21 +919,30 @@ bool PlayList::JumpToNextStep()
     if (_currentStep == nullptr) return false;
 
     _currentStep->Start(-1);
-
+    for (auto it: _everySteps)
+    {
+        it->Start(-1);
+    }
     return success;
 }
 
 bool PlayList::MoveToNextStep()
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    logger_base.debug("PlayList: MoveToNextStep");
+
     bool success = true;
 
     if (_currentStep == nullptr) return false;
 
     _currentStep->Stop();
+    for (auto it: _everySteps)
+    {
+        it->Stop();
+    }
 
     if (_commandAtEndOfCurrentStep != "")
     {
-        static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
         logger_base.info("Step completed so running command: '%s' parameters: '%s'.", (const char *)_commandAtEndOfCurrentStep.c_str(), (const char *)_commandParametersAtEndOfCurrentStep.c_str());
 
         wxCommandEvent event(EVT_RUNACTION);
@@ -827,13 +955,24 @@ bool PlayList::MoveToNextStep()
 
     bool didloop;
     _currentStep = GetNextStep(didloop);
+
     if (didloop) DoLoop();
 
     _forceNextStep = "";
 
-    if (_currentStep == nullptr) return false;
+    if (_currentStep == nullptr)
+    {
+        logger_base.debug("Move to next step found no step to move to.");
+        return false;
+    }
 
     _currentStep->Start(-1);
+    for (auto it: _everySteps)
+    {
+        it->Start(-1);
+    }
+
+    logger_base.debug("Move to next step moved to %s.", (const char*)_currentStep->GetNameNoTime().c_str());
 
     if (_suspendAtEndOfStep)
     {
@@ -851,10 +990,17 @@ void PlayList::RestartCurrentStep()
     _forceNextStep = "";
     _loopStep = false;
     if (_currentStep != nullptr) _currentStep->Restart();
+    for (auto it: _everySteps)
+    {
+        it->Restart();
+    }
 }
 
 bool PlayList::JumpToStep(const std::string& step)
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    logger_base.debug("PlayList: JumpToStep %s", (const char*)step.c_str());
+
     bool success = true;
 
     _lastLoop = false;
@@ -864,12 +1010,20 @@ bool PlayList::JumpToStep(const std::string& step)
     if (_currentStep != nullptr && wxString(_currentStep->GetNameNoTime()).Lower() == wxString(step).Lower())
     {
         _currentStep->Restart();
+        for (auto it: _everySteps)
+        {
+            it->Restart();
+        }
         return success;
     }
 
     if (_currentStep != nullptr)
     {
         _currentStep->Stop();
+        for (auto it: _everySteps)
+        {
+            it->Stop();
+        }
     }
 
     _currentStep = GetStep(step);
@@ -879,6 +1033,10 @@ bool PlayList::JumpToStep(const std::string& step)
     }
 
     _currentStep->Start(-1);
+    for (auto it: _everySteps)
+    {
+        it->Start(-1);
+    }
 
     return success;
 }
@@ -954,27 +1112,64 @@ PlayListStep* PlayList::GetRandomStep()
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
     {
-        ReentrancyCounter rec(_reentrancyCounter);
-        if (SupportsRandom())
+        int actualsteps = _steps.size();
+        if (_firstOnlyOnce) actualsteps--;
+        if (_lastOnlyOnce) actualsteps--;
+        for (auto it = _steps.begin(); it != _steps.end(); ++it)
         {
-            int selected = rand() % _steps.size();
-            auto it = _steps.begin();
-
-            for (int i = 0; i < selected && it != _steps.end(); i++)
+            if ((*it)->GetExcludeFromRandom())
             {
-                ++it;
+                actualsteps--;
             }
+        }
+        if (actualsteps < 0) actualsteps = 0;
+        int availablesteps = actualsteps - _played.size();
+        if (availablesteps <= 0)
+        {
+            logger_base.debug("Resetting random after %d steps were played of an eligible %d steps in a playlist of size %d",
+                _played.size(), actualsteps, _steps.size());
+            _played.clear();
+            availablesteps = actualsteps;
+        }
 
-            // we dont want the same step so try again or a step that isnt meant to be random
-            if (it == _steps.end() ||
-                (_currentStep != nullptr && (*it)->GetId() == _currentStep->GetId()) ||
-                (*it)->GetExcludeFromRandom() ||
-                (_firstOnlyOnce && (*it)->GetId() == _steps.front()->GetId()) ||
-                (_lastOnlyOnce && (*it)->GetId() == _steps.back()->GetId())
-                )
+        ReentrancyCounter rec(_reentrancyCounter);
+        if (SupportsRandom() && availablesteps > 0)
+        {
+            int selected = rand() % availablesteps;
+
+            auto it = _steps.begin();
+            int i = -1;
+
+            do {
+                bool eligible = !(*it)->GetExcludeFromRandom() &&
+                    !(_firstOnlyOnce && (*it)->GetId() == _steps.front()->GetId()) &&
+                    !(_lastOnlyOnce && (*it)->GetId() == _steps.back()->GetId()) &&
+                    std::find(_played.begin(), _played.end(), (*it)->GetId()) == _played.end();
+
+                if (eligible)
+                {
+                    i++;
+                    if (i != selected)
+                    {
+                        ++it;
+                    }
+                }
+                else
+                {
+                    ++it;
+                }
+            } while (i != selected && it != _steps.end());
+
+            wxASSERT(it != _steps.end());
+
+            // There is a risk after we reset the list of played step that we will get a repeat step so prevent that
+            if (_currentStep != nullptr && (*it)->GetId() == _currentStep->GetId())
             {
+                wxASSERT(_played.size() == 0);
                 return GetRandomStep();
             }
+
+            _played.push_back((*it)->GetId());
 
             logger_base.info("Playlist %s randomly chose step %d of %d.", (const char*)GetName().c_str(), selected, _steps.size());
 
@@ -1099,6 +1294,11 @@ bool PlayList::IsSimple()
                 return false;
             }
         }
+
+        for (auto it: _everySteps)
+        {
+            return false;
+        }
     }
 
     return true;
@@ -1166,6 +1366,37 @@ PlayListItemText* PlayList::GetRunningText(const std::string& name)
         if (_currentStep == nullptr) return nullptr;
 
         return _currentStep->GetTextItem(name);
+    }
+}
+
+// Consolidate the everyday steps into the main steps list
+// Used when editing the playlist
+void PlayList::ConsolidateEveryDay()
+{
+    while(_everySteps.size() > 0)
+    {
+        _steps.push_front(_everySteps.back());
+        _everySteps.pop_front();
+    }
+}
+
+// Extracts the everyday tagged steps into the right list
+void PlayList::SeparateEveryDay()
+{
+    auto it = _steps.begin();
+    while (it != _steps.end())
+    {
+        if ((*it)->GetEveryStep())
+        {
+            auto tomove = it;
+            ++it;
+            _everySteps.push_back(*tomove);
+            _steps.erase(tomove);
+        }
+        else
+        {
+            ++it;
+        }
     }
 }
 

@@ -452,13 +452,21 @@ void PolyLineModel::InitModel() {
                     segment_length = pPos[segment].curve->GetSegLength(sub_segment);
                     seg_end = seg_start + segment_length;
                 } else {
-                    sub_segment = 0;
-                    polyLineSizes[segment] = m - last_seg_light_num;
-                    last_seg_light_num = m;
-                    segment++;
-                    seg_start = seg_end;
-                    segment_length = pPos[segment].has_curve ? pPos[segment].curve->GetSegLength(sub_segment) : pPos[segment].length;
-                    seg_end = seg_start + segment_length;
+                    if (segment == polyLineSizes.size() - 1)
+                    {
+                        // cant increase segment ... so just fudge the segment end
+                        seg_end += 0.0001f;
+                    }
+                    else
+                    {
+                        sub_segment = 0;
+                        polyLineSizes[segment] = m - last_seg_light_num;
+                        last_seg_light_num = m;
+                        segment++;
+                        seg_start = seg_end;
+                        segment_length = pPos[segment].has_curve ? pPos[segment].curve->GetSegLength(sub_segment) : pPos[segment].length;
+                        seg_end = seg_start + segment_length;
+                    }
                 }
             }
             glm::vec3 v;

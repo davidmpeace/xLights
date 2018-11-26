@@ -482,8 +482,6 @@ void SubBufferPanel::mouseMoved( wxMouseEvent& event) {
         case 4:
             {
                 wxSize size = GetSize();
-                float startX = size.GetWidth() / 10.0;
-                float startY = size.GetHeight() / 10.0;
                 float bw = size.GetWidth() * 0.8;
                 float bh = size.GetHeight() * 0.8;
                 int x = (event.GetX() - _startMovePos.x) * 100 / bw;
@@ -547,9 +545,9 @@ void SubBufferPanel::mouseMoved( wxMouseEvent& event) {
 
 void SubBufferPanel::Paint( wxPaintEvent& event ) {
     wxPaintDC dc(this);
-    if (!IsShownOnScreen()) {
-        return;
-    }
+#ifdef __LINUX__
+    if(!IsShownOnScreen()) return;
+#endif
 
     dc.SetPen(*wxTRANSPARENT_PEN);
     dc.SetBrush(*wxTRANSPARENT_BRUSH);

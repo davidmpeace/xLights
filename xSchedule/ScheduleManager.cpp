@@ -1094,6 +1094,15 @@ int ScheduleManager::Frame(bool outputframe)
     return rate;
 }
 
+bool ScheduleManager::IsSlave() const
+{
+    return _mode == FPPSLAVE ||
+        _mode == FPPUNICASTSLAVE ||
+        _mode == ARTNETSLAVE ||
+        _mode == OSCSLAVE ||
+        _mode == MIDISLAVE;
+}
+
 void ScheduleManager::CreateBrightnessArray()
 {
     for (size_t i = 0; i < 256; i++)
@@ -1363,12 +1372,17 @@ int ScheduleManager::CheckSchedule()
     logger_base.debug("   Active scheduled playlists: %d", _activeSchedules.size());
     for (auto it = _activeSchedules.begin(); it != _activeSchedules.end(); ++it)
     {
-        logger_base.debug("        Playlist %s, Schedule %s Priority %d %s %s", 
+        PlayListStep* step = (*it)->GetPlayList()->GetRunningStep();
+        logger_base.debug("        Playlist %s, Schedule %s Priority %d %s %s Step '%s' Time %s/%s", 
             (const char *)(*it)->GetPlayList()->GetName().c_str(), 
             (const char *)(*it)->GetSchedule()->GetName().c_str(), 
             (*it)->GetSchedule()->GetPriority(), 
-            (*it)->IsStopped() ? "Stopped" : ((*it)->GetPlayList()->IsRunning() ? "Running" : ((*it)->GetPlayList()->IsSuspended() ? "Suspended" : "Done")),
-            ((*it)->GetPlayList()->IsSuspended() ? "Suspended" : ""));
+            (const char*)((*it)->IsStopped() ? wxString("Stopped") : ((*it)->GetPlayList()->IsRunning() ? wxString("Running") : ((*it)->GetPlayList()->IsSuspended() ? wxString("Suspended") : wxString("Done")))).c_str(),
+            (const char*)(((*it)->GetPlayList()->IsSuspended() ? wxString("Suspended") : wxString(""))).c_str(),
+            (const char*)((step == nullptr ? wxString("") : wxString(step->GetNameNoTime()))).c_str(),
+            (const char*)((step == nullptr ? wxString("") : FORMATTIME(step->GetPosition()))).c_str(),
+            (const char*)((step == nullptr ? wxString("") : FORMATTIME(step->GetLengthMS()))).c_str()
+            );
     }
 
     return framems;
@@ -1445,6 +1459,8 @@ bool ScheduleManager::Action(const std::string command, const std::string parame
             }
             else
             {
+                logger_base.debug("Action '%s':'%s'.",
+                    (const char *)command.c_str(), (const char *)parameters.c_str());
                 if (command == "Stop all now")
                 {
                     StopAll();
@@ -2740,7 +2756,6 @@ bool ScheduleManager::Action(const std::string command, const std::string parame
 
     return result;
 }
-
 
 bool ScheduleManager::Action(const std::string label, PlayList* selplaylist, Schedule* selschedule, size_t& rate, std::string& msg)
 {
@@ -4839,6 +4854,11 @@ void ScheduleManager::StopVirtualMatrices()
     }
 }
 
+#define FPP_MEDIA_SYNC_INTERVAL_MS 500
+#define FPP_SEQ_SYNC_INTERVAL_FRAMES 16
+#define FPP_SEQ_SYNC_INTERVAL_INITIAL_FRAMES 4
+#define FPP_SEQ_SYNC_INITIAL_NUMBER_OF_FRAMES 32
+
 void ScheduleManager::SendFPPSync(const std::string& syncItem, size_t msec, size_t frameMS)
 {
     static std::string lastfseq = "";
@@ -4891,9 +4911,20 @@ void ScheduleManager::SendFPPSync(const std::string& syncItem, size_t msec, size
 
         if (!dosend)
         {
-            if (msec - lastfseqmsec > 1000)
+            if (msec - lastfseqmsec <= FPP_SEQ_SYNC_INITIAL_NUMBER_OF_FRAMES * frameMS)
             {
-                dosend = true;
+                // we are in the initial period
+                if (msec - lastfseqmsec >= FPP_SEQ_SYNC_INTERVAL_INITIAL_FRAMES * frameMS)
+                {
+                    dosend = true;
+                }
+            }
+            else
+            {
+                if (msec - lastfseqmsec >= FPP_SEQ_SYNC_INTERVAL_FRAMES * frameMS)
+                {
+                    dosend = true;
+                }
             }
         }
     }
@@ -4916,7 +4947,7 @@ void ScheduleManager::SendFPPSync(const std::string& syncItem, size_t msec, size
 
         if (!dosend)
         {
-            if (msec - lastmediamsec > 1000 && msec - lastfseqmsec > 500)
+            if (msec - lastmediamsec >= FPP_MEDIA_SYNC_INTERVAL_MS)
             {
                 dosend = true;
             }
@@ -5155,6 +5186,9 @@ void ScheduleManager::SendMIDISync(size_t msec, size_t frameMS)
     {
         wxByte buffer[10];
         size_t ms = msec;
+
+        ms += GetOptions()->GetMIDITimecodeOffset();
+
         buffer[0] = 0xF0;
         buffer[1] = 0x7F;
         buffer[2] = 0x7F;
@@ -5192,6 +5226,7 @@ void ScheduleManager::SendMIDISync(size_t msec, size_t frameMS)
     else
     {
         size_t ms = msec;
+        ms += GetOptions()->GetMIDITimecodeOffset();
         int hours = (GetOptions()->GetMIDITimecodeFormat() << 5) + ms / (3600000);
         ms = ms % 360000;
 
@@ -5278,6 +5313,7 @@ void ScheduleManager::SendOSCSync(PlayListStep* step, size_t msec, size_t frameM
     wxString path = GetOptions()->GetOSCOptions()->GetMasterPath();
 
     path.Replace("%STEPNAME%", step->GetNameNoTime());
+
     if (step->GetTimeSource(frameMS) != nullptr)
         path.Replace("%TIMINGITEM%", step->GetTimeSource(frameMS)->GetNameNoTime());
 
@@ -5346,7 +5382,7 @@ void ScheduleManager::SendUnicastSync(const std::string& ip, const std::string& 
     {
     case SYNC_PKT_SYNC:
         sprintf(buffer, "FPP,%d,%d,%d,%s,%d,%d\n", CTRL_PKT_SYNC, SYNC_FILE_SEQ, action, syncItem.c_str(), (int)(msec / 1000), (int)msec % 1000);
-        logger_base.debug("Sending remote sync unicast packet to %s.", (const char*)ip.c_str());
+        //logger_base.debug("Sending remote sync unicast packet to %s.", (const char*)ip.c_str());
         break;
     case SYNC_PKT_STOP:
         sprintf(buffer, "FPP,%d,%d,%d,%s\n", CTRL_PKT_SYNC, SYNC_FILE_SEQ, action, syncItem.c_str());
@@ -5417,11 +5453,11 @@ void ScheduleManager::OpenFPPSyncSendSocket()
     _fppSyncMaster = new wxDatagramSocket(localaddr, wxSOCKET_NOWAIT | wxSOCKET_BROADCAST);
     if (_fppSyncMaster == nullptr)
     {
-        logger_base.error("Error opening datagram for FPP Sync as master.");
+        logger_base.error("Error opening datagram for FPP Sync as master. %s", (const char *)localaddr.IPAddress().c_str());
     }
     else if (!_fppSyncMaster->IsOk())
     {
-        logger_base.error("Error opening datagram for FPP Sync as master. OK : FALSE");
+        logger_base.error("Error opening datagram for FPP Sync as master. %s OK : FALSE", (const char *)localaddr.IPAddress().c_str());
         delete _fppSyncMaster;
         _fppSyncMaster = nullptr;
     }
@@ -5443,17 +5479,17 @@ void ScheduleManager::OpenFPPSyncSendSocket()
         _fppSyncMasterUnicast = new wxDatagramSocket(localaddr, wxSOCKET_NOWAIT);
         if (_fppSyncMasterUnicast == nullptr)
         {
-            logger_base.error("Error opening unicast datagram for FPP Sync as master.");
+            logger_base.error("Error opening unicast datagram for FPP Sync as master %s.", (const char *)localaddr.IPAddress().c_str());
         }
         else if (!_fppSyncMasterUnicast->IsOk())
         {
-            logger_base.error("Error opening unicast datagram for FPP Sync as master. OK : FALSE");
+            logger_base.error("Error opening unicast datagram for FPP Sync as master %s. OK : FALSE", (const char *)localaddr.IPAddress().c_str());
             delete _fppSyncMasterUnicast;
             _fppSyncMasterUnicast = nullptr;
         }
         else if (_fppSyncMasterUnicast->Error())
         {
-            logger_base.error("Error opening unicast datagram for FPP Sync as master. %d : %s", _fppSyncMasterUnicast->LastError(), (const char*)DecodeIPError(_fppSyncMasterUnicast->LastError()).c_str());
+            logger_base.error("Error opening unicast datagram for FPP Sync as master. %d : %s %s", _fppSyncMasterUnicast->LastError(), (const char*)DecodeIPError(_fppSyncMasterUnicast->LastError()).c_str(), (const char *)localaddr.IPAddress().c_str());
             delete _fppSyncMasterUnicast;
             _fppSyncMasterUnicast = nullptr;
         }
@@ -5483,11 +5519,11 @@ void ScheduleManager::OpenOSCSyncSendSocket()
     _oscSyncMaster = new wxDatagramSocket(localaddr, wxSOCKET_NOWAIT | wxSOCKET_BROADCAST);
     if (_oscSyncMaster == nullptr)
     {
-        logger_base.error("Error opening datagram for OSC Sync as master.");
+        logger_base.error("Error opening datagram for OSC Sync as master. %s", (const char *)localaddr.IPAddress().c_str());
     }
     else if (!_oscSyncMaster->IsOk())
     {
-        logger_base.error("Error opening datagram for OSC Sync as master. OK : FALSE");
+        logger_base.error("Error opening datagram for OSC Sync as master. %s OK : FALSE", (const char *)localaddr.IPAddress().c_str());
         delete _oscSyncMaster;
         _oscSyncMaster = nullptr;
     }
@@ -5524,11 +5560,11 @@ void ScheduleManager::OpenARTNetSyncSendSocket()
     _artNetSyncMaster = new wxDatagramSocket(localaddr, wxSOCKET_NOWAIT | wxSOCKET_BROADCAST);
     if (_artNetSyncMaster == nullptr)
     {
-        logger_base.error("Error opening datagram for ARTNet Sync as master.");
+        logger_base.error("Error opening datagram for ARTNet Sync as master. %s", (const char *)localaddr.IPAddress().c_str());
     }
     else if (!_artNetSyncMaster->IsOk())
     {
-        logger_base.error("Error opening datagram for ARTNet Sync as master. OK : FALSE");
+        logger_base.error("Error opening datagram for ARTNet Sync as master. %s OK : FALSE", (const char *)localaddr.IPAddress().c_str());
         delete _artNetSyncMaster;
         _artNetSyncMaster = nullptr;
     }

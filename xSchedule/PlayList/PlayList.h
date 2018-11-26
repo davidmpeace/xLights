@@ -21,6 +21,7 @@ protected:
     int _reentrancyCounter;
     wxUint32 _id;
     std::list<PlayListStep*> _steps;
+    std::list<PlayListStep*> _everySteps;
     std::list<Schedule*> _schedules;
     int _lastSavedChangeCount;
     int _changeCount;
@@ -41,6 +42,7 @@ protected:
     bool _suspendAtEndOfStep;
     bool _jumpToEndStepsAtEndOfCurrentStep;
     std::string _forceNextStep;
+    std::list<wxUint32> _played;
     #pragma endregion Member Variables
 
     int GetPos(PlayListStep* step);
@@ -82,11 +84,11 @@ public:
     int GetChangeCount() const { return _changeCount; }
     bool SupportsRandom();
     bool IsRandom() const { return _random; }
-    bool SetRandom(bool random) { _random = random; return true; }
+    bool SetRandom(bool random) { _random = random; if (random) _played.clear(); return true; }
     bool SetLooping(bool looping) { _looping = looping; return true; }
     bool IsStepLooping() const { return _loopStep; }
     int GetLoopsLeft() const { return _loops; }
-    void DoLoop() { --_loops; if (_loops == 0) { _loops = -1; _looping = false; } }
+    void DoLoop() { --_loops; if (_loops == 1) { _loops = -1; _looping = false; } }
     void SetStepLooping(bool loop) { _loopStep = loop; }
     PlayListStep* GetStepAtTime(long ms);
     size_t GetPosition();
@@ -138,6 +140,9 @@ public:
     bool LoopStep(const std::string step);
     PlayListItemText* GetRunningText(const std::string& name);
     #pragma endregion Getters and Setters
+
+    void ConsolidateEveryDay();
+    void SeparateEveryDay();
 
     wxXmlNode* Save();
     void Load(OutputManager* outputManager, wxXmlNode * node);

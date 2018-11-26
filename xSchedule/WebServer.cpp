@@ -546,7 +546,15 @@ bool MyRequestHandler(HttpConnection &connection, HttpRequest &request)
             wxString d = wxStandardPaths::Get().GetResourcesDir();
 #endif
 
-            wxString file = d + uri;
+            wxString file = d;
+            if (uri.Contains("?"))
+            {
+                file += uri.BeforeFirst('?');
+            }
+            else
+            {
+                file += uri;
+            }
 
             logger_base.info("File request received = '%s' : '%s'.", (const char *)file.c_str(), (const char *)uri.c_str());
 
@@ -670,6 +678,13 @@ void MyMessageHandler(HttpConnection &connection, WebSocketMessage &message)
 
 void WebServer::SendMessageToAllWebSockets(const std::string& message)
 {
+    static bool reentry = false;
+    if (reentry)
+    {
+        return;
+    }
+    reentry = true;
+
     for (auto it = _connections.begin(); it != _connections.end(); ++it)
     {
         if ((*it).second->IsWebSocket())
@@ -685,6 +700,8 @@ void WebServer::SendMessageToAllWebSockets(const std::string& message)
             }
         }
     }
+
+    reentry = false;
 }
 
 WebServer::WebServer(int port, bool apionly, const std::string& password, int mins)

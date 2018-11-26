@@ -46,7 +46,7 @@ bool ModelGroup::ContainsModelGroup(ModelGroup* mg)
     bool found = false;
     for (auto it = models.begin(); !found && it != models.end(); ++it)
     {
-        if ((*it)->GetDisplayAs() == "ModelGroup")
+        if ((*it) != nullptr && (*it)->GetDisplayAs() == "ModelGroup")
         {
             if (*it == mg)
             {
@@ -76,7 +76,7 @@ bool ModelGroup::ContainsModelGroup(ModelGroup* mg, std::list<Model*>& visited)
     bool found = false;
     for (auto it = models.begin(); !found && it != models.end(); ++it)
     {
-        if ((*it)->GetDisplayAs() == "ModelGroup")
+        if ((*it) != nullptr && (*it)->GetDisplayAs() == "ModelGroup")
         {
             if (*it == mg)
             {
@@ -391,7 +391,6 @@ void ModelGroup::ResetModels()
 {
     models.clear();
     wxArrayString mn = wxSplit(ModelXml->GetAttribute("models"), ',');
-    int nc = 0;
     for (int x = 0; x < mn.size(); x++) {
         Model *c = modelManager.GetModel(mn[x].ToStdString());
         if (c != nullptr) {

@@ -11,6 +11,85 @@ Issue Tracker is found here: www.github.com/smeighan/xLights/issues
 
 XLIGHTS/NUTCRACKER RELEASE NOTES
 ---------------------------------
+2018.48 November 26, 2018
+   -- bug (keith)  Add extra logging to try to identify xSchedule audio load crash
+   -- bug (keith)  Fix bars effect expand on large model loops around
+   -- bug (keith)  Fix single strand skips renders in correctly on odd width models
+   -- bug (keith)  Fix vendor model download failing
+   -- bug (keith)  Fix playlist loops loops once more than it should
+   -- bug (keith)  Fix indiv start channels default incorrectly if using #ip:u:sc
+   -- bug (keith)  Fix make view master crashes 
+   -- bug (keith)  Fix output processor colour order not saving
+   -- bug (keith)  Fix test model channel for dis-contiguous channel model is incorrect: 
+   -- bug (keith)  Fix crash in submodel dialog
+   -- enh (keith)  Add ability to define a step in a playlist that plays as part of every step in the playlist
+2018.47 November 22, 2018
+   -- bug (keith)  Fix a crash passing in an xml file to xlights which is not in the show folder
+   -- bug (keith)  Ensure a city is always set
+   -- bug (keith)  Fix a possible crash on sequence close
+   -- bug (keith)  Fix schedule hang if pre-load audio and audio is shorter than fseq
+   -- bug (keith)  Only reverse offset of a value curve if the offset is not zero
+   -- bug (keith)  Allow default FPP version to be set for when FPP Connect cant determine the version
+   -- enh (keith)  Add the ability to dim a range of channels as a playlist item
+   -- enh (keith)  Add a tool to cleanup file locations ... bringing them all under the show folder
+   -- enh (keith)  Display the range of controller outputs in the model list
+2018.46 November 18, 2018
+   -- bug (dkulp)  Fix node layout crash for custom models
+   -- bug (dkulp)  Add some fallbacks for FPP upload if UI security is on
+   -- bug (keith)  Fix some old value curve warnings ... hopefully for good
+   -- enh (keith)  Warn in check sequence if videos are being rendered without render cache
+   -- enh (keith)  Update the falcon upload to recognise the new connection properties ... these are 
+                   taken from the first model on each output
+   -- enh (keith)  Add keybindings support for the effect and colour update buttons. F5 defaults for 
+                   effect update but you need to delete keybindings to have the new defaults added
+2018.45 November 15, 2018
+   -- bug (dkulp)  FPP Connect - failure to unzip fseq if name contains certain special characters
+   -- enh (dkulp)  FPP Connect via HTTP/FTP - option to create/append to playlist whatever is uploaded
+   -- enh (dkulp)  Model controller connection can store various properties including
+                   gamma/direction/RGB order/brightness/null pixels which is also used for the FPP
+                   controller upload to configure those strings if set
+   -- bug (dkulp)  FPP controller upload DMX channels are off by 1
+   -- bug (dkulp)  ModelPreview window not refreshing if model not selected
+   -- enh (keith)  Prevent model chains from breaking when chained models are deleted
+   -- bug (keith)  Fix xschedule pauses when web connection interupted
+   -- enh (keith)  Make fixed timing tracks more obvious and make them convertable to unfixed
+   -- enh (keith)  Adjust xSchedule FPP sync packets to match v2.x new send pattern
+   -- bug (keith)  Fix deleting a model containing a submodel which is in a group generates non-sensical 
+                   errors and removes all the submodels from the group.
+   -- bug (keith)  Fix polyline arc last segment doesnt arc
+2018.44 November 11, 2018
+   -- bug (keith)  Fix a crash when deleting models
+   -- bug (keith)  Fix value curve dialog text entry not working correctly #1314
+   -- bug (keith)  Fix fire growth cycles value curve not right
+2018.43 November 10, 2018
+   -- bug (dkulp)  Default DDP packet size should be 1440
+   -- bug (keith)  Fix test doesnt work on non-contiguous submodels
+   -- bug (keith)  Fix a number of crashes
+   -- enh (dkulp)  If uploading to FPP 2.4+, gzip the fseq files prior to transmission
+   -- enh (dkulp)  Use HTTP upload method for transferring fseq/mp3 files to FPP instead of FTP
+   -- enh (keith)  Allow manually adding IP addresses for xSchedule to monitor
+2018.42 November 6, 2018
+   -- enh (keith)  Add text effect grabbing text from a file ... so you can have multiple effects changed from one 
+                   location even in multiple sequences
+   -- enh (keith)  Add MIDI timecode offsets so you can use +1hr offsets
+   -- enh (keith)  Add delay to the Screen Map playlist item
+   -- enh (keith)  Make common mode/config issues even more obvious in xSchedule
+   -- enh (keith)  Add check schedule check for submodels with nodes not on the parent model
+   -- bug (keith)  Fix xSchedule web server 404 if ? parameter after a file request
+   -- bug (keith)  Fix OSX crash calling FPP event
+   -- bug (keith)  Warn user if removing an element that has effects at the strand, node and submodel level
+   -- bug (keith)  Fix not reclaiming effect memory when they are deleted - this may be a risky change
+   -- bug (keith)  Fix a bunch of crashes from crash reports         
+2018.41 November 2, 2018
+   -- enh (scott)  Added Cut, Copy, Paste, Zoom In/Out, Background Image, and Model Select to the Node Select Dialog
+   -- enh (keith)  Add music trigger fade value curve
+   -- enh (keith)  Improve the aparent randomness of random playlists
+   -- enh (keith)  Add a video effect duration mode that ends transparent rather than blue
+   -- bug (keith)  Protect user from causing crash by taking actions while models download
+   -- bug (keith)  Fix next time shows never if last day is today and show starts later.
+   -- bug (keith)  Fix some colour anomalies in LMS import due to invalid effects.
+   -- bug (keith)  Fix crash checking falcon firmware version
+   -- bug (keith)  Fix bulk controller upload buttons not visible if you have lots of controllers   
 2018.40 October 29, 2018
    -- enh (keith)  Allow user to change row header text colour and fix time/frame rate text unreadable on OSX
    -- enh (keith)  Increase maximum DMX channels

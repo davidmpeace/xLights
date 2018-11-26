@@ -171,7 +171,7 @@ void EffectsGrid::mouseLeftDClick(wxMouseEvent& event)
     {
         if ((mTimingPlayOnDClick && event.ShiftDown()) ||
              (!mTimingPlayOnDClick && !event.ShiftDown())) {
-            if (selectedEffect->GetParentEffectLayer()->GetParentElement()->GetType() == ELEMENT_TYPE_TIMING) {
+            if (selectedEffect->GetParentEffectLayer()->GetParentElement()->GetType() == ELEMENT_TYPE_TIMING && !selectedEffect->GetParentEffectLayer()->IsFixedTimingLayer()) {
                 wxString label = selectedEffect->GetEffectName();
 
                 wxTextEntryDialog dlg(this, "Edit Label", "Enter new label:", label);
@@ -937,7 +937,11 @@ Effect* EffectsGrid::GetEffectAtRowAndTime(int row, int ms,int &index, HitLocati
         int position = GetClippedPositionFromTimeMS(ms);
         int mid = (startPos + endPos) / 2;
 
-        if (!eff->IsLocked())
+        if (effectLayer->IsFixedTimingLayer())
+        {
+            selectionType = HitLocation::NONE;
+        }
+        else if (!eff->IsLocked())
         {
             if ((endPos - startPos) < 8) {
                 //too small to really differentiate, just
@@ -3787,6 +3791,8 @@ void EffectsGrid::SetEffectsTiming()
 
     EffectLayer* el = mSelectedEffect->GetParentEffectLayer();
 
+    if (el->IsFixedTimingLayer()) return;
+
     EffectTimingDialog dlg(this, mSelectedEffect, el, mTimeline->GetTimeFrequency());
 
     if (dlg.ShowModal() == wxID_OK)
@@ -3814,7 +3820,7 @@ void EffectsGrid::DeleteSelectedEffects()
         int end = -1;
         for (int x = 0; x < el->GetEffectCount(); x++) {
             Effect *ef = el->GetEffect(x);
-            if (ef->GetSelected() != EFFECT_NOT_SELECTED && !ef->IsLocked()) {
+            if (ef->GetSelected() != EFFECT_NOT_SELECTED && !ef->IsLocked() && !el->IsFixedTimingLayer()) {
                 if (ef->GetStartTimeMS() < start) {
                     start = ef->GetStartTimeMS();
                 }
@@ -3869,7 +3875,7 @@ void EffectsGrid::AlignSelectedEffects(EFF_ALIGN_MODE align_mode)
         EffectLayer* el = mSequenceElements->GetEffectLayer(i);
         for (int x = 0; x < el->GetEffectCount(); x++) {
             Effect *ef = el->GetEffect(x);
-            if (ef->GetSelected() != EFFECT_NOT_SELECTED && !ef->IsLocked()) {
+            if (ef->GetSelected() != EFFECT_NOT_SELECTED && !ef->IsLocked() && !el->IsFixedTimingLayer()) {
                 int align_start, align_end, align_delta;
                 if( align_mode == ALIGN_START_TIMES ) {
                     align_start = sel_eff_start;
@@ -3946,7 +3952,7 @@ void EffectsGrid::AlignSelectedEffects(EFF_ALIGN_MODE align_mode)
                 }
 
                 if( all_clear || el->GetRangeIsClearMS( str_time_for_check, end_time_for_check) ) {
-                    if (!ef->IsLocked())
+                    if (!ef->IsLocked() && !el->IsFixedTimingLayer())
                     {
                         mSequenceElements->get_undo_mgr().CaptureEffectToBeMoved(el->GetParentElement()->GetModelName(), el->GetIndex(), ef->GetID(),
                             ef->GetStartTimeMS(), ef->GetEndTimeMS());
@@ -4021,15 +4027,23 @@ bool EffectsGrid::AtLeastOneEffectSelected() const
     return false;
 }
 
+std::set<EffectLayer *> EffectsGrid::GetLayersWithSelectedEffects() const {
+    std::set<EffectLayer *> layers;
+    for (int i = 0; i < mSequenceElements->GetRowInformationSize(); i++) {
+        EffectLayer* el = mSequenceElements->GetEffectLayer(i);
+        if (el->GetSelectedEffectCount() > 0) {
+            layers.insert(el);
+        }
+    }
+    return layers;
+}
+
 bool EffectsGrid::MultipleEffectsSelected() const
 {
     int count = 0;
-    for (int i = 0; i < mSequenceElements->GetRowInformationSize(); i++)
-    {
-        EffectLayer* el = mSequenceElements->GetEffectLayer(i);
-        count += el->GetSelectedEffectCount();
-        if (count > 1)
-        {
+    for (auto layer : GetLayersWithSelectedEffects()) {
+        count += layer->GetSelectedEffectCount();
+        if (count > 1) {
             return true;
         }
     }
@@ -4336,10 +4350,11 @@ void EffectsGrid::Paste(const wxString &data, const wxString &pasteDataVersion, 
     logger_base.info("Pasting data: %s", (const char *)data.c_str());
 
     wxArrayString all_efdata = wxSplit(data, '\n');
-    if (all_efdata.size() == 0) {
-        return;
-    }
+    if (all_efdata.size() == 0)  return;
+
     wxArrayString banner_data = wxSplit(all_efdata[0], '\t');
+    if (banner_data.size() == 0) return;
+
     if( banner_data[0] != "CopyFormat1" && banner_data[0] != "CopyFormatAC" )
     {
         OldPaste(data, pasteDataVersion);
@@ -4358,6 +4373,7 @@ void EffectsGrid::Paste(const wxString &data, const wxString &pasteDataVersion, 
         return;
     }
 
+    if (banner_data.size() < 7) return;
     bool contains_cell_info = (banner_data[6] != "NO_PASTE_BY_CELL");
     bool paste_by_cell = ((MainSequencer*)mParent)->PasteByCellActive();
     if( paste_by_cell && !row_paste )
@@ -4403,11 +4419,11 @@ void EffectsGrid::Paste(const wxString &data, const wxString &pasteDataVersion, 
             std::set<std::string> modelsToRender;
 
             wxArrayString eff1data = wxSplit(all_efdata[1], '\t');
-            if (eff1data.size() < 7) {
-                return;
-            }
+            if (eff1data.size() < 7) return;
+
             int column_start_time = wxAtoi(eff1data[6]);
             if( xlights->IsACActive() ) {
+                if (banner_data.size() < 10) return;
                 column_start_time = wxAtoi(banner_data[9]);
             }
             int drop_time_offset = wxAtoi(eff1data[3]);
@@ -4467,6 +4483,7 @@ void EffectsGrid::Paste(const wxString &data, const wxString &pasteDataVersion, 
 
             // clear the region if AC mode
             if( xlights->IsACActive() ) {
+                if (banner_data.size() < 11) return;
                 int drop_end_time = mDropStartTimeMS + wxAtoi(banner_data[10]) - wxAtoi(banner_data[9]);
                 int rowstopaste = wxAtoi(banner_data[8]) - wxAtoi(banner_data[7]) + 1;
                 if (rowstopaste == 1)
@@ -4502,14 +4519,13 @@ void EffectsGrid::Paste(const wxString &data, const wxString &pasteDataVersion, 
                 for (size_t i = 1; i < all_efdata.size() - 1; i++)
                 {
                     wxArrayString efdata = wxSplit(all_efdata[i], '\t');
-                    if (efdata.size() < 7) {
-                        break;
-                    }
+                    if (efdata.size() < 8)  break;
                     bool is_timing_effect = (efdata[7] == "TIMING_EFFECT");
                     int new_start_time = wxAtoi(efdata[3]);
                     int new_end_time = wxAtoi(efdata[4]);
                     if (paste_by_cell && !is_timing_effect && !row_paste)
                     {
+                        if (efdata.size() < 11)  break;
                         int eff_start_column = wxAtoi(efdata[7]);
                         int eff_end_column = wxAtoi(efdata[8]);
                         int eff_start_pct = wxAtoi(efdata[9]);
@@ -4662,9 +4678,7 @@ void EffectsGrid::Paste(const wxString &data, const wxString &pasteDataVersion, 
         if ( number_of_timings == 0 && number_of_effects == 1 )  // only single effect paste allowed for range
         {
             wxArrayString efdata = wxSplit(all_efdata[1], '\t');
-            if (efdata.size() < 3) {
-                return;
-            }
+            if (efdata.size() < 3)  return;
             if( efdata[0] == "Random" )
             {
                 FillRandomEffects();
@@ -4699,6 +4713,7 @@ void EffectsGrid::Paste(const wxString &data, const wxString &pasteDataVersion, 
                     int end_time = tel->GetEffect(col2)->GetEndTimeMS();
                     if( !paste_by_cell )  // use original effect length if paste by time
                     {
+                        if (efdata.size() < 5)  return;
                         int drop_time_offset = wxAtoi(efdata[3]);
                         drop_time_offset = mDropStartTimeMS - drop_time_offset;
                         end_time = wxAtoi(efdata[4]);
@@ -4924,7 +4939,7 @@ void EffectsGrid::ResizeSingleEffectMS(int timems)
 {
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
-    if (mEffectLayer->GetEffect(mResizeEffectIndex)->IsLocked()) return;
+    if (mEffectLayer->GetEffect(mResizeEffectIndex)->IsLocked() || mEffectLayer->IsFixedTimingLayer()) return;
 
     logger_base.debug("EffectsGrid::ResizeSingleEffect.");
 
@@ -5396,7 +5411,10 @@ void EffectsGrid::SetStartPixelOffset(int offset)
 
 void EffectsGrid::InitializeGLCanvas()
 {
-    if(!IsShownOnScreen() || xlights == nullptr) return;
+    if(xlights == nullptr) return;
+#ifdef __LINUX__
+    if(!IsShownOnScreen()) return;
+#endif
     SetCurrentGLContext();
     LOG_GL_ERRORV(glClearColor(0.0f, 0.0f, 0.0f, 1.0f)); // Black Background
     LOG_GL_ERRORV(glClear(GL_COLOR_BUFFER_BIT));
@@ -5548,6 +5566,7 @@ void EffectsGrid::DrawEffects()
                 continue;
             }
             lines.PreAlloc(effectLayer->GetEffectCount() * 16);
+            selectedLinesFixed.PreAlloc(effectLayer->GetEffectCount() * 16);
             selectedLinesLocked.PreAlloc(effectLayer->GetEffectCount() * 16);
             selectedLines.PreAlloc(effectLayer->GetEffectCount() * 16);
             selectFocusLines.PreAlloc(16);
@@ -5782,6 +5801,7 @@ void EffectsGrid::DrawEffects()
     DrawGLUtils::Draw(selectedLines, xlights->color_mgr.GetColor(ColorManager::COLOR_EFFECT_SELECTED), GL_LINES);
     DrawGLUtils::Draw(selectFocusLines, xlights->color_mgr.GetColor(ColorManager::COLOR_REFERENCE_EFFECT), GL_LINES);
     DrawGLUtils::Draw(selectedLinesLocked, xlights->color_mgr.GetColor(ColorManager::COLOR_EFFECT_SELECTED_LOCKED), GL_LINES);
+    DrawGLUtils::Draw(selectedLinesFixed, xlights->color_mgr.GetColor(ColorManager::COLOR_EFFECT_SELECTED_FIXED), GL_LINES);
     DrawGLUtils::Draw(selectFocusLinesLocked, xlights->color_mgr.GetColor(ColorManager::COLOR_REFERENCE_EFFECT_LOCKED), GL_LINES);
 
     DrawGLUtils::SetLineWidth(2.0);
@@ -5801,6 +5821,7 @@ void EffectsGrid::DrawEffects()
     textBackgrounds.Reset();
     timingLines.Reset();
     timingEffLines.Reset();
+    selectedLinesFixed.Reset();
     selectedLinesLocked.Reset();
     texts.Reset();
     backgrounds.Reset();
@@ -5813,9 +5834,15 @@ void EffectsGrid::DrawEffects()
 
 void EffectsGrid::DrawTimingEffects(int row)
 {
+    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
     Row_Information_Struct *ri = mSequenceElements->GetVisibleRowInformation(row);
     TimingElement* element = dynamic_cast<TimingElement*>(ri->element);
-    EffectLayer* effectLayer=mSequenceElements->GetVisibleEffectLayer(row);
+    EffectLayer* effectLayer = mSequenceElements->GetVisibleEffectLayer(row);
+
+    if (effectLayer == nullptr) logger_base.debug("EffectsGrid::DrawTimingEffects null effectLayer.");
+
+    bool fixed = element->IsFixedTiming();
 
     xlColor c(xlights->color_mgr.GetTimingColor(ri->colorIndex));
     c.alpha = 128;
@@ -5824,48 +5851,56 @@ void EffectsGrid::DrawTimingEffects(int row)
     float factor = translateToBacking(1.0);
     float fontSize = ComputeFontSize(toffset, factor);
 
-    for(int effectIndex=0;effectIndex < effectLayer->GetEffectCount();effectIndex++)
+    for (int effectIndex = 0; effectIndex < effectLayer->GetEffectCount(); effectIndex++)
     {
+        Effect *eff = effectLayer->GetEffect(effectIndex);
+
         EFFECT_SCREEN_MODE mode = SCREEN_L_R_OFF;
 
-        int y1 = (row*DEFAULT_ROW_HEADING_HEIGHT)+4;
-        int y2 = ((row+1)*DEFAULT_ROW_HEADING_HEIGHT)-4;
+        int y1 = (row*DEFAULT_ROW_HEADING_HEIGHT) + 4;
+        int y2 = ((row + 1)*DEFAULT_ROW_HEADING_HEIGHT) - 4;
         int y = (row*DEFAULT_ROW_HEADING_HEIGHT) + (DEFAULT_ROW_HEADING_HEIGHT / 2.0);
-        int x1,x2,x3,x4;
+        int x1, x2, x3, x4;
 
-        mTimeline->GetPositionsFromTimeRange(effectLayer->GetEffect(effectIndex)->GetStartTimeMS(),
-                                             effectLayer->GetEffect(effectIndex)->GetEndTimeMS(),mode,x1,x2,x3,x4);
+        mTimeline->GetPositionsFromTimeRange(eff->GetStartTimeMS(),
+            eff->GetEndTimeMS(), mode, x1, x2, x3, x4);
 
         DrawGLUtils::xlVertexAccumulator* linesLeft;
         DrawGLUtils::xlVertexAccumulator* linesRight;
-        if (effectLayer->GetEffect(effectIndex)->IsLocked())
+        if (fixed)
         {
-            linesLeft = effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_NOT_SELECTED ||
-                effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_RT_SELECTED ? &timingEffLines : &selectedLinesLocked;
-            linesRight = effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_NOT_SELECTED ||
-                effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_LT_SELECTED ? &timingEffLines : &selectedLinesLocked;
-            //DrawGLUtils::xlVertexAccumulator* linesCenter = effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_SELECTED?&selectedLinesLocked:&timingEffLines;
+            linesLeft = &selectedLinesFixed;
+            linesRight = &selectedLinesFixed;
+            //DrawGLUtils::xlVertexAccumulator* linesCenter = &timingEffLines;
+        }
+        else if (eff->IsLocked())
+        {
+            linesLeft = eff->GetSelected() == EFFECT_NOT_SELECTED ||
+                eff->GetSelected() == EFFECT_RT_SELECTED ? &timingEffLines : &selectedLinesLocked;
+            linesRight = eff->GetSelected() == EFFECT_NOT_SELECTED ||
+                eff->GetSelected() == EFFECT_LT_SELECTED ? &timingEffLines : &selectedLinesLocked;
+            //DrawGLUtils::xlVertexAccumulator* linesCenter = eff->GetSelected() == EFFECT_SELECTED?&selectedLinesLocked:&timingEffLines;
         }
         else
         {
-            linesLeft = effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_NOT_SELECTED ||
-                effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_RT_SELECTED ? &timingEffLines : &selectedLines;
-            linesRight = effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_NOT_SELECTED ||
-                effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_LT_SELECTED ? &timingEffLines : &selectedLines;
-            //DrawGLUtils::xlVertexAccumulator* linesCenter = effectLayer->GetEffect(effectIndex)->GetSelected() == EFFECT_SELECTED?&selectedLines:&timingEffLines;
+            linesLeft = eff->GetSelected() == EFFECT_NOT_SELECTED ||
+                eff->GetSelected() == EFFECT_RT_SELECTED ? &timingEffLines : &selectedLines;
+            linesRight = eff->GetSelected() == EFFECT_NOT_SELECTED ||
+                eff->GetSelected() == EFFECT_LT_SELECTED ? &timingEffLines : &selectedLines;
+            //DrawGLUtils::xlVertexAccumulator* linesCenter = eff->GetSelected() == EFFECT_SELECTED?&selectedLines:&timingEffLines;
         }
 
-        if(mode!=SCREEN_L_R_OFF) {
+        if (mode != SCREEN_L_R_OFF) {
             // Draw Left line
-            if(mode==SCREEN_L_R_ON || mode == SCREEN_L_ON)
+            if (mode == SCREEN_L_R_ON || mode == SCREEN_L_ON)
             {
-                if(effectIndex>0)
+                if (effectIndex > 0)
                 {
                     // Draw left line if effect has different start time then previous effect or
                     // previous effect was not selected, or only left was selected
-                    if(effectLayer->GetEffect(effectIndex)->GetStartTimeMS() != effectLayer->GetEffect(effectIndex-1)->GetEndTimeMS() ||
-                       effectLayer->GetEffect(effectIndex-1)->GetSelected() == EFFECT_NOT_SELECTED ||
-                        effectLayer->GetEffect(effectIndex-1)->GetSelected() == EFFECT_LT_SELECTED) {
+                    if (eff->GetStartTimeMS() != effectLayer->GetEffect(effectIndex - 1)->GetEndTimeMS() ||
+                        effectLayer->GetEffect(effectIndex - 1)->GetSelected() == EFFECT_NOT_SELECTED ||
+                        effectLayer->GetEffect(effectIndex - 1)->GetSelected() == EFFECT_LT_SELECTED) {
                         linesLeft->AddVertex(x1, y1);
                         linesLeft->AddVertex(x1, y2);
                     }
@@ -5876,53 +5911,53 @@ void EffectsGrid::DrawTimingEffects(int row)
                     linesLeft->AddVertex(x1, y2);
                 }
 
-                if(element->GetActive() && ri->layerIndex == 0)
+                if (element->GetActive() && ri->layerIndex == 0)
                 {
-                    timingLines.AddVertex(x1,(row+1)*DEFAULT_ROW_HEADING_HEIGHT, c);
-                    timingLines.AddVertex(x1,GetSize().y, c);
+                    timingLines.AddVertex(x1, (row + 1)*DEFAULT_ROW_HEADING_HEIGHT, c);
+                    timingLines.AddVertex(x1, GetSize().y, c);
                 }
             }
             // Draw Right line
-            if(mode==SCREEN_L_R_ON || mode == SCREEN_R_ON)
+            if (mode == SCREEN_L_R_ON || mode == SCREEN_R_ON)
             {
                 linesRight->AddVertex(x2, y1);
                 linesRight->AddVertex(x2, y2);
-                if(element->GetActive() && ri->layerIndex == 0)
+                if (element->GetActive() && ri->layerIndex == 0)
                 {
-                    timingLines.AddVertex(x2,(row+1)*DEFAULT_ROW_HEADING_HEIGHT, c);
-                    timingLines.AddVertex(x2,GetSize().y, c);
+                    timingLines.AddVertex(x2, (row + 1)*DEFAULT_ROW_HEADING_HEIGHT, c);
+                    timingLines.AddVertex(x2, GetSize().y, c);
                 }
             }
             // Draw horizontal
-            if(mode!=SCREEN_L_R_OFF)
+            if (mode != SCREEN_L_R_OFF)
             {
-                int half_width = (x2-x1)/2;
+                int half_width = (x2 - x1) / 2;
                 linesLeft->AddVertex(x1, y);
-                linesLeft->AddVertex(x1+half_width,y);
-                linesRight->AddVertex(x1+half_width,y);
-                linesRight->AddVertex(x2,y);
-                if (effectLayer->GetEffect(effectIndex)->GetEffectName() != "" && (x2-x1) > 20 ) {
-                    int max_width = x2-x1-18;
-                    int text_width = DrawGLUtils::GetTextWidth(fontSize, effectLayer->GetEffect(effectIndex)->GetEffectName(), factor) + 8;
+                linesLeft->AddVertex(x1 + half_width, y);
+                linesRight->AddVertex(x1 + half_width, y);
+                linesRight->AddVertex(x2, y);
+                if (eff->GetEffectName() != "" && (x2 - x1) > 20) {
+                    int max_width = x2 - x1 - 18;
+                    int text_width = DrawGLUtils::GetTextWidth(fontSize, eff->GetEffectName(), factor) + 8;
                     int width = std::min(text_width, max_width);
-                    int center = x1 + (x2-x1)/2;
-                    int label_start = center - width/2;
+                    int center = x1 + (x2 - x1) / 2;
+                    int label_start = center - width / 2;
                     xlColor label_color = xlights->color_mgr.GetColor(ColorManager::COLOR_LABELS);
-                    if( ri->layerIndex == 0 && element->GetEffectLayerCount() > 1)
+                    if (ri->layerIndex == 0 && element->GetEffectLayerCount() > 1)
                     {
                         label_color = xlights->color_mgr.GetColor(ColorManager::COLOR_PHRASES);
                     }
-                    else if( ri->layerIndex == 1 )
+                    else if (ri->layerIndex == 1)
                     {
                         label_color = xlights->color_mgr.GetColor(ColorManager::COLOR_WORDS);
                     }
-                    else if( ri->layerIndex == 2 )
+                    else if (ri->layerIndex == 2)
                     {
                         label_color = xlights->color_mgr.GetColor(ColorManager::COLOR_PHONEMES);
                     }
-                    textBackgrounds.AddRect(label_start,y1-2,label_start+width,y2+2, label_color);
-                    timingLines.AddLinesRect(label_start-0.4,y1-2-0.4,label_start+width+0.4,y2+2+0.4, xlights->color_mgr.GetColor(ColorManager::COLOR_LABEL_OUTLINE));
-                    texts.AddVertex(label_start + 4, y2 + toffset, effectLayer->GetEffect(effectIndex)->GetEffectName());
+                    textBackgrounds.AddRect(label_start, y1 - 2, label_start + width, y2 + 2, label_color);
+                    timingLines.AddLinesRect(label_start - 0.4, y1 - 2 - 0.4, label_start + width + 0.4, y2 + 2 + 0.4, xlights->color_mgr.GetColor(ColorManager::COLOR_LABEL_OUTLINE));
+                    texts.AddVertex(label_start + 4, y2 + toffset, eff->GetEffectName());
                 }
             }
         }
@@ -5938,7 +5973,9 @@ void EffectsGrid::render( wxPaintEvent& evt )
 void EffectsGrid::Draw()
 {
     if(!mIsInitialized) { InitializeGLCanvas(); }
+#ifdef __LINUX__
     if(!IsShownOnScreen()) return;
+#endif
 
     SetCurrentGLContext();
 

@@ -144,6 +144,11 @@ void ValueCurve::GetRangeParm1(const std::string& type, float& low, float &high)
         low = MINVOID;
         high = MAXVOID;
     }
+    else if (type == "Music Trigger Fade")
+    {
+        low = MINVOID;
+        high = MAXVOID;
+    }
     else if (type == "Square")
     {
         low = MINVOID;
@@ -205,6 +210,11 @@ void ValueCurve::GetRangeParm2(const std::string& type, float& low, float &high)
         high = MAXVOID;
     }
     else if (type == "Music")
+    {
+        low = MINVOID;
+        high = MAXVOID;
+    }
+    else if (type == "Music Trigger Fade")
     {
         low = MINVOID;
         high = MAXVOID;
@@ -331,6 +341,9 @@ void ValueCurve::GetRangeParm3(const std::string& type, float& low, float &high)
     else if (type == "Abs Sine")
     {
     }
+    else if (type == "Music Trigger Fade")
+    {
+    }
 }
 
 void ValueCurve::GetRangeParm4(const std::string& type, float& low, float &high)
@@ -388,6 +401,9 @@ void ValueCurve::GetRangeParm4(const std::string& type, float& low, float &high)
     else if (type == "Decaying Sine")
     {
     }
+    else if (type == "Music Trigger Fade")
+    {
+    }
     else if (type == "Abs Sine")
     {
         low = MINVOID;
@@ -397,7 +413,12 @@ void ValueCurve::GetRangeParm4(const std::string& type, float& low, float &high)
 
 void ValueCurve::Reverse()
 {
-    _timeOffset = 100 - _timeOffset;
+    // Only reverse the time offset if a non zero value was used
+    if (_timeOffset != 0)
+    {
+        _timeOffset = 100 - _timeOffset;
+    }
+
     if (_type == "Custom")
     {
         for (auto it = _values.begin(); it != _values.end(); ++it)
@@ -607,7 +628,7 @@ void ValueCurve::ConvertChangedScale(float newmin, float newmax)
     float newrange = newmax - newmin;
     float oldrange = _max - _min;
 
-    if (newrange > oldrange)
+    if (newrange < oldrange)
     {
         // this is suspicious ... generally ranges increase with versions not decrease so I am going to ignore this request
         wxASSERT(false);
@@ -681,6 +702,10 @@ void ValueCurve::RenderType()
         }
     }
     else if (_type == "Music")
+    {
+        // ???
+    }
+    else if (_type == "Music Trigger Fade")
     {
         // ???
     }
@@ -1149,38 +1174,46 @@ void ValueCurve::Deserialise(const std::string& s, bool holdminmax)
         if (!holdminmax)
         {
             // This converts curves from the 0-100 to the real scale
-            if (_active && !_realValues && oldmin != MINVOIDF)
+            if (_active && !_realValues)
             {
-                if (_min != 0 || _max != 100)
+                if (_min == 0 && _max == 100 && _divisor == 1)
                 {
-                    // use the scale in the file if it wasnt 0-100
-                    FixChangedScale(_min, _max, _divisor);
+                    // no rescaling needed
+                    _realValues = true;
                 }
-                else
+                else if (oldmin != MINVOIDF)
                 {
-                    if (oldmin != 0 || oldmax != 100 || _divisor != 1)
+                    if (_min != 0 || _max != 100)
                     {
-                        // otherwise use the scale of this VC ... this is not great ... if the VC range has been expanded then
-                        // it isnt going to convert correctly
-
-                        // this is actually checking for something 2018.23 or newer
-                        // this should be updated every release by 1 until we decide to change a slider range for the first time
-                        // at that point we are going to need to force people to go back to a version after 2017.24 but before the
-                        // first version with the change
-                        if (!::IsVersionOlder("2018.30", xlights_version_string.ToStdString()))
-                        {
-                            static std::string warnedfile = "";
-
-                            if (xLightsFrame::CurrentSeqXmlFile != nullptr && warnedfile != xLightsFrame::CurrentSeqXmlFile->GetFullName().ToStdString())
-                            {
-                                warnedfile = xLightsFrame::CurrentSeqXmlFile->GetFullName().ToStdString();
-                                wxMessageBox("Sequence contains value curves that cannot be converted automatically. Please open and save this sequence in v2018.23 before proceeding.");
-                            }
-                        }
-                        FixChangedScale(oldmin, oldmax, _divisor);
+                        // use the scale in the file if it wasnt 0-100
+                        FixChangedScale(_min, _max, _divisor);
                     }
+                    else
+                    {
+                        if (oldmin != 0 || oldmax != 100 || _divisor != 1)
+                        {
+                            // otherwise use the scale of this VC ... this is not great ... if the VC range has been expanded then
+                            // it isnt going to convert correctly
+
+                            // this is actually checking for something 2018.23 or newer
+                            // this should be updated every release by 1 until we decide to change a slider range for the first time
+                            // at that point we are going to need to force people to go back to a version after 2017.24 but before the
+                            // first version with the change
+                            if (!::IsVersionOlder("2018.46", xlights_version_string.ToStdString()))
+                            {
+                                static std::string warnedfile = "";
+
+                                if (xLightsFrame::CurrentSeqXmlFile != nullptr && warnedfile != xLightsFrame::CurrentSeqXmlFile->GetFullName().ToStdString())
+                                {
+                                    warnedfile = xLightsFrame::CurrentSeqXmlFile->GetFullName().ToStdString();
+                                    wxMessageBox("Sequence contains value curves that cannot be converted automatically. Please open and save this sequence in v2018.23 before proceeding.");
+                                }
+                            }
+                            FixChangedScale(oldmin, oldmax, _divisor);
+                        }
+                    }
+                    _realValues = true;
                 }
-                _realValues = true;
             }
 
             // This converts curves to the new scale when a parameters range has been expanded ... but only if it was already real values
@@ -1367,6 +1400,52 @@ float ValueCurve::GetOutputValueAtDivided(float offset, long startMS, long endMS
 float ValueCurve::GetValueAt(float offset, long startMS, long endMS)
 {
     float res = 0.0f;
+
+    // If we are music trigger fade and we dont have values ... calculate them on the fly
+    if (_type == "Music Trigger Fade")
+    {
+        // Just generate what we need on the fly
+        if (__audioManager != nullptr)
+        {
+            float min = (GetParameter1() - _min) / (_max - _min);
+            float max = (GetParameter2() - _min) / (_max - _min);
+            int step = (endMS - startMS) / VC_X_POINTS;
+            int frameMS = __audioManager->GetFrameInterval();
+            if (step < frameMS) step = frameMS;
+
+            long time = (float)startMS + offset * (endMS - startMS);
+
+            float last = -1000.0;
+            for (long cur = std::max(startMS, (long)(time - GetParameter4() * frameMS)) ; cur <= time + frameMS; cur += step)
+            {
+                float x = (float)(cur - startMS) / (float)(endMS - startMS);
+                float f = 0.0;
+                auto pf = __audioManager->GetFrameData(FRAMEDATATYPE::FRAMEDATA_HIGH, "", cur);
+                if (pf != nullptr)
+                {
+                    f = *pf->begin();
+                }
+
+                float y = min;
+                if (f * 100.0 > GetParameter3())
+                {
+                    y = min + 1.0 * (max - min);
+                    last = x;
+                }
+                else
+                {
+                    float fadeFrames = (x - last) * (endMS - startMS) / frameMS;
+                    if (fadeFrames < GetParameter4())
+                    {
+                        float fadeamt = 1.0 - fadeFrames / GetParameter4();
+                        y = (min + 1.0 * (max - min)) * fadeamt;
+                    }
+                }
+
+                _values.push_back(vcSortablePoint(x, y, _wrap));
+            }
+        }
+    }
 
     if (_type == "Music")
     {
@@ -1601,7 +1680,7 @@ wxBitmap ValueCurve::GetImage(int w, int h, double scaleFactor)
     dc.SetPen(*wxBLACK_PEN);
     float lastY = height - 1 - (GetValueAt(0, 0, 1)) * height;
 
-    if (_type == "Music")
+    if (_type == "Music" || _type == "Music Trigger Fade")
     {
         dc.DrawCircle(width / 4, height - height / 4, wxCoord(std::min(width / 5, height / 5)));
         dc.DrawLine(width / 4 + width / 5, height - height / 4, width / 4 + width / 5, height / 5);

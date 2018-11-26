@@ -217,7 +217,7 @@ LayoutPanel::LayoutPanel(wxWindow* parent, xLightsFrame *xl, wxPanel* sequencer)
     background = nullptr;
     _firstTreeLoad = true;
     _lastXlightsModel = "";
-    appearanceVisible = sizeVisible = stringPropsVisible = false;
+    appearanceVisible = sizeVisible = stringPropsVisible = controllerConnectionVisible = false;
 
 	//(*Initialize(LayoutPanel)
 	wxFlexGridSizer* FlexGridSizer1;
@@ -289,7 +289,7 @@ LayoutPanel::LayoutPanel(wxWindow* parent, xLightsFrame *xl, wxPanel* sequencer)
 	//*)
 
     logger_base.debug("LayoutPanel basic setup complete");
-    modelPreview = new ModelPreview( (wxPanel*) PreviewGLPanel, xlights, xlights->PreviewModels, xlights->LayoutGroups, true);
+    modelPreview = new ModelPreview( (wxPanel*) PreviewGLPanel, xlights, true);
     PreviewGLSizer->Add(modelPreview, 1, wxALL | wxEXPAND, 0);
     PreviewGLSizer->Fit(PreviewGLPanel);
     PreviewGLSizer->SetSizeHints(PreviewGLPanel);
@@ -775,6 +775,10 @@ void LayoutPanel::clearPropGrid() {
     if (p != nullptr) {
         stringPropsVisible = propertyEditor->IsPropertyExpanded(p);
     }
+    p = propertyEditor->GetPropertyByName("ModelControllerConnectionProperties");
+    if (p != nullptr) {
+        controllerConnectionVisible = propertyEditor->IsPropertyExpanded(p);
+    }
     propertyEditor->Clear();
 }
 
@@ -812,7 +816,8 @@ void LayoutPanel::refreshModelList() {
                     TreeListViewModels->SetItemText(item, Col_EndChan, endStr);
                 }
                 cv = TreeListViewModels->GetItemText(item, Col_ControllerConnection);
-                std::string cc = model->GetControllerConnection();
+                
+                std::string cc = model->GetControllerConnectionRangeString();
                 if (cv != cc)
                 {
                     TreeListViewModels->SetItemText(item, Col_ControllerConnection, cc);
@@ -910,7 +915,10 @@ int LayoutPanel::AddModelToTree(Model *model, wxTreeListItem* parent, bool expan
             TreeListViewModels->SetItemText(item, Col_StartChan, "*** " + startStr);
         }
         TreeListViewModels->SetItemText(item, Col_EndChan, endStr);
-        TreeListViewModels->SetItemText(item, Col_ControllerConnection, model->GetControllerConnection());
+
+        std::string cc = model->GetControllerConnectionRangeString();
+        TreeListViewModels->SetItemText(item, Col_ControllerConnection, cc);
+
         width = std::max(TreeListViewModels->WidthFor(TreeListViewModels->GetItemText(item, Col_StartChan)), TreeListViewModels->WidthFor(TreeListViewModels->GetItemText(item, Col_EndChan)));
     }
 
@@ -961,9 +969,6 @@ void LayoutPanel::UpdateModelList(bool full_refresh, std::vector<Model*> &models
     bool ascending;
     bool sorted = TreeListViewModels->GetSortColumn(&sortcol, &ascending);
 
-    if (full_refresh) {
-        UnSelectAllModels();
-    }
     std::vector<Model *> dummy_models;
 
     // Update all the custom previews
@@ -973,7 +978,7 @@ void LayoutPanel::UpdateModelList(bool full_refresh, std::vector<Model*> &models
         if (grp->GetName() == currentLayoutGroup) {
             UpdateModelsForPreview(currentLayoutGroup, grp, models, true);
         } else {
-             UpdateModelsForPreview(grp->GetName(), grp, dummy_models, false);
+            UpdateModelsForPreview(grp->GetName(), grp, dummy_models, false);
         }
     }
 
@@ -983,6 +988,7 @@ void LayoutPanel::UpdateModelList(bool full_refresh, std::vector<Model*> &models
     }
 
     if (full_refresh) {
+        UnSelectAllModels();
         int width = 0;
         //turn off the colum width auto-resize.  Makes it REALLY slow to populate the tree
         TreeListViewModels->SetColumnWidth(0, 10);
@@ -1063,7 +1069,7 @@ void LayoutPanel::UpdateModelList(bool full_refresh, std::vector<Model*> &models
             TreeListViewModels->SetSortColumn(sortcol, ascending);
         }
     }
-    modelPreview->SetModels(models);
+    xlights->PreviewModels = models;
     UpdatePreview();
 
     TreeListViewModels->Thaw();
@@ -1168,7 +1174,7 @@ void LayoutPanel::UpdateModelsForPreview(const std::string &group, LayoutGroup* 
         layout_grp->SetModels(prev_models);
         ModelPreview* preview = layout_grp->GetModelPreview();
         if (layout_grp->GetPreviewCreated()) {
-            preview->SetModels(layout_grp->GetModels());
+            preview->SetActiveLayoutGroup(layout_grp->GetName());
             if (preview->GetActive()) {
                 preview->Refresh();
                 preview->Update();
@@ -1259,26 +1265,24 @@ void LayoutPanel::BulkEditDimmingCurves()
 void LayoutPanel::BulkEditControllerConnection()
 {
     // get the first controller connection
-    std::string cc = "";
-    for (size_t i = 0; i < modelPreview->GetModels().size(); i++)
-    {
-        if (modelPreview->GetModels()[i]->GroupSelected)
-        {
-            cc = modelPreview->GetModels()[i]->GetControllerConnection();
-            if (cc != "") break;
+    wxXmlNode *cc = nullptr;
+    for (size_t i = 0; i < modelPreview->GetModels().size(); i++) {
+        if (modelPreview->GetModels()[i]->GroupSelected) {
+            std::string port = modelPreview->GetModels()[i]->GetProtocol();
+            if (port != "") {
+                cc = modelPreview->GetModels()[i]->GetControllerConnection();
+                break;
+            }
         }
     }
 
     ControllerConnectionDialog dlg(this);
     dlg.Set(cc);
 
-    if (dlg.ShowModal() == wxID_OK)
-    {
-        for (size_t i = 0; i < modelPreview->GetModels().size(); i++)
-        {
-            if (modelPreview->GetModels()[i]->GroupSelected)
-            {
-                modelPreview->GetModels()[i]->SetControllerConnection(dlg.Get());
+    if (dlg.ShowModal() == wxID_OK) {
+        for (size_t i = 0; i < modelPreview->GetModels().size(); i++) {
+            if (modelPreview->GetModels()[i]->GroupSelected) {
+                dlg.Get(modelPreview->GetModels()[i]->GetControllerConnection());
             }
         }
 
@@ -1470,11 +1474,13 @@ private:
 
 void LayoutPanel::UnSelectAllModels(bool addBkgProps)
 {
-    for (size_t i = 0; i < modelPreview->GetModels().size(); i++)
+    auto models = modelPreview->GetModels();
+    for (size_t i = 0; i < models.size(); i++)
     {
-        modelPreview->GetModels()[i]->Selected = false;
-        modelPreview->GetModels()[i]->GroupSelected = false;
-        modelPreview->GetModels()[i]->SelectHandle(-1);
+        Model* m = modelPreview->GetModels()[i];
+        m->Selected = false;
+        m->GroupSelected = false;
+        m->SelectHandle(-1);
     }
     UpdatePreview();
     selectedModel = nullptr;
@@ -1524,6 +1530,9 @@ void LayoutPanel::UnSelectAllModels(bool addBkgProps)
 }
 
 void LayoutPanel::SetupPropGrid(Model *model) {
+
+    if (model == nullptr || propertyEditor == nullptr) return;
+
     propertyEditor->Freeze();
     clearPropGrid();
 
@@ -1546,6 +1555,12 @@ void LayoutPanel::SetupPropGrid(Model *model) {
         }
         if (!stringPropsVisible) {
             wxPGProperty *prop = propertyEditor->GetPropertyByName("ModelStringProperties");
+            if (prop != nullptr) {
+                propertyEditor->Collapse(prop);
+            }
+        }
+        if (!controllerConnectionVisible) {
+            wxPGProperty *prop = propertyEditor->GetPropertyByName("ModelControllerConnectionProperties");
             if (prop != nullptr) {
                 propertyEditor->Collapse(prop);
             }
@@ -1943,9 +1958,8 @@ void LayoutPanel::OnPreviewLeftDown(wxMouseEvent& event)
             m_creating_bound_rect = false;
             const std::string& model_type = selectedButton->GetModelType();
             newModel = CreateNewModel(model_type);
-            newModel->SetLayoutGroup(currentLayoutGroup);
-
             if (newModel != nullptr) {
+                newModel->SetLayoutGroup(currentLayoutGroup);
                 if( model_type == "Poly Line" ) {
                     m_polyline_active = true;
                 }
@@ -1957,7 +1971,7 @@ void LayoutPanel::OnPreviewLeftDown(wxMouseEvent& event)
                     newModel->UpdateXmlWithScale();
                 }
                 lastModelName = newModel->name;
-                modelPreview->GetModels().push_back(newModel);
+                modelPreview->SetAdditionalModel(newModel);
             }
         }
     }
@@ -2025,7 +2039,13 @@ void LayoutPanel::FinalizeModel()
             float min_y = (float)(newModel->GetModelScreenLocation().GetBottom()) / (float)(newModel->GetModelScreenLocation().previewH);
             float max_y = (float)(newModel->GetModelScreenLocation().GetTop()) / (float)(newModel->GetModelScreenLocation().previewH);
             bool cancelled = false;
-            newModel = Model::GetXlightsModel(newModel, _lastXlightsModel, xlights, cancelled, selectedButton->GetModelType() == "Download");
+
+            wxProgressDialog prog("Model download", "Downloading models ...", 100, this);
+            if (selectedButton->GetModelType() == "Download")
+            {
+                prog.Show();
+            }
+            newModel = Model::GetXlightsModel(newModel, _lastXlightsModel, xlights, cancelled, selectedButton->GetModelType() == "Download", &prog, 0, 99);
             if (cancelled || newModel == nullptr) {
                 newModel = nullptr;
                 m_over_handle = -1;
@@ -2050,6 +2070,7 @@ void LayoutPanel::FinalizeModel()
 
         m_over_handle = -1;
         modelPreview->SetCursor(wxCURSOR_DEFAULT);
+        modelPreview->SetAdditionalModel(nullptr);
         if (selectedButton != nullptr && selectedButton->GetState() == 1) {
             std::string name = newModel->name;
             newModel = nullptr;
@@ -2969,6 +2990,7 @@ void LayoutPanel::OnCharHook(wxKeyEvent& event) {
 void LayoutPanel::DeleteSelectedModel() {
     if( selectedModel != nullptr && !selectedModel->GetModelScreenLocation().IsLocked()) {
         CreateUndoPoint("All", selectedModel->name);
+
         // This should delete all selected models
         //xlights->AllModels.Delete(selectedModel->name);
         bool selectedModelFound = false;
@@ -3037,7 +3059,20 @@ void LayoutPanel::ReplaceModel()
             if (wxMessageBox(msg, "Update Start Channel", wxYES_NO) == wxYES)
             {
                 modelToReplaceItWith->SetStartChannel(replaceModel->ModelStartChannel, true);
-                modelToReplaceItWith->SetControllerConnection(replaceModel->GetControllerConnection());
+
+                auto tocc = modelToReplaceItWith->GetControllerConnection();
+                auto fromcc = replaceModel->GetControllerConnection();
+                if (fromcc->GetAttribute("Protocol", "") != "")
+                {
+                    tocc->DeleteAttribute("Protocol");
+                    tocc->AddAttribute("Protocol", fromcc->GetAttribute("Protocol"));
+                }
+                
+                if (fromcc->GetAttribute("Port", "") != "")
+                {
+                    tocc->DeleteAttribute("Port");
+                    tocc->AddAttribute("Port", fromcc->GetAttribute("Port"));
+                }
             }
         }
 
@@ -3888,10 +3923,12 @@ void LayoutPanel::SetCurrentLayoutGroup(const std::string& group)
         if (grp != nullptr) {
             if( currentLayoutGroup == grp->GetName() ) {
                 pGrp = grp;
-                break;
+                modelPreview->SetActiveLayoutGroup(grp->GetName());
+                return;
             }
         }
     }
+    modelPreview->SetActiveLayoutGroup(group);
 }
 
 void LayoutPanel::OnItemContextMenu(wxTreeListEvent& event)

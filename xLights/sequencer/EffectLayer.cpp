@@ -34,7 +34,6 @@ EffectLayer::~EffectLayer()
     }
 }
 
-
 void EffectLayer::CleanupAfterRender() {
     std::unique_lock<std::recursive_mutex> locker(lock);
     while (!mEffectsToDelete.empty()) {
@@ -43,7 +42,7 @@ void EffectLayer::CleanupAfterRender() {
     }
 }
 
-int EffectLayer::GetIndex()
+int EffectLayer::GetIndex() const
 {
     return mIndex;
 }
@@ -138,6 +137,9 @@ Effect* EffectLayer::AddEffect(int id, const std::string &n, const std::string &
 {
     std::unique_lock<std::recursive_mutex> locker(lock);
     std::string name(n);
+
+    // really dont want to add effects which look invalid - some imports result in this
+    if (startTimeMS > endTimeMS) return nullptr;
 
     if (GetParentElement() != nullptr && GetParentElement()->GetType() == ELEMENT_TYPE_MODEL) {
         if (name == "") {
@@ -236,6 +238,12 @@ int EffectLayer::GetMinimumStartTimeMS(int index, bool allow_collapse, int min_p
 int EffectLayer::GetEffectCount() const
 {
     return mEffects.size();
+}
+
+bool EffectLayer::IsFixedTimingLayer()
+{
+    TimingElement* te = dynamic_cast<TimingElement*>(GetParentElement());
+    return !(te == nullptr || !te->IsFixedTiming());
 }
 
 bool EffectLayer::HitTestEffectByTime(int timeMS, int &index)
@@ -1201,4 +1209,22 @@ std::list<std::string> EffectLayer::GetFileReferences(EffectManager& em) const
     }
 
     return res;
+}
+
+bool EffectLayer::CleanupFileLocations(xLightsFrame* frame, EffectManager& em)
+{
+    bool rc = false;
+
+    for (int k = 0; k < GetEffectCount(); k++)
+    {
+        Effect* ef = GetEffect(k);
+
+        if (ef->GetEffectIndex() >= 0)
+        {
+            RenderableEffect *eff = em[ef->GetEffectIndex()];
+            rc = eff->CleanupFileLocations(frame, ef->GetSettings()) || rc;
+        }
+    }
+
+    return rc;
 }
