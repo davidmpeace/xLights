@@ -438,6 +438,7 @@ TEST_CASE("CreateDefaultModel DMX channel counts", "[models][geometry]") {
         { "DmxServo", 2 },
         { "DmxServo3d", 2 },
         { "DmxServo3Axis", 6 },
+        { "DmxFountain", 32 },
     };
     for (const auto& c : cases) {
         INFO(c.type);

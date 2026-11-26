@@ -62,6 +62,7 @@
 #include "../models/DMX/DmxDimmerAbility.h"
 #include "../models/DMX/DmxFloodArea.h"
 #include "../models/DMX/DmxFloodlight.h"
+#include "../models/DMX/DmxFountain.h"
 #include "../models/DMX/DmxGeneral.h"
 #include "../models/DMX/DmxImage.h"
 #include "../models/DMX/DmxShutterAbility.h"
@@ -1084,6 +1085,28 @@ void BaseSerializingVisitor::Visit(const DmxFloodlight& model) {
     AttrCollector attrs;
     CommonVisitSteps(model, attrs);
     AddDmxModelAttributes(model, attrs);
+    SortAttributes(attrs);
+    WriteOpenTag(XmlNodeKeys::ModelNodeName, attrs, false);
+    WriteOtherElements(dynamic_cast<const Model*>(&model));
+    WriteCloseTag();
+}
+
+void BaseSerializingVisitor::Visit(const DmxFountain& model) {
+    AttrCollector attrs;
+    CommonVisitSteps(model, attrs);
+    AddDmxModelAttributes(model, attrs);
+    attrs.Add("FountainPumps",       std::to_string(model.GetPumpCount()));
+    attrs.Add("FountainArrangement", DmxFountain::ArrangementToString(model.GetArrangement()));
+    attrs.Add("FountainClockwise",   model.IsClockwise() ? "1" : "0");
+    attrs.Add("FountainPumpChannel", std::to_string(model.GetPumpChannel()));
+    attrs.Add("FountainLights",      model.HasLights() ? "1" : "0");
+    attrs.Add("FountainLightChannel", std::to_string(model.GetLightChannel()));
+    attrs.Add("FountainMaxHeight",   fmt::format("{:.2f}", model.GetMaxHeightFt()));
+    attrs.Add("FountainCenterMaxHeight", fmt::format("{:.2f}", model.GetCenterMaxHeightSetting()));
+    attrs.Add("FountainNozzleSpread", std::to_string(model.GetNozzleSpread()));
+    attrs.Add("FountainSpray",       model.IsSprayEnabled() ? "1" : "0");
+    attrs.Add("FountainPool",        model.IsPoolShown() ? "1" : "0");
+    attrs.Add("FountainDroplets",    std::to_string(model.GetDropletsPerPump()));
     SortAttributes(attrs);
     WriteOpenTag(XmlNodeKeys::ModelNodeName, attrs, false);
     WriteOtherElements(dynamic_cast<const Model*>(&model));

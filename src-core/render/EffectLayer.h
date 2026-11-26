@@ -13,6 +13,7 @@
 #include "Effect.h"
 #include "UndoManager.h"
 #include "../effects/EffectManager.h"
+#include <algorithm>
 #include <atomic>
 #include <functional>
 #include <tuple>
@@ -172,6 +173,11 @@ public:
         }
     }
 
+    // The layer's row in the sequencer, as a multiple of the normal row height (1 to MAX_ROW_HEIGHT).
+    static constexpr float MAX_ROW_HEIGHT = 20.0f;
+    float GetRowHeight() const { return mRowHeight; }
+    void SetRowHeight(float h) { mRowHeight = std::clamp(h, 1.0f, MAX_ROW_HEIGHT); }
+
 protected:
 private:
     std::unique_lock<std::recursive_mutex> acquireLockWaitForRender();
@@ -205,6 +211,7 @@ private:
     std::mutex effectsToDeleteLock;
 
     std::string* name = nullptr;
+    float mRowHeight = 1.0f;
 
 protected:
     static const std::string NO_NAME;

@@ -146,6 +146,7 @@
 #include "models/WindowFrameModel.h"
 #include "models/WreathModel.h"
 #include "models/DMX/DmxFloodlight.h"
+#include "models/DMX/DmxFountain.h"
 #include "models/DMX/DmxModel.h"
 #include "models/DMX/DmxColorAbility.h"
 #include "models/DMX/DmxColorAbilityRGB.h"
@@ -6058,6 +6059,7 @@ static NSDictionary<NSString*, id>* XLIncomingResult(iPadRenderContext::Incoming
         // poly-point location).
         @"DmxFloodArea",
         @"DmxFloodlight",
+        @"DmxFountain",
         @"DmxGeneral",
         @"DmxMovingHead",
         @"DmxMovingHeadAdv",
@@ -9418,6 +9420,51 @@ static void BuildDmxFloodlightProps(DmxFloodlight* fl, NSMutableArray* out) {
     }
 }
 
+// Fountain: pumps (one channel each) with an RGB light under each, laid out
+// as a ring or a line. Matches desktop's DmxFountainPropertyAdapter.
+static void BuildDmxFountainProps(DmxFountain* f, NSMutableArray* out) {
+    [out addObject:MakeIntProp(@"DmxChannelCount", @"# Channels",
+                                 f->GetDmxChannelCount(), 1, 512)];
+    [out addObject:MakeHeaderDescriptor(@"FountainHeader", @"Fountain")];
+    [out addObject:MakeIntProp(@"FountainPumps", @"Pumps",
+                                 f->GetPumpCount(), 1, DmxFountain::MAX_PUMPS)];
+    NSMutableArray<NSString*>* arrangements = [NSMutableArray array];
+    for (const auto& label : DmxFountain::ArrangementLabels()) {
+        [arrangements addObject:[NSString stringWithUTF8String:label.c_str()]];
+    }
+    [out addObject:MakeEnumProp(@"FountainArrangement", @"Arrangement",
+                                  (int)f->GetArrangement(), arrangements)];
+    [out addObject:MakeBoolProp(@"FountainClockwise", @"Number Clockwise",
+                                  f->IsClockwise() ? YES : NO)];
+    [out addObject:MakeIntProp(@"FountainNozzleSpread", @"Nozzle Spread %",
+                                 f->GetNozzleSpread(), 0, 100)];
+    [out addObject:MakeDoubleProp(@"FountainMaxHeight", @"Max Water Height (ft)",
+                                    (double)f->GetMaxHeightFt(), 0.5, 500.0, 0.5, 1)];
+    if (f->HasCenterPump()) {
+        // follows Max Water Height until changed
+        [out addObject:MakeDoubleProp(@"FountainCenterMaxHeight", @"Center Max Water Height (ft)",
+                                        (double)f->GetCenterMaxHeightFt(), 0.5, 500.0, 0.5, 1)];
+    }
+    [out addObject:MakeIntProp(@"FountainPumpChannel", @"Pump Start Channel",
+                                 f->GetPumpChannel(), 1, 512)];
+    [out addObject:MakeBoolProp(@"FountainLights", @"RGB Lights",
+                                  f->HasLights() ? YES : NO)];
+    if (f->HasLights()) {
+        [out addObject:MakeIntProp(@"FountainLightChannel", @"Light Start Channel",
+                                     f->GetLightChannel(), 1, 512)];
+    }
+    [out addObject:MakeHeaderDescriptor(@"FountainPreviewHeader", @"Fountain Preview")];
+    [out addObject:MakeBoolProp(@"FountainSpray", @"Spray",
+                                  f->IsSprayEnabled() ? YES : NO)];
+    [out addObject:MakeBoolProp(@"FountainPool", @"Show Pool",
+                                  f->IsPoolShown() ? YES : NO)];
+    [out addObject:MakeIntProp(@"FountainDroplets", @"Droplets per Pump",
+                                 f->GetDropletsPerPump(), 50, 5000)];
+    if (f->HasPresetAbility()) {
+        AppendDmxPresetProps(*f->GetPresetAbility(), out);
+    }
+}
+
 static void AppendDmxDimmerProps(const DmxDimmerAbility& dim, NSMutableArray* out) {
     [out addObject:MakeHeaderDescriptor(@"DmxDimmerHeader", @"Dimmer")];
     [out addObject:MakeIntProp(@"MhDimmerChannel", @"Dimmer Channel",
@@ -10116,6 +10163,9 @@ static void BuildCustomProps(CustomModel* cm, NSMutableArray* out) {
         break;
     case DisplayAsType::DmxSkull:
         BuildDmxSkullProps(static_cast<DmxSkull*>(m), out);
+        break;
+    case DisplayAsType::DmxFountain:
+        BuildDmxFountainProps(static_cast<DmxFountain*>(m), out);
         break;
     case DisplayAsType::DmxServo:
         BuildDmxServoProps(static_cast<DmxServo*>(m), out);
@@ -10953,6 +11003,65 @@ static void BuildCustomProps(CustomModel* cm, NSMutableArray* out) {
         auto* mh = dynamic_cast<DmxMovingHead*>(m);
         if (mh && mh->GetHideBody() != (bool)v) {
             mh->SetHideBody(v); changed = YES;
+        }
+    }
+    // DmxFountain. Keys match desktop's DmxFountainPropertyAdapter.
+    else if (k.starts_with("Fountain")) {
+        auto* f = dynamic_cast<DmxFountain*>(m);
+        if (!f) return NO;
+        bool channelsMoved = false;
+        const bool sequential = f->GetLightChannel() == f->GetPumpChannel() + f->GetPumpCount();
+        if (k == "FountainPumps" || k == "FountainPumpChannel" || k == "FountainLightChannel"
+            || k == "FountainNozzleSpread" || k == "FountainDroplets" || k == "FountainArrangement") {
+            int v = asInt(&ok); if (!ok) return NO;
+            if (k == "FountainPumps" && f->GetPumpCount() != v) {
+                f->SetPumpCount(v);
+                if (sequential) f->SetLightChannel(f->GetPumpChannel() + f->GetPumpCount());
+                channelsMoved = true;
+            } else if (k == "FountainPumpChannel" && f->GetPumpChannel() != v) {
+                f->SetPumpChannel(v);
+                if (sequential) f->SetLightChannel(f->GetPumpChannel() + f->GetPumpCount());
+                channelsMoved = true;
+            } else if (k == "FountainLightChannel" && f->GetLightChannel() != v) {
+                f->SetLightChannel(v);
+                channelsMoved = true;
+            } else if (k == "FountainNozzleSpread" && f->GetNozzleSpread() != v) {
+                f->SetNozzleSpread(v); changed = YES;
+            } else if (k == "FountainDroplets" && f->GetDropletsPerPump() != v) {
+                f->SetDropletsPerPump(v); changed = YES;
+            } else if (k == "FountainArrangement" && (int)f->GetArrangement() != v) {
+                f->SetArrangement(DmxFountain::ArrangementFromIndex(v));
+                changed = YES;
+            }
+        } else if (k == "FountainClockwise" || k == "FountainLights" || k == "FountainSpray" || k == "FountainPool") {
+            BOOL v = asBool(&ok); if (!ok) return NO;
+            if (k == "FountainClockwise" && f->IsClockwise() != (bool)v) {
+                f->SetClockwise(v); changed = YES;
+            } else if (k == "FountainLights" && f->HasLights() != (bool)v) {
+                f->SetHasLights(v); channelsMoved = true;
+            } else if (k == "FountainSpray" && f->IsSprayEnabled() != (bool)v) {
+                f->SetSprayEnabled(v); changed = YES;
+            } else if (k == "FountainPool" && f->IsPoolShown() != (bool)v) {
+                f->SetPoolShown(v); changed = YES;
+            }
+        } else if (k == "FountainMaxHeight") {
+            double v = asDouble(&ok); if (!ok) return NO;
+            if (std::fabs((double)f->GetMaxHeightFt() - v) > 1e-3) {
+                f->SetMaxHeightFt((float)v); changed = YES;
+            }
+        } else if (k == "FountainCenterMaxHeight") {
+            double v = asDouble(&ok); if (!ok) return NO;
+            if (std::fabs((double)f->GetCenterMaxHeightFt() - v) > 1e-3) {
+                f->SetCenterMaxHeightFt((float)v); changed = YES;
+            }
+        } else {
+            spdlog::warn("setPerTypeProperty: unknown fountain key '{}'", k);
+            return NO;
+        }
+        if (channelsMoved) {
+            f->UpdateNodeNames();
+            f->UpdateChannelCount(std::max(f->GetDmxChannelCount(), f->GetRequiredChannelCount()), /* do_work */ true);
+            changed = YES;
         }
     }
     // J-3 (DMX) — DmxSkull-specific knobs.

@@ -1171,6 +1171,19 @@ void TimeLine::ZoomOut()
     }
 }
 
+void TimeLine::ZoomAtPosition(bool zoomIn, int position)
+{
+    // SetZoomLevel keeps the zoom marker where it is on screen: make that the time under the cursor for this zoom
+    const int marker = mZoomMarkerMS;
+    mZoomMarkerMS = GetRawTimeMSfromPosition(position);
+    if (zoomIn) {
+        ZoomIn();
+    } else {
+        ZoomOut();
+    }
+    mZoomMarkerMS = marker;
+}
+
 void TimeLine::ZoomIn()
 {
     if (mInFitZoom) {

@@ -12,6 +12,7 @@
 
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/button.h>
 #include <wx/slider.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
@@ -1031,6 +1032,7 @@ void JsonEffectPanel::BuildPropertyRow(wxWindow* parentWin, wxSizer* sizer, cons
                                                         wxBU_AUTODRAW | wxBORDER_NONE,
                                                         wxDefaultValidator, wxString(vcName));
             info.valueCurveBtn = vcBtn;
+            vcBtn->SetSupportsColor(prop.value("valueCurveColor", false));
 
             // Set limits and divisor (vcMin/vcMax override slider min/max for value curves)
             float vcMinF = prop.contains("vcMin") ? prop["vcMin"].get<float>() : static_cast<float>(minVal);
@@ -1114,6 +1116,30 @@ void JsonEffectPanel::BuildPropertyRow(wxWindow* parentWin, wxSizer* sizer, cons
             textCtrl->SetMaxLength(5);
             info.buddyText = textCtrl;
             sizer->Add(textCtrl, 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 2);
+        }
+
+        // A setting that is only its curve: an Edit button (and the curve's thumbnail) in place of the slider and
+        // text box, and the curve always on
+        if (hasValueCurve && prop.value("valueCurveOnly", false) && info.valueCurveBtn != nullptr) {
+            wxWindow* slider = info.slider != nullptr ? (wxWindow*)info.slider : (wxWindow*)info.buddySlider;
+            wxWindow* text = info.textCtrl != nullptr ? (wxWindow*)info.textCtrl : (wxWindow*)info.buddyText;
+            if (slider != nullptr) {
+                sliderSizer->Detach(slider);
+                slider->Hide();
+            }
+            if (text != nullptr) {
+                text->Hide();
+            }
+            ValueCurveButton* vcBtn = info.valueCurveBtn;
+            auto* editBtn = new wxButton(parentWin, wxID_ANY, "Edit " + wxString(label) + "...");
+            editBtn->Bind(wxEVT_BUTTON, [vcBtn](wxCommandEvent&) {
+                // the same as clicking the curve's own button
+                wxCommandEvent click(wxEVT_BUTTON, vcBtn->GetId());
+                click.SetEventObject(vcBtn);
+                vcBtn->GetEventHandler()->ProcessEvent(click);
+            });
+            sliderSizer->Insert(0, editBtn, 1, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
+            vcBtn->SetAlwaysActive(true);
         }
 
         // Column 4: Lock button
@@ -2145,10 +2171,10 @@ void JsonEffectPanel::SetDefaultParameters() {
         return;
     }
 
-    // Deactivate all value curves
+    // Deactivate all value curves (an always-active one starts over instead)
     for (auto& [id, info] : properties_) {
         if (info.valueCurveBtn) {
-            info.valueCurveBtn->SetActive(false);
+            info.valueCurveBtn->ResetToDefault();
         }
     }
 

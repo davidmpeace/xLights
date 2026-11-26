@@ -124,7 +124,9 @@ RenderBuffer::RenderBuffer(RenderContext *ctx, PixelBufferClass *p, const Model 
     cur_model = model->GetFullName();
     rngModelHash = rngFnv1a(cur_model);
     computeRandomBaseSeed();
-    dmx_buffer = IsDmxDisplayType(model->GetDisplayAs());
+    // A DMX fixture buffer turns pixel (0,0) into the fixture's colour channels. A fountain's lights are separate
+    // red/green/blue nodes placed in the buffer like pixels, so effects write its pixels as they would any model's.
+    dmx_buffer = IsDmxDisplayType(model->GetDisplayAs()) && model->GetDisplayAs() != DisplayAsType::DmxFountain;
     BufferHt = 0;
     BufferWi = 0;
     curPeriod = 0;

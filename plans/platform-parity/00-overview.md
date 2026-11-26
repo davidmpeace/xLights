@@ -23,7 +23,7 @@ fine-grained — a menu entry, a dialog field, a gesture):
 | 03 Timing, lyrics & audio | 120 | 20 | 17 | 6 | 6 | No keyboard timing-mark entry during playback; dictionary editor saves unvalidated phonemes |
 | 04 Effects catalog & panels | 84 | 10 | 3 | 2 | 3 | 49/56 effects fully ✅ (52/56 render, 50/56 settings UI); gaps are assist surfaces + Moving Head preset/authoring depth |
 | 05 Color, palettes & curves | 74 | 16 | 27 | 3 | 9 | Curve editors have no session-scoped Cancel/revert; no drag-and-drop for colors/curves |
-| 06 Layout, models, 3D | 171 | 52 | 63 | 5 | 8 | Deep grid dialogs (custom-model transforms, Faces/States forms), CAD/print export, cross-show import |
+| 06 Layout, models, 3D | 172 | 52 | 63 | 5 | 8 | Deep grid dialogs (custom-model transforms, Faces/States forms), CAD/print export, cross-show import |
 | 07 Controllers, outputs, upload | 73 | 30 | 30 | 12 | 0 | Closed-firmware uploads deliberately out of scope (policy); real bugs: Visualize wrongly policy-gated, ESPixelStick missing its open-firmware caps node (known, deferred) |
 | 08 Import & export | 52 | 12 | 46 | 1 | 3 | 11/13 effect-import formats work; exporters (.lcb/.vir/LSP/HLS) still trapped in desktop `TabConvert.cpp` |
 | 09 Render & playback | 63 | 11 | 18 | 9 | 14 | No render dependency tracking (stale effects); no per-model render progress; no FSEQ version selector |
@@ -364,7 +364,7 @@ After the fresh audit, all 14 themes were adversarially diffed against the prior
 | [03-timing-audio.md](03-timing-audio.md) | Timing tracks, lyrics, dictionaries, audio & analysis |
 | [04-effects-catalog.md](04-effects-catalog.md) | Per-effect matrix (56), settings engine, blending/transitions |
 | [05-color-value-curves.md](05-color-value-curves.md) | Color panel, palettes, color & value curves |
-| [06-layout-models.md](06-layout-models.md) | Model types (28), layout editing, 3D, submodels, DMX |
+| [06-layout-models.md](06-layout-models.md) | Model types (29), layout editing, 3D, submodels, DMX |
 | [07-controllers-setup-upload.md](07-controllers-setup-upload.md) | Outputs (21), discovery, vendor uploads (14), FPP Connect |
 | [08-import-export.md](08-import-export.md) | Import formats (13), mapping, exporters, Convert tab |
 | [09-render-playback.md](09-render-playback.md) | Render engine control, fseq, transport, previews, live output |

@@ -28,6 +28,7 @@ enum class DisplayAsType {
     DmxMovingHeadAdv,
     DmxFloodArea,
     DmxFloodlight,
+    DmxFountain,
     DmxGeneral,
     DmxServo,
     DmxServo3d,

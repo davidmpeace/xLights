@@ -63,6 +63,7 @@
 #include "../outputs/OutputManager.h"
 #include "DMX/DmxFloodArea.h"
 #include "DMX/DmxFloodlight.h"
+#include "DMX/DmxFountain.h"
 #include "DMX/DmxGeneral.h"
 #include "DMX/DmxMovingHead.h"
 #include "DMX/DmxMovingHeadAdv.h"
@@ -1733,6 +1734,14 @@ Model* ModelManager::CreateDefaultModel(const std::string& type, const std::stri
         auto* m = new DmxFloodArea(*this);
         protocol = xlEMPTY_STRING;
         m->SetDmxChannelCount(3);
+        m->SetStringType("Single Color White");
+        model = m;
+    } else if (type == "DmxFountain") {
+        auto* m = new DmxFountain(*this);
+        protocol = xlEMPTY_STRING;
+        m->SetPumpCount(8);
+        m->SetPumpChannel(1);
+        m->AssignSequentialChannels();
         m->SetStringType("Single Color White");
         model = m;
     } else if (type == "DmxSkull") {

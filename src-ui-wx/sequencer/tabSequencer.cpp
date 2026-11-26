@@ -114,7 +114,7 @@ void xLightsFrame::CreateSequencer()
 
     spdlog::debug("                Set sequence elements.");
     mainSequencer->PanelRowHeadings->SetSequenceElements(&_sequenceElements);
-    _sequenceElements.SetMaxRowsDisplayed(mainSequencer->PanelRowHeadings->GetMaxRows());
+    _sequenceElements.SetDisplayArea(mainSequencer->PanelRowHeadings->getHeight(), DEFAULT_ROW_HEADING_HEIGHT);
 
     spdlog::debug("                Set dock size constraints.");
     m_mgr->SetDockSizeConstraint(0.25, 0.15);
@@ -1222,7 +1222,7 @@ void xLightsFrame::ResizeAndMakeEffectsScroll()
 void xLightsFrame::ResizeMainSequencer()
 {
     // Set max rows to determine correct row information size
-    _sequenceElements.SetMaxRowsDisplayed(mainSequencer->PanelRowHeadings->GetMaxRows());
+    _sequenceElements.SetDisplayArea(mainSequencer->PanelRowHeadings->getHeight(), DEFAULT_ROW_HEADING_HEIGHT);
     _sequenceElements.PopulateVisibleRowInformation();
 
     mainSequencer->PanelWaveForm->Refresh();

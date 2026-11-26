@@ -1,0 +1,89 @@
+{
+    "effectName": "Fountains",
+    "description": "Drives a fountain from one curve. Its value is a pump's level (0-100%) and its colour keyframes (the bar under the graph) the light's colour. All plays the curve on every pump at once; Chase plays it on one pump after another, each starting before the one before it has finished by Overlap % (0% is one pump at a time). On any other model every pixel takes the colour (one pixel at a time for Chase).",
+    "properties": [
+        {
+            "id": "Fountains_Type",
+            "label": "Type",
+            "type": "enum",
+            "controlType": "choice",
+            "options": [
+                "All",
+                "Chase"
+            ],
+            "default": "All",
+            "description": "All: every pump plays the curve together. Chase: the curve plays on pump 1, then pump 2, and so on, each starting before the previous one finishes by Overlap % (0% is one pump at a time)."
+        },
+        {
+            "id": "Fountains_Curves",
+            "label": "Curves",
+            "type": "int",
+            "controlType": "slider",
+            "default": 0,
+            "min": 0,
+            "max": 100,
+            "valueCurve": true,
+            "valueCurveColor": true,
+            "description": "The pumps' level (0-100%) and the lights' colour over time. Click Edit Curves to shape the level and set the colour keyframes.",
+            "valueCurveOnly": true
+        },
+        {
+            "id": "Fountains_Cycles",
+            "label": "Cycles",
+            "type": "float",
+            "controlType": "slider",
+            "default": 1.0,
+            "divisor": 10,
+            "min": 0,
+            "max": 1000,
+            "description": "How many times the curve plays over the effect (All), or the whole run through the pumps does (Chase)."
+        },
+        {
+            "id": "Fountains_Direction",
+            "label": "Direction",
+            "type": "enum",
+            "controlType": "choice",
+            "options": [
+                "Forward",
+                "Reverse",
+                "Forward Bounce",
+                "Reverse Bounce"
+            ],
+            "default": "Forward",
+            "description": "The order the pumps take their turn in. Bounce goes there and back."
+        },
+        {
+            "id": "Fountains_PumpOffset",
+            "label": "Pump Offset",
+            "type": "int",
+            "controlType": "slider",
+            "default": 0,
+            "min": 0,
+            "max": 64,
+            "description": "Start the run this many pumps along (it wraps round the pumps the effect covers)."
+        },
+        {
+            "id": "Fountains_Overlap",
+            "label": "Overlap %",
+            "type": "int",
+            "controlType": "slider",
+            "default": 0,
+            "min": 0,
+            "max": 95,
+            "description": "How much of a pump's turn the next pump's turn overlaps. 0% is one pump at a time."
+        }
+    ],
+    "visibilityRules": [
+        {
+            "when": {
+                "property": "Fountains_Type",
+                "equals": "All"
+            },
+            "disable": [
+                "Fountains_Direction",
+                "Fountains_PumpOffset",
+                "Fountains_Overlap"
+            ]
+        }
+    ]
+}

@@ -18,6 +18,11 @@ public:
     FireEffect(int id);
     virtual ~FireEffect();
     virtual void Render(Effect* effect, const SettingsMap& settings, RenderBuffer& buffer) override;
+    // Inline editing: the flames' height over the effect.
+    virtual bool SupportsInlineEdit() const override { return true; }
+    virtual std::string GetInlineEditCurveSetting() const override { return "E_VALUECURVE_Fire_Height"; }
+    virtual void GetInlineEditCurveRange(float& min, float& max) const override { min = (float)sHeightMin; max = (float)sHeightMax; }
+    virtual float GetInlineEditFlatValue(const Effect* e) const override;
     // Left Stateful (the default): Fire's cost is ~86% its serial grid-diffusion
     // advance, so the tier-2 advance/draw split gives no speedup and measured
     // net-negative on whole-house buffers.  The advance/draw are still split into

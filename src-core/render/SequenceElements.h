@@ -19,6 +19,7 @@
 namespace pugi { class xml_node; class xml_document; }
 #include <array>
 #include <functional>
+#include <algorithm>
 #include <vector>
 #include <map>
 #include <memory>
@@ -128,6 +129,28 @@ public:
 
     int GetTotalNumberOfModelRows();
     void SetMaxRowsDisplayed(int maxRows);
+    // Lays the rows out by pixel: the display is `pixels` tall and a row is `rowHeight` times its layer's row height
+    // (EffectLayer::GetRowHeight). Without it every row counts as one (SetMaxRowsDisplayed).
+    void SetDisplayArea(int pixels, int rowHeight);
+    // Where the visible rows are (visible row 0 at the top), in pixels; past the last visible row, rows of the normal
+    // height carry on. The model rows scroll by the pixel, under the timing rows: the first one shown can start above
+    // the timing rows' bottom (it is partly hidden there) and the last can run past the bottom.
+    int GetRowTop(int visibleRow) const;
+    int GetRowHeight(int visibleRow) const;
+    int GetRowBottom(int visibleRow) const { return GetRowTop(visibleRow) + GetRowHeight(visibleRow); }
+    // The row at y: a timing row over any model row scrolled under it.
+    int GetRowAtY(int y) const;
+    // The bottom of the timing rows shown: where the model rows' area starts.
+    int GetTimingRowsBottom() const { return mVisibleTimingBottom; }
+    // By pixel (SetDisplayArea): how far the model rows are scrolled, how far they can be, and how much of them shows.
+    int GetModelScrollPixels() const { return mModelScrollPixels; }
+    void SetModelScrollPixels(int pixels);
+    int GetMaxModelScrollPixels() const;
+    int GetModelViewPixels() const { return std::max(0, mDisplayPixels - mVisibleTimingBottom); }
+    // The row height of a row's layer (1 for the normal height).
+    float GetRowHeightScale(const Row_Information_Struct* ri) const;
+    // The first visible model row that still fills the display to the bottom: as far as scrolling goes.
+    int GetMaxFirstVisibleModelRow();
     void SetVisibilityForAllModels(bool visibility, int view = MASTER_VIEW);
     void MoveSequenceElement(int index, int dest, int view);
     void MoveElementUp(const std::string &name, int view);
@@ -342,6 +365,20 @@ private:
     double mFrequency;
     int mTimingRowCount = 0;
     int mMaxRowsDisplayed = 0;
+    // SetDisplayArea: the display's height and a normal row's, in pixels (0: rows count as one each), and where each
+    // visible row starts (one more entry: the bottom of the last)
+    int mDisplayPixels = 0;
+    int mRowPixels = 0;
+    std::vector<int> mVisibleRowTops;
+    std::vector<int> mVisibleRowHeights;
+    int mVisibleTimingRows = 0;
+    int mVisibleTimingBottom = 0;
+    int mModelScrollPixels = 0;
+    int RowPixels(const Row_Information_Struct& ri) const;
+    // where each model row starts in the model rows' area (one more: their total height)
+    std::vector<int> ModelRowStarts() const;
+    // the height of the timing rows that fit
+    int TimingRowsPixels() const;
     int mCurrentView;
     bool hasPapagayoTiming;
     bool mHideUnusedSubmodels = false;

@@ -236,6 +236,11 @@ public:
         return DEFAULT_BUFFER_STYLES;
     };
     virtual const std::string AdjustBufferStyle(const std::string &style) const;
+    // Nodes of this model that make up one light (a fixture's separate red, green and blue channels) share a cell
+    // in single-line buffers: they return the same group, >= 0. -1 (every node its own cell) by default.
+    [[nodiscard]] virtual int GetNodeBufferGroup(const NodeBaseClass& node) const { return -1; }
+    // Single-line cell for each node from `first` on (see GetNodeBufferGroup); returns the number of cells.
+    [[nodiscard]] static int SingleLineCells(const std::vector<NodeBaseClassPtr>& nodes, size_t first, std::vector<int>* cells = nullptr);
     virtual void GetBufferSize(const std::string& type, const std::string& camera, const std::string& transform, int& BufferWi, int& BufferHi, int stagger) const;
     virtual void InitRenderBufferNodes(const std::string& type, const std::string& camera, const std::string& transform,
         std::vector<NodeBaseClassPtr>& Nodes, int& BufferWi, int& BufferHi, int stagger, bool deep = false) const;

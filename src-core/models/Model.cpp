@@ -1765,7 +1765,7 @@ void Model::GetBufferSize(const std::string& tp, const std::string& camera, cons
         bufferWi = this->BufferWi;
     } else if (type == SINGLE_LINE) {
         bufferHi = 1;
-        bufferWi = Nodes.size();
+        bufferWi = SingleLineCells(Nodes, 0);
     } else if (type == AS_PIXEL) {
         bufferHi = 1;
         bufferWi = 1;
@@ -1788,6 +1788,31 @@ void Model::GetBufferSize(const std::string& tp, const std::string& camera, cons
         InitRenderBufferNodes(type, camera, "None", newNodes, bufferWi, bufferHi, stagger);
     }
     AdjustForTransform(transform, bufferWi, bufferHi);
+}
+
+int Model::SingleLineCells(const std::vector<NodeBaseClassPtr>& nodes, size_t first, std::vector<int>* cells) {
+    // a node's cell is shared by every node its model puts in the same group (keyed by model: a group's buffer
+    // holds the nodes of several models)
+    std::map<std::pair<const Model*, int>, int> groups;
+    int count = 0;
+    for (size_t x = first; x < nodes.size(); ++x) {
+        const NodeBaseClass* n = nodes[x].get();
+        int group = n != nullptr && n->model != nullptr ? n->model->GetNodeBufferGroup(*n) : -1;
+        int cell;
+        if (group < 0) {
+            cell = count++;
+        } else {
+            auto [it, added] = groups.try_emplace(std::make_pair(n->model, group), count);
+            if (added) {
+                ++count;
+            }
+            cell = it->second;
+        }
+        if (cells != nullptr) {
+            cells->push_back(cell);
+        }
+    }
+    return count;
 }
 
 void Model::AdjustForTransform(const std::string& transform,
@@ -1989,17 +2014,16 @@ void Model::InitRenderBufferNodes(const std::string& tp, const std::string& came
         bufferWi = this->BufferWi;
     } else if (type == SINGLE_LINE) {
         bufferHt = 1;
-        bufferWi = newNodes.size();
-        int cnt = 0;
+        std::vector<int> cells;
+        bufferWi = SingleLineCells(newNodes, firstNode, &cells);
         for (int x = firstNode; x < (int)newNodes.size(); ++x) {
             if (newNodes[x] == nullptr) {
                 spdlog::critical("XXX Model::InitRenderBufferNodes newNodes[x] is null ... this is going to crash.");
                 assert(false);
             }
             for (auto& it2 : newNodes[x]->Coords) {
-                SetCoords(it2, cnt, 0);
+                SetCoords(it2, cells[x - firstNode], 0);
             }
-            cnt++;
         }
     } else if (type == AS_PIXEL) {
         bufferHt = 1;
@@ -5058,7 +5082,7 @@ std::string Model::DetermineClass(const std::string& displayAs, bool isSingingFa
         return "Floodlight";
     }
 
-    if (displayAs == "DmxGeneral" || displayAs == "DmxServo" || displayAs == "DmxSkull") {
+    if (displayAs == "DmxGeneral" || displayAs == "DmxServo" || displayAs == "DmxSkull" || displayAs == "DmxFountain") {
         return "DMX Special Purpose";
     }
 

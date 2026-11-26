@@ -16,7 +16,11 @@
 #include "UtilClasses.h"
 #include "UtilFunctions.h"
 #include "Parallel.h"
+#include "../render/ValueCurve.h"
 #include <log.h>
+
+#include <algorithm>
+#include <cmath>
 
 static const std::string TEXTCTRL_Eff_On_Start("TEXTCTRL_Eff_On_Start");
 static const std::string TEXTCTRL_Eff_On_End("TEXTCTRL_Eff_On_End");
@@ -53,6 +57,58 @@ void OnEffect::OnMetadataLoaded()
     sTransparencyMax = (int)GetMaxFromMetadata("On_Transparency", sTransparencyMax);
 }
 
+namespace {
+// The effect's colour keys (COLORS_SETTING; "On_Colors" in Render's settings), when it has any.
+bool LoadOnColors(const std::string& s, ValueCurve& vc) {
+    if (s.empty()) {
+        return false;
+    }
+    vc.SetDivisor(1);
+    vc.SetLimits(0, 100);
+    vc.Deserialise(s);
+    return vc.IsActive() && vc.HasColorKeys();
+}
+
+// How far through its cycle `position` (0-1 through the effect) is; the end of a cycle is its end, not a restart.
+float CyclePosition(float position, float cycles) {
+    if (cycles <= 0.0f) {
+        return 0.0f;
+    }
+    const float t = position * cycles;
+    const float u = t - std::floor(t);
+    return (u == 0.0f && t > 0.0f) ? 1.0f : u;
+}
+
+// The colour at `adjust` (0-1 through a cycle), dimmed by the intensity ramp.
+xlColor OnColorAt(ValueCurve& vc, float adjust, int start, int end) {
+    xlColor c = vc.GetColorAt(adjust);
+    if (start != 100 || end != 100) {
+        HSVValue hsv = c.asHSV();
+        hsv.value = hsv.value * (start + (end - start) * adjust) / 100.0;
+        c = hsv;
+    }
+    return c;
+}
+}
+
+bool OnEffect::GetInlineEditCurveSpan(const Effect* e, float& start, float& scale) const
+{
+    // the first cycle (as much of it as there is)
+    const float cycles = e->GetSettings().GetFloat("E_TEXTCTRL_On_Cycles", sCyclesDefault);
+    if (cycles <= 0.0f) {
+        return false;
+    }
+    start = 0.0f;
+    scale = 1.0f / cycles;
+    return true;
+}
+
+xlColor OnEffect::GetInlineEditBaseColor(const Effect* e) const
+{
+    // until it has colour keys, the effect shows its first palette colour
+    return e->GetPalette().empty() ? xlBLACK : e->GetPalette()[0];
+}
+
 void GetOnEffectColors(const Effect *e, xlColor &start, xlColor &end) {
     int starti = e->GetSettings().GetInt("E_TEXTCTRL_Eff_On_Start", 100);
     int endi = e->GetSettings().GetInt("E_TEXTCTRL_Eff_On_End", 100);
@@ -72,6 +128,34 @@ void GetOnEffectColors(const Effect *e, xlColor &start, xlColor &end) {
 int OnEffect::DrawEffectBackground(const Effect *e, int x1, int y1, int x2, int y2,
                                    xlVertexColorAccumulator &bg, xlColor* colorMask, bool ramp) 
 {
+    ValueCurve colors;
+    if (LoadOnColors(e->GetSettings().Get(COLORS_SETTING, ""), colors)) {
+        // the colour over time, cycle by cycle, as bright as the intensity ramp has it (and as high, with ramps on)
+        const int starti = e->GetSettings().GetInt("E_TEXTCTRL_Eff_On_Start", sStartDefault);
+        const int endi = e->GetSettings().GetInt("E_TEXTCTRL_Eff_On_End", sEndDefault);
+        const float cycles = e->GetSettings().GetFloat("E_TEXTCTRL_On_Cycles", sCyclesDefault);
+        const int width = x2 - x1;
+        if (width <= 0) {
+            return 2;
+        }
+        const int columns = std::clamp(width, 1, 400);
+        for (int i = 0; i < columns; ++i) {
+            const float xa = x1 + (float)width * i / columns;
+            const float xb = x1 + (float)width * (i + 1) / columns;
+            const float adjust = CyclePosition((i + 0.5f) / columns, cycles);
+            xlColor c = OnColorAt(colors, adjust, starti, endi);
+            c.ApplyMask(colorMask);
+            const float level = (starti + (endi - starti) * adjust) / 100.0f;
+            const float top = ramp ? y2 - level * (y2 - y1) : (float)y1;
+            bg.AddVertex(xa, top, c);
+            bg.AddVertex(xa, y2, c);
+            bg.AddVertex(xb, y2, c);
+            bg.AddVertex(xb, y2, c);
+            bg.AddVertex(xb, top, c);
+            bg.AddVertex(xa, top, c);
+        }
+        return 2;
+    }
     if (ramp) {
         bool shimmer = e->GetSettings().GetInt("E_CHECKBOX_On_Shimmer", 0) > 0;
         int starti = e->GetSettings().GetInt("E_TEXTCTRL_Eff_On_Start", 100);
@@ -150,12 +234,18 @@ void OnEffect::Render(Effect *eff, const SettingsMap &SettingsMap, RenderBuffer 
         }
     }
 
-    bool spatialcolour = buffer.palette.IsSpatial(cidx);
-    bool gradientcolour = buffer.palette.IsGradient(cidx);
+    // colour keys stand in for the first palette colour
+    ValueCurve colors;
+    const bool keyed = cidx == 0 && LoadOnColors(SettingsMap.Get("On_Colors", xlEMPTY_STRING), colors);
+
+    bool spatialcolour = !keyed && buffer.palette.IsSpatial(cidx);
+    bool gradientcolour = !keyed && buffer.palette.IsGradient(cidx);
     double adjust = buffer.GetEffectTimeIntervalPosition(cycles);
 
     xlColor color;
-    if (start == 100 && end == 100) {
+    if (keyed) {
+        color = OnColorAt(colors, (float)adjust, start, end);
+    } else if (start == 100 && end == 100) {
         buffer.palette.GetColor(cidx, color);
     } else {
         HSVValue hsv;
@@ -217,7 +307,7 @@ void OnEffect::Render(Effect *eff, const SettingsMap &SettingsMap, RenderBuffer 
         buffer.Fill(color);
     }
 
-    if (shimmer || cycles != 1.0 || gradientcolour || spatialcolour) {
+    if (shimmer || cycles != 1.0 || gradientcolour || spatialcolour || keyed) {
         if (eff->IsBackgroundDisplayListEnabled() && buffer.perModelIndex == 0) {
             std::lock_guard<std::recursive_mutex> lock(eff->GetBackgroundDisplayList().lock);
             eff->GetBackgroundDisplayList().resize((buffer.curEffEndPer - buffer.curEffStartPer + 1) * 6);

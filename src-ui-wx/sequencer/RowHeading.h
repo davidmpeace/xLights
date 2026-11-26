@@ -60,6 +60,9 @@ private:
     void leftDoubleClick(wxMouseEvent &event);
     void OnScrollTimer(wxTimerEvent& event);
     void ComputeRowDragTarget(int cursorY);
+    // The visible row whose bottom edge is at y (where dragging resizes the row), or -1.
+    int RowEdgeAt(int x, int y) const;
+    void ResizeRow(int row, float height);
     void OnLayerPopup(wxCommandEvent& event);
     std::vector<std::string> ParseTags(const wxString& tagString);
     void DrawHeading(wxPaintDC* dc, pugi::xml_node model, int width, int row);
@@ -92,6 +95,8 @@ private:
     int _lastDragY = 0;
     int _scrollDir = 0;
     wxTimer _scrollTimer;
+    // a row being resized by its bottom edge
+    int _resizeRow = -1;
     bool groupEffectIndicator = true;
 
     

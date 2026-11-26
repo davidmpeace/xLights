@@ -10,6 +10,8 @@
  * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
+#include <functional>
+
 //(*Headers(ValueCurveDialog)
 #include <wx/button.h>
 #include <wx/checkbox.h>
@@ -24,6 +26,11 @@
 #include "shared/utils/xlCustomControl.h"
 #include "render/ValueCurve.h"
 #include <wx/dir.h>
+#include <wx/timer.h>
+#include <wx/tglbtn.h>
+
+#include <memory>
+#include <vector>
 
 class Element;
 class wxAutoBufferedPaintDC;
@@ -36,6 +43,18 @@ public:
     virtual ~ValueCurvePanel() {};
     virtual void SetValue(const std::string &val) override {};
     void SetValue(ValueCurve* vc) { _vc = vc; }
+    // Called after the points were edited (moved, added, deleted, reshaped, undone).
+    void SetEditedCallback(std::function<void()> cb) { _onEdited = std::move(cb); }
+    // Forget the selected point and the undo list (the curve being edited was swapped).
+    void ClearSelection() { _grabbedPoint = -1; _dragHandle = 0; _undo.clear(); }
+    // Drop the point selection (a colour keyframe was selected instead).
+    void Deselect() { if (_grabbedPoint != -1) { _grabbedPoint = -1; Refresh(); } }
+    // Called when a point becomes selected.
+    void SetSelectedCallback(std::function<void()> cb) { _onSelected = std::move(cb); }
+    // The plot's left and right edges in this window's pixels, so the colour bar lines up with it.
+    void PlotRange(int& x0, int& x1) const;
+    // Points can be edited: a custom curve of one cycle with no time offset.
+    [[nodiscard]] bool IsEditable() const;
     void SetType(std::string type) { _type = type; }
     void SetTimeOffset(int timeoffset) { _timeOffset = timeoffset; }
     void Delete();
@@ -47,6 +66,8 @@ public:
     bool HasSelected() const { return _grabbedPoint != -1; }
     float ToReal(float y);
     float ToNormalised(float y);
+    // A raw curve value as the dialog shows it (divided by the curve's divisor).
+    wxString FormatValue(float raw) const;
 
 protected:
     DECLARE_EVENT_TABLE()
@@ -59,12 +80,32 @@ protected:
     void Paint(wxPaintEvent& event);
     void mouseCaptureLost(wxMouseCaptureLostEvent& event);
     void mouseLeftDClick(wxMouseEvent& event);
+    void mouseRightDown(wxMouseEvent& event);
 
 private :
     void Convert(float &x, float &y, wxMouseEvent& event);
+    void DrawGrid(wxAutoBufferedPaintDC& pdc, float w, float h);
+    float SnapY(float y, const wxMouseEvent& event);
+    [[nodiscard]] float ViewScale() const;
+    [[nodiscard]] float ToView(float y) const { return y * ViewScale(); }
+    [[nodiscard]] float PointNear(int mx, int my) const;
+    [[nodiscard]] wxPoint ToPixel(float x, float y) const;
+    bool SelectedHandles(float& px, float& py, bool& hasIn, float& inX, float& inY, bool& hasOut, float& outX, float& outY) const;
+    [[nodiscard]] int HandleAt(int mx, int my) const;
+    void DragHandle(float x, float y, bool mirror);
+    void EditPoint(float point);
+    void DrawHandles(wxAutoBufferedPaintDC& pdc);
+    void UpdateLeftMargin(wxDC& dc);
+
     void DrawTiming(wxAutoBufferedPaintDC& pdc);
     void DrawTiming(wxAutoBufferedPaintDC& pdc, long timeMS);
     ValueCurve *_vc;
+    float _leftMargin = 46.0f;
+    int _dragHandle = 0; // the Bezier handle being dragged: -1 in, 1 out, 0 none
+    std::function<void()> _onEdited;
+    std::function<void()> _onSelected;
+    void NotifySelected() { if (_onSelected) _onSelected(); }
+    void NotifyEdited() { if (_onEdited) _onEdited(); }
     float _originalGrabbedPoint;
     float _grabbedPoint;
     float _minGrabbedPoint;
@@ -77,16 +118,79 @@ private :
     Element* _timingElement;
 };
 
+// A value curve's colour keyframes as a gradient bar under the graph, lined up with its plot. Click to add a key
+// (and pick its colour), drag to move, double-click to recolour, right-click for Blend / Hard, Delete to remove.
+class ValueCurveColorBar : public wxWindow
+{
+public:
+    ValueCurveColorBar(wxWindow* parent, ValueCurvePanel* graph);
+    void SetValue(ValueCurve* vc) { _vc = vc; _selected = -1; Refresh(); }
+    void Deselect() { if (_selected != -1) { _selected = -1; Refresh(); } }
+    // Called when a key becomes selected (so the graph can drop its point selection).
+    void SetSelectedCallback(std::function<void()> cb) { _onSelected = std::move(cb); }
+    // Called after every change, including each colour while one is being picked, so the render can follow.
+    void SetChangedCallback(std::function<void()> cb) { _onChanged = std::move(cb); }
+
+private:
+    void OnPaint(wxPaintEvent& event);
+    void OnLeftDown(wxMouseEvent& event);
+    void OnLeftUp(wxMouseEvent& event);
+    void OnMotion(wxMouseEvent& event);
+    void OnLeftDClick(wxMouseEvent& event);
+    void OnRightDown(wxMouseEvent& event);
+    void OnKeyDown(wxKeyEvent& event);
+    void OnCaptureLost(wxMouseCaptureLostEvent& event);
+    [[nodiscard]] int KeyAt(int mx) const;
+    [[nodiscard]] float ToX(int mx) const;
+    [[nodiscard]] int ToPixel(float x) const;
+    void Select(int key);
+    // Replaces the keys, keeping `keep` (now wherever sorting put it) selected.
+    void SetKeys(std::vector<vcColorKey> keys, const vcColorKey* keep);
+    void PickColour(bool removeOnCancel);
+    void Changed() { Refresh(); if (_onChanged) _onChanged(); }
+
+    ValueCurve* _vc = nullptr;
+    ValueCurvePanel* _graph = nullptr;
+    int _selected = -1;
+    bool _dragging = false;
+    std::function<void()> _onSelected;
+    std::function<void()> _onChanged;
+};
+
 class ValueCurveDialog: public wxDialog
 {
     bool _exported = false;
+    // live preview: called when the curve changed and no mouse button is held (see OnLiveTimer)
+    std::function<void()> _liveChange;
+    wxTimer _liveTimer;
+    std::string _liveSig;
+    // the graph's max (ValueCurve view max), typed in; up to the real max
+    wxSlider* _viewMaxSlider = nullptr;
+    wxTextCtrl* _viewMaxText = nullptr;
+    void ApplyViewMax();
+    void SetViewMax(float raw);
+    // Custom curve with Cycles > 1: edit the one cycle of points (on a copy set to one cycle, copied back after every
+    // edit) or preview the repeated cycles (read only). Changing Cycles switches to the preview.
+    std::unique_ptr<ValueCurve> _editVc;
+    bool _cyclesPreview = true;
+    std::vector<wxWindow*> _cyclesRow;
+    wxToggleButton* _editPointsButton = nullptr;
+    wxToggleButton* _cyclesPreviewButton = nullptr;
+    void UpdateCyclesMode();
+    // the colour keyframe bar under the graph, when the caller allows colour (EnableColor)
+    wxBoxSizer* _graphSizer = nullptr;
+    ValueCurveColorBar* _colorBar = nullptr;
+    // runs the live change callback now (a colour being picked), whatever the mouse is doing
+    void PushLiveChange();
+    [[nodiscard]] std::string LiveSignature() const;
+    void OnLiveTimer(wxTimerEvent& event);
     ValueCurve* _vc;
     ValueCurve _backup;
     bool _slideridd;
     void ValidateWindow();
     void SetParameter(int p, float v);
     void SetParameter100(int p, float v);
-    ValueCurvePanel* _vcp;
+    ValueCurvePanel* _vcp = nullptr;
     void UpdateLinkedTextCtrl(wxScrollEvent& event);
     void UpdateLinkedSlider(wxCommandEvent& event);
     void PopulatePresets();
@@ -98,6 +202,11 @@ class ValueCurveDialog: public wxDialog
     void SetSliderMinMax();
 
     public:
+    // Re-render as the curve is edited: `onChange` runs after each change, once the mouse is released (so not while
+    // a point, handle or slider is being dragged), and again after Cancel puts the original curve back.
+    void SetLiveChangeCallback(std::function<void()> onChange);
+    // Shows the colour keyframe bar: the curve then carries a colour over time as well as its value.
+    void EnableColor();
 
 		ValueCurveDialog(wxWindow* parent, ValueCurve* vc, bool slideridd, SequenceElements* sequenceElements, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
 		virtual ~ValueCurveDialog();

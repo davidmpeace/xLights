@@ -24,6 +24,15 @@ public:
     virtual void Render(Effect* effect, const SettingsMap& settings, RenderBuffer& buffer) override;
     virtual FrameParallelism GetFrameParallelism(const SettingsMap& settings) const override { return FrameParallelism::Pure; }
     virtual int DrawEffectBackground(const Effect* e, int x1, int y1, int x2, int y2, xlVertexColorAccumulator& backgrounds, xlColor* colorMask, bool ramps) override;
+    // Colour over time: the colour keys of a value curve (edited inline in the sequencer) in place of the first
+    // palette colour, repeating with the cycles. Kept as an X_ setting, which the settings panel leaves alone.
+    static constexpr const char* COLORS_SETTING = "X_On_Colors";
+    virtual bool SupportsInlineEdit() const override { return true; }
+    virtual std::string GetInlineEditCurveSetting() const override { return COLORS_SETTING; }
+    virtual bool InlineEditHasColor() const override { return true; }
+    virtual bool InlineEditHasCurve() const override { return false; }
+    virtual bool GetInlineEditCurveSpan(const Effect* e, float& start, float& scale) const override;
+    virtual xlColor GetInlineEditBaseColor(const Effect* e) const override;
     virtual bool SupportsLinearColorCurves(const SettingsMap& SettingsMap) const override
     {
         return true;

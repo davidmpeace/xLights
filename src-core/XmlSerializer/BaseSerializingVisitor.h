@@ -36,6 +36,7 @@ class DmxDimmerAbility;
 class DmxImage;
 class DmxFloodArea;
 class DmxFloodlight;
+class DmxFountain;
 class DmxGeneral;
 class DmxMotor;
 class DmxPresetAbility;
@@ -109,6 +110,7 @@ public:
     void Visit(const WreathModel& model) override;
     void Visit(const DmxFloodArea& model) override;
     void Visit(const DmxFloodlight& model) override;
+    void Visit(const DmxFountain& model) override;
     void Visit(const DmxGeneral& model) override;
     void Visit(const DmxMovingHeadAdv& model) override;
     void Visit(const DmxMovingHead& model) override;

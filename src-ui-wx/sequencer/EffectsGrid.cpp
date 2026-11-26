@@ -293,6 +293,9 @@ void EffectsGrid::mouseLeftDClick(wxMouseEvent& event) {
     if (mSequenceElements == nullptr) {
         return;
     }
+    if (InlineDoubleClick(event)) {
+        return;
+    }
     int selectedTimeMS = mTimeline->GetRawTimeMSfromPosition(event.GetX()); // GetAbsoluteTimeMSfromPosition(event.GetX());
 
     if (!event.ShiftDown()) {
@@ -452,8 +455,11 @@ void EffectsGrid::rightClick(wxMouseEvent& event) {
     if (mSequenceElements == nullptr) {
         return;
     }
+    if (InlineRightClick(event)) {
+        return; // a point or colour key on an inline-edited curve has its own menu
+    }
     SetFocus();
-    mSelectedRow = event.GetY() / DEFAULT_ROW_HEADING_HEIGHT;
+    mSelectedRow = mSequenceElements->GetRowAtY(event.GetY());
     if (mSelectedRow >= (int)mSequenceElements->GetVisibleRowInformationSize()) {
         return;
     }
@@ -1860,6 +1866,10 @@ void EffectsGrid::mouseMoved(wxMouseEvent& event) {
     int rowIndex = GetRow(event.GetY());
     bool out_of_bounds = rowIndex < 0 || (rowIndex >= (int)mSequenceElements->GetVisibleRowInformationSize());
 
+    if (!mResizing && !mEffectMoveDragging && !mDragging && !m_wheel_down && InlineMouseMove(event)) {
+        UpdateMousePosition(mTimeline->GetAbsoluteTimeMSfromPosition(event.GetX()));
+        return;
+    }
     if (mResizing) {
         mDragEndX = event.GetX();
         mDragEndY = event.GetY();
@@ -1915,20 +1925,8 @@ void EffectsGrid::mouseMoved(wxMouseEvent& event) {
             Draw();
         }
     } else if (m_wheel_down) {
-        if (event.Dragging()) {
-            if (xlights->CurrentSeqXmlFile == nullptr)
-                return;
-
-            MainSequencer* ms = xLightsApp::GetFrame()->GetMainSequencer();
-            int pos = ms->ScrollBarEffectsHorizontal->GetThumbPosition();
-            double delta_x = ((double)event.GetX() - m_previous_mouse_x);
-            double ts = ms->ScrollBarEffectsHorizontal->GetThumbSize() / 5000.0;
-            if (ts < 1.0) {
-                ts = 1.0;
-            }
-            ms->ScrollBarEffectsHorizontal->SetThumbPosition(pos - (delta_x * ts));
-            wxCommandEvent eventScroll(EVT_HORIZ_SCROLL);
-            ms->HorizontalScrollChanged(eventScroll);
+        if (event.Dragging() && xlights->CurrentSeqXmlFile != nullptr) {
+            PanTo(event.GetX(), event.GetY());
         }
     } else {
         if (!xlights->IsACActive() || rowIndex < mSequenceElements->GetNumberOfTimingRows()) {
@@ -1964,12 +1962,51 @@ void EffectsGrid::mouseLeftWindow(wxMouseEvent& event) {
 }
 
 void EffectsGrid::mouseMiddleDown(wxMouseEvent& event) {
-    m_previous_mouse_x = event.GetX();
+    if (mSequenceElements == nullptr || mTimeline == nullptr) {
+        return;
+    }
+    // grab the time and row under the cursor
+    m_panMSPerPixel = mTimeline->GetTimeMSfromPosition(100000) / 100000.0;
+    m_panAnchorMS = mTimeline->GetStartTimeMS() + event.GetX() * m_panMSPerPixel;
+    m_panAnchorY = event.GetY() >= mSequenceElements->GetTimingRowsBottom() ? mSequenceElements->GetModelScrollPixels() + event.GetY() : -1;
     m_wheel_down = true;
+    if (!HasCapture()) {
+        CaptureMouse();
+    }
+    static const wxCursor s_hand(wxCURSOR_HAND);
+    SetCursor(s_hand);
 }
 
 void EffectsGrid::mouseMiddleUp(wxMouseEvent& event) {
+    if (m_wheel_down && HasCapture()) {
+        ReleaseMouse();
+    }
+    if (m_wheel_down) {
+        static const wxCursor s_default(wxCURSOR_DEFAULT);
+        SetCursor(s_default);
+    }
     m_wheel_down = false;
+}
+
+// Scrolls so the time and spot grabbed by the middle button are back under (x, y).
+void EffectsGrid::PanTo(int x, int y) {
+    MainSequencer* ms = (MainSequencer*)mParent;
+
+    // across: to the millisecond, within the sequence
+    int viewStart = 0, viewEnd = 0;
+    mTimeline->GetViewableTimeRange(viewStart, viewEnd);
+    const int maxStart = std::max(0, mTimeline->GetTimeLength() - (viewEnd - viewStart));
+    const int start = std::clamp((int)std::lround(m_panAnchorMS - x * m_panMSPerPixel), 0, maxStart);
+    if (start != viewStart) {
+        mTimeline->SetStartTimeMS(start);
+        ms->UpdateEffectGridHorizontalScrollBar();
+    }
+
+    // down: to the pixel
+    if (m_panAnchorY >= 0 && m_panAnchorY - y != mSequenceElements->GetModelScrollPixels()) {
+        mSequenceElements->SetModelScrollPixels(m_panAnchorY - y);
+        ms->UpdateEffectGridVerticalScrollBar();
+    }
 }
 
 int EffectsGrid::GetClippedPositionFromTimeMS(int ms) const {
@@ -2185,7 +2222,7 @@ Effect* EffectsGrid::GetEffectAtRowAndTime(int row, int ms, int& index, HitLocat
                 outTransitionStart = endPos - (int)(std::min(fadeOutTime * 1000.0 / (double)durationMS, 1.0) * (double)(endPos - startPos));
             }
 
-            int yRowTop = row * DEFAULT_ROW_HEADING_HEIGHT;
+            int yRowTop = mSequenceElements->GetRowTop(row);
             bool yNearTop = (y != -1 && abs(y - (yRowTop + FADE_HANDLE_CENTER_Y_OFFSET)) <= FADE_HANDLE_HIT_SLOP);
 
             if (!eff->IsLocked() && yNearTop && checkFadeIn && abs(position - inTransitionEnd) <= FADE_HANDLE_HIT_SLOP) {
@@ -2267,6 +2304,9 @@ void EffectsGrid::mouseDown(wxMouseEvent& event) {
     }
     if (mSequenceElements == nullptr) {
         return;
+    }
+    if (InlineMouseDown(event)) {
+        return; // on an inline-edited curve: its points, not the effect
     }
     SetFocus();
     if (!(event.ShiftDown() || event.ControlDown() || event.AltDown()) && mResizingMode == EFFECT_RESIZE_NO) {
@@ -2428,6 +2468,7 @@ void EffectsGrid::mouseDown(wxMouseEvent& event) {
                     mDragStartTimeMS = mTimeline->GetRawTimeMSfromPosition(event.GetX());
                     mDragStartY = event.GetY();
                     mDragStartRow = mSequenceElements->GetFirstVisibleModelRow();
+                    mDragStartScrollPx = mSequenceElements->GetModelScrollPixels();
                     if (selectedEffect == nullptr) {
                         UnselectEffect();
                         mSelectedEffect = nullptr;
@@ -4100,6 +4141,9 @@ bool EffectsGrid::DoACDraw(bool keyboard, ACTYPE typeOverride, ACSTYLE styleOver
 void EffectsGrid::mouseReleased(wxMouseEvent& event) {
     if (mSequenceElements == nullptr)
         return;
+    if (InlineMouseUp(event)) {
+        return;
+    }
 
     if (mDragging && xlights->IsACActive()) {
         ReleaseMouse();
@@ -7360,6 +7404,11 @@ void EffectsGrid::UpdateMousePosition(int time) const {
     wxPostEvent(mParent, eventMousePos);
 }
 void EffectsGrid::CancelMouseOperations() {
+    m_wheel_down = false;
+    if (mInlineDragging) {
+        wxMouseEvent up;
+        InlineMouseUp(up); // keeps the curve as far as it was dragged
+    }
     if (HasCapture()) {
         ReleaseMouse();
     }
@@ -7606,34 +7655,46 @@ void EffectsGrid::DrawLines(xlGraphicsContext* ctx) const {
     int x1 = 0;
     int x2 = mWindowWidth - 1;
     int y;
-    bool isEvenLayer = false;
-
     backgrounds->PreAlloc(mSequenceElements->GetVisibleRowInformationSize() * 6);
 
+    // Every other element (or strand/node row) is shaded, its layers with it. Counted down the whole list, not from
+    // the top of the window, so the shading stays with its rows as they scroll (and an element scrolled part way off
+    // the top keeps it).
     xlColor color(33, 33, 33);
-    for (int row = 0; row < (int)mSequenceElements->GetVisibleRowInformationSize(); row++) {
-        Row_Information_Struct* ri = mSequenceElements->GetVisibleRowInformation(row);
-        Element* e = ri->element;
-        y = row * DEFAULT_ROW_HEADING_HEIGHT;
-
+    bool isEvenLayer = false;
+    int shadeUntil = -1; // the shaded block runs to this row (all rows, exclusive)
+    auto step = [&](const Row_Information_Struct* ri, int index) {
+        if (ri == nullptr) {
+            return;
+        }
         if (ri->layerIndex == 0 && ri->strandIndex == -1) {
-            if (isEvenLayer) {
-                // Element is collapsed only one row should be shaded
-                int h = e->GetCollapsed() ? DEFAULT_ROW_HEADING_HEIGHT : DEFAULT_ROW_HEADING_HEIGHT * e->GetEffectLayerCount();
-                backgrounds->AddRectAsTriangles(x1, y, x2, y + h, color);
-            }
+            shadeUntil = isEvenLayer ? index + (ri->element->GetCollapsed() ? 1 : (int)ri->element->GetEffectLayerCount()) : index;
             isEvenLayer = !isEvenLayer;
         } else if (ri->strandIndex != -1) {
-            if (isEvenLayer) {
-                backgrounds->AddRectAsTriangles(x1, y, x2, y + DEFAULT_ROW_HEADING_HEIGHT, color);
-            }
+            shadeUntil = isEvenLayer ? index + 1 : index;
             isEvenLayer = !isEvenLayer;
+        }
+    };
+    const int timingRows = mSequenceElements->GetNumberOfTimingRows();
+    const int firstModelRow = mSequenceElements->GetFirstVisibleModelRow();
+    const int visibleRows = (int)mSequenceElements->GetVisibleRowInformationSize();
+    for (int row = 0; row < visibleRows; row++) {
+        if (row == timingRows) {
+            // the model rows scrolled off the top
+            for (int index = timingRows; index < timingRows + firstModelRow; index++) {
+                step(mSequenceElements->GetRowInformation(index), index);
+            }
+        }
+        const int index = row < timingRows ? row : row + firstModelRow;
+        step(mSequenceElements->GetVisibleRowInformation(row), index);
+        if (index < shadeUntil) {
+            backgrounds->AddRectAsTriangles(x1, mSequenceElements->GetRowTop(row), x2, mSequenceElements->GetRowBottom(row), color);
         }
     }
     float gridSize = 0.5f / translateToBacking(1.0);
     color = xlights->color_mgr.GetColor(ColorManager::COLOR_GRIDLINES);
     for (int row = 0; row < (int)mSequenceElements->GetVisibleRowInformationSize(); row++) {
-        y = (row + 1) * DEFAULT_ROW_HEADING_HEIGHT;
+        y = mSequenceElements->GetRowBottom(row);
         backgrounds->AddRectAsTriangles(x1, y - gridSize, x2, y + gridSize, color);
     }
 
@@ -7732,9 +7793,10 @@ void EffectsGrid::DrawEffects(xlGraphicsContext* ctx) {
             xlVertexAccumulator* linesRight;
             xlVertexAccumulator* linesLeft;
             xlVertexAccumulator* linesCenter;
-            int y1 = (row * DEFAULT_ROW_HEADING_HEIGHT) + 2;
-            int y2 = ((row + 1) * DEFAULT_ROW_HEADING_HEIGHT) - 2;
-            int y = (row * DEFAULT_ROW_HEADING_HEIGHT) + (DEFAULT_ROW_HEADING_HEIGHT / 2);
+            int y1 = mSequenceElements->GetRowTop(row) + 2;
+            int y2 = mSequenceElements->GetRowBottom(row) - 2;
+            int y = mSequenceElements->GetRowTop(row) + (mSequenceElements->GetRowHeight(row) / 2);
+            const int rowY1 = y1, rowY2 = y2, rowY = y;
 
             if (mGridNodeValues && ri->nodeIndex != -1) {
                 std::vector<xlColor> colors;
@@ -7763,8 +7825,8 @@ void EffectsGrid::DrawEffects(xlGraphicsContext* ctx) {
                 xs.push_back(mTimeline->GetPositionFromTimeMS(timems));
 
                 backgrounds->PreAlloc(xs.size() * 6);
-                float y1a = (row * DEFAULT_ROW_HEADING_HEIGHT) + 3;
-                float y2a = ((row + 1) * DEFAULT_ROW_HEADING_HEIGHT) - 3;
+                float y1a = mSequenceElements->GetRowTop(row) + 3;
+                float y2a = mSequenceElements->GetRowBottom(row) - 3;
                 float x = mTimeline->GetPositionFromTimeMS(0);
                 for (size_t n = 0; n < xs.size(); n++) {
                     int x2 = xs[n];
@@ -7797,6 +7859,12 @@ void EffectsGrid::DrawEffects(xlGraphicsContext* ctx) {
                 if (x1 > width) {
                     break;
                 }
+                // an inline-edited effect keeps its lines, icon and handles in a bar at the top; its curve fills the rest
+                InlineEditGeom inlineGeom;
+                const bool inlineEdit = IsInlineEditing(e) && GetInlineGeom(e, row, inlineGeom);
+                y1 = inlineEdit ? inlineGeom.barTop : rowY1;
+                y2 = inlineEdit ? inlineGeom.barBottom : rowY2;
+                y = inlineEdit ? (inlineGeom.barTop + inlineGeom.barBottom) / 2 : rowY;
                 // Draw Left line
                 if (e == mSelectedEffect) {
                     if (effectLayer->GetEffect(effectIndex)->IsRenderDisabled()) {
@@ -7865,7 +7933,18 @@ void EffectsGrid::DrawEffects(xlGraphicsContext* ctx) {
                 }
 
                 int drawIcon = 1;
-                if (mGridIconBackgrounds && (ri->nodeIndex == -1 || !mGridNodeValues)) {
+                if (inlineEdit) {
+                    DrawEffectBackground(ri, e, x3, inlineGeom.bodyTop, x4, inlineGeom.bodyBottom, backgrounds);
+                    DrawInlineEdit(inlineGeom, backgrounds);
+                    // the sides and bottom of the curve's area (a grey line marks its top)
+                    linesCenter->AddVertex(x3, inlineGeom.bodyTop);
+                    linesCenter->AddVertex(x3, inlineGeom.stripBottom);
+                    linesCenter->AddVertex(x4, inlineGeom.bodyTop);
+                    linesCenter->AddVertex(x4, inlineGeom.stripBottom);
+                    linesCenter->AddVertex(x3, inlineGeom.stripBottom);
+                    linesCenter->AddVertex(x4, inlineGeom.stripBottom);
+                    drawIcon = 2;
+                } else if (mGridIconBackgrounds && (ri->nodeIndex == -1 || !mGridNodeValues)) {
                     drawIcon = DrawEffectBackground(ri, e, x3, y1, x4, y2, backgrounds);
                 }
                 if (mGridNodeValues && ri->nodeIndex != -1) {
@@ -7955,7 +8034,7 @@ void EffectsGrid::DrawEffects(xlGraphicsContext* ctx) {
                 DrawFadeHints(e, x3, y1, x4, y2, backgrounds);
             }
             if ((mDragDropping || mPartialCellSelected) && mDropRow == row) {
-                int y3 = row * DEFAULT_ROW_HEADING_HEIGHT;
+                int y3 = mSequenceElements->GetRowTop(row);
                 xlColor highlight_color;
                 int selected_timing_row = mSequenceElements->GetSelectedTimingRow();
                 if (selected_timing_row >= 0) {
@@ -7971,11 +8050,15 @@ void EffectsGrid::DrawEffects(xlGraphicsContext* ctx) {
                     dropStartX = mTimeline->GetPositionFromTimeMS(mDropStartTimeMS);
                     dropEndX = mTimeline->GetPositionFromTimeMS(mDropEndTimeMS);
                 }
-                selectedBoxes->AddRectAsTriangles(dropStartX, y3, dropEndX, y3 + DEFAULT_ROW_HEADING_HEIGHT, highlight_color);
+                selectedBoxes->AddRectAsTriangles(dropStartX, y3, dropEndX, y3 + mSequenceElements->GetRowHeight(row), highlight_color);
                 xLightsApp::GetFrame()->GetMainSequencer()->PanelRowHeadings->Refresh(false);
             }
         }
     }
+    FlushEffectAccumulators(ctx);
+}
+
+void EffectsGrid::FlushEffectAccumulators(xlGraphicsContext* ctx) {
     ctx->enableBlending();
     ctx->drawTriangles(backgrounds->Flush());
     ctx->disableBlending();
@@ -8000,6 +8083,87 @@ void EffectsGrid::DrawEffects(xlGraphicsContext* ctx) {
     ctx->drawTexture(texts->Flush(), fontTexture);
     ctx->drawTriangles(selectedBoxes->Flush());
     ctx->disableBlending();
+}
+
+void EffectsGrid::DrawTimingCover(xlGraphicsContext* ctx) {
+    const int visible = (int)mSequenceElements->GetVisibleRowInformationSize();
+    int timingRows = 0;
+    while (timingRows < visible && mSequenceElements->GetVisibleRowInformation(timingRows)->element->GetType() == ElementType::ELEMENT_TYPE_TIMING) {
+        timingRows++;
+    }
+    const int bottom = mSequenceElements->GetTimingRowsBottom();
+    if (timingRows == 0 || timingRows >= visible || mSequenceElements->GetRowTop(timingRows) >= bottom) {
+        return; // nothing under the timing rows
+    }
+
+    // a fresh set of accumulators: the ones drawn already this frame may still be in use
+    std::array<xlVertexAccumulator**, 11> vas = { &lines, &selectedLinesFixed, &selectedLinesLocked, &timingEffLines, &selectedLines,
+                                                  &selectFocusLines, &selectFocusLinesLocked, &selectFocusLinesDisabled,
+                                                  &selectedLinesDisabled, &linesDisabled, &linesLocked };
+    std::array<xlVertexColorAccumulator**, 3> vcas = { &timingLines, &backgrounds, &selectedBoxes };
+    std::array<xlVertexTextureAccumulator**, 2> vtas = { &texts, &effectIcons };
+    std::array<xlVertexAccumulator*, 11> savedVa;
+    std::array<xlVertexColorAccumulator*, 3> savedVca;
+    std::array<xlVertexTextureAccumulator*, 2> savedVta;
+    for (size_t i = 0; i < vas.size(); i++) {
+        savedVa[i] = *vas[i];
+        *vas[i] = ctx->createVertexAccumulator();
+    }
+    for (size_t i = 0; i < vcas.size(); i++) {
+        savedVca[i] = *vcas[i];
+        *vcas[i] = ctx->createVertexColorAccumulator();
+    }
+    for (size_t i = 0; i < vtas.size(); i++) {
+        savedVta[i] = *vtas[i];
+        *vtas[i] = ctx->createVertexTextureAccumulator();
+    }
+
+    // the timing rows' background, shading and grid lines, as DrawLines draws them
+    backgrounds->AddRectAsTriangles(0, 0, mWindowWidth, bottom, xlBLACK);
+    const xlColor shade(33, 33, 33);
+    bool isEvenLayer = false;
+    int shadeUntil = -1;
+    for (int row = 0; row < timingRows; row++) {
+        const Row_Information_Struct* ri = mSequenceElements->GetVisibleRowInformation(row);
+        if (ri->layerIndex == 0 && ri->strandIndex == -1) {
+            shadeUntil = isEvenLayer ? row + (ri->element->GetCollapsed() ? 1 : (int)ri->element->GetEffectLayerCount()) : row;
+            isEvenLayer = !isEvenLayer;
+        }
+        if (row < shadeUntil) {
+            backgrounds->AddRectAsTriangles(0, mSequenceElements->GetRowTop(row), mWindowWidth, mSequenceElements->GetRowBottom(row), shade);
+        }
+    }
+    const float gridSize = 0.5f / translateToBacking(1.0);
+    const xlColor gridColor = xlights->color_mgr.GetColor(ColorManager::COLOR_GRIDLINES);
+    for (int row = 0; row < timingRows; row++) {
+        const int y = mSequenceElements->GetRowBottom(row);
+        backgrounds->AddRectAsTriangles(0, y - gridSize, mWindowWidth, y + gridSize, gridColor);
+    }
+    for (size_t x = 0; x < mWindowWidth; x++) {
+        if ((x + mStartPixelOffset) % (PIXELS_PER_MAJOR_HASH) == 0) {
+            backgrounds->AddRectAsTriangles(x - gridSize, 0, x + gridSize, bottom, gridColor);
+        }
+    }
+    // the timing marks, their lines down the grid stopping at the timing rows' bottom (they are drawn below already)
+    mTimingLinesBottom = bottom;
+    for (int row = 0; row < timingRows; row++) {
+        DrawTimingEffects(row);
+    }
+    mTimingLinesBottom = -1;
+    FlushEffectAccumulators(ctx);
+
+    for (size_t i = 0; i < vas.size(); i++) {
+        delete *vas[i];
+        *vas[i] = savedVa[i];
+    }
+    for (size_t i = 0; i < vcas.size(); i++) {
+        delete *vcas[i];
+        *vcas[i] = savedVca[i];
+    }
+    for (size_t i = 0; i < vtas.size(); i++) {
+        delete *vtas[i];
+        *vtas[i] = savedVta[i];
+    }
 }
 
 void EffectsGrid::DrawFadeHints(Effect* e, int x1, int y1, int x2, int y2, xlVertexColorAccumulator* backgrounds) const {
@@ -8089,9 +8253,9 @@ void EffectsGrid::DrawTimingEffects(int row) {
 
         EFFECT_SCREEN_MODE mode = EFFECT_SCREEN_MODE::SCREEN_L_R_OFF;
 
-        int y1 = (row * DEFAULT_ROW_HEADING_HEIGHT) + 4;
-        int y2 = ((row + 1) * DEFAULT_ROW_HEADING_HEIGHT) - 4;
-        int y = (row * DEFAULT_ROW_HEADING_HEIGHT) + (DEFAULT_ROW_HEADING_HEIGHT / 2.0);
+        int y1 = mSequenceElements->GetRowTop(row) + 4;
+        int y2 = mSequenceElements->GetRowBottom(row) - 4;
+        int y = mSequenceElements->GetRowTop(row) + (mSequenceElements->GetRowHeight(row) / 2.0);
         int x1, x2, x3, x4;
 
         mTimeline->GetPositionsFromTimeRange(eff->GetStartTimeMS(),
@@ -8140,8 +8304,8 @@ void EffectsGrid::DrawTimingEffects(int row) {
                 }
 
                 if (element->GetActive() && ri->layerIndex == 0) {
-                    timingLines->AddVertex(x1, (row + 1) * DEFAULT_ROW_HEADING_HEIGHT, c);
-                    timingLines->AddVertex(x1, GetSize().y, c);
+                    timingLines->AddVertex(x1, mSequenceElements->GetRowBottom(row), c);
+                    timingLines->AddVertex(x1, mTimingLinesBottom >= 0 ? mTimingLinesBottom : GetSize().y, c);
                 }
             }
             // Draw Right line
@@ -8149,8 +8313,8 @@ void EffectsGrid::DrawTimingEffects(int row) {
                 linesRight->AddVertex(x2, y1);
                 linesRight->AddVertex(x2, y2);
                 if (element->GetActive() && ri->layerIndex == 0) {
-                    timingLines->AddVertex(x2, (row + 1) * DEFAULT_ROW_HEADING_HEIGHT, c);
-                    timingLines->AddVertex(x2, GetSize().y, c);
+                    timingLines->AddVertex(x2, mSequenceElements->GetRowBottom(row), c);
+                    timingLines->AddVertex(x2, mTimingLinesBottom >= 0 ? mTimingLinesBottom : GetSize().y, c);
                 }
             }
             // Draw horizontal
@@ -8279,6 +8443,7 @@ void EffectsGrid::Draw() {
 
         DrawLines(ctx);
         DrawEffects(ctx);
+        DrawTimingCover(ctx);
         DrawSongStructureOverlays(ctx);
         DrawCollabOverlay(ctx);
         DrawEffectMoveDragOverlay(ctx);
@@ -8291,7 +8456,7 @@ void EffectsGrid::Draw() {
             }
         }
         if (mDragging && !has_timing_effects) {
-            int offset = (mDragStartRow - mSequenceElements->GetFirstVisibleModelRow()) * DEFAULT_ROW_HEADING_HEIGHT;
+            int offset = mDragStartScrollPx - mSequenceElements->GetModelScrollPixels();
             xlVertexAccumulator* va = ctx->createVertexAccumulator();
             va->AddRectAsDashedLines(mTimeline->GetPositionFromTimeMS(mDragStartTimeMS), mDragStartY + offset, mDragEndX, mDragEndY, translateToBacking(8));
             ctx->drawLines(va, xlights->color_mgr.GetColor(ColorManager::COLOR_GRID_DASHES));
@@ -8321,14 +8486,15 @@ void EffectsGrid::DrawSelectedCells(xlGraphicsContext* ctx) {
         if (last_row >= adjusted_start_row) {
             int start_x = mTimeline->GetPositionFromTimeMS(tel->GetEffect(start_col)->GetStartTimeMS()) + 1;
             int end_x = mTimeline->GetPositionFromTimeMS(tel->GetEffect(end_col)->GetEndTimeMS()) - 1;
-            int start_y = adjusted_start_row * DEFAULT_ROW_HEADING_HEIGHT;
-            int end_y = last_row * DEFAULT_ROW_HEADING_HEIGHT;
+            // a row scrolled part way under the timing rows shows from their bottom
+            int start_y = std::max(mSequenceElements->GetRowTop(adjusted_start_row), mSequenceElements->GetTimingRowsBottom());
+            int end_y = mSequenceElements->GetRowBottom(last_row);
 
             xlVertexAccumulator* va = ctx->createVertexAccumulator();
             if (!xlights->IsACActive()) {
                 xlColor highlight_color = xlights->color_mgr.GetTimingColor(mSequenceElements->GetVisibleRowInformation(mSequenceElements->GetSelectedTimingRow())->colorIndex);
                 highlight_color.alpha = TIMING_ALPHA;
-                va->AddRectAsTriangles(start_x, start_y, end_x, end_y + DEFAULT_ROW_HEADING_HEIGHT);
+                va->AddRectAsTriangles(start_x, start_y, end_x, end_y);
                 ctx->enableBlending();
                 xlColor c(highlight_color);
                 c.alpha = 80;
@@ -8336,8 +8502,8 @@ void EffectsGrid::DrawSelectedCells(xlGraphicsContext* ctx) {
                 ctx->disableBlending();
             } else {
                 xlVertexAccumulator* va = ctx->createVertexAccumulator();
-                va->AddRectAsLines(start_x, start_y, end_x, end_y + DEFAULT_ROW_HEADING_HEIGHT);
-                va->AddRectAsLines(start_x + 1, start_y + 1, end_x - 1, end_y - 1 + DEFAULT_ROW_HEADING_HEIGHT);
+                va->AddRectAsLines(start_x, start_y, end_x, end_y);
+                va->AddRectAsLines(start_x + 1, start_y + 1, end_x - 1, end_y - 1);
                 ctx->drawLines(va, xlWHITE);
             }
             delete va;
@@ -8383,14 +8549,14 @@ void EffectsGrid::CreateEffectIconTextures(xlGraphicsContext* ctx) {
 void EffectsGrid::magnify(wxMouseEvent& event) {
     magSinceLast += event.GetMagnification();
     if (magSinceLast > 0.05f) {
-        wxCommandEvent eventZoom(EVT_ZOOM);
-        eventZoom.SetInt(ZOOM_IN);
-        wxPostEvent(mParent, eventZoom);
+        if (mTimeline != nullptr) {
+            mTimeline->ZoomAtPosition(true, event.GetX()); // into what's under the cursor
+        }
         magSinceLast = 0;
     } else if (magSinceLast < -0.05f) {
-        wxCommandEvent eventZoom(EVT_ZOOM);
-        eventZoom.SetInt(ZOOM_OUT);
-        wxPostEvent(mParent, eventZoom);
+        if (mTimeline != nullptr) {
+            mTimeline->ZoomAtPosition(false, event.GetX());
+        }
         magSinceLast = 0;
     }
 }
@@ -8398,15 +8564,9 @@ void EffectsGrid::magnify(wxMouseEvent& event) {
 void EffectsGrid::mouseWheelMoved(wxMouseEvent& event) {
     magSinceLast = 0;
     if (event.CmdDown()) {
-        int i = event.GetWheelRotation();
-        if (i < 0) {
-            wxCommandEvent eventZoom(EVT_ZOOM);
-            eventZoom.SetInt(ZOOM_OUT);
-            wxPostEvent(mParent, eventZoom);
-        } else {
-            wxCommandEvent eventZoom(EVT_ZOOM);
-            eventZoom.SetInt(ZOOM_IN);
-            wxPostEvent(mParent, eventZoom);
+        // into or out of what's under the cursor
+        if (mTimeline != nullptr) {
+            mTimeline->ZoomAtPosition(event.GetWheelRotation() >= 0, event.GetX());
         }
     } else if (event.ShiftDown()) {
         int i = event.GetWheelRotation();
@@ -8427,7 +8587,7 @@ void EffectsGrid::mouseWheelMoved(wxMouseEvent& event) {
 }
 
 int EffectsGrid::GetRow(int y) const {
-    return y / DEFAULT_ROW_HEADING_HEIGHT;
+    return mSequenceElements != nullptr ? mSequenceElements->GetRowAtY(y) : y / DEFAULT_ROW_HEADING_HEIGHT;
 }
 
 int EffectsGrid::GetDragStartTimeMS() const {
@@ -8597,7 +8757,7 @@ void EffectsGrid::OnScrollTimer(wxTimerEvent&)
 
     if (mScrollDir != 0) {
         int cur = mSequenceElements->GetFirstVisibleModelRow();
-        int maxRow = mSequenceElements->GetTotalNumberOfModelRows() - mSequenceElements->GetMaxModelsDisplayed();
+        int maxRow = mSequenceElements->GetMaxFirstVisibleModelRow();
         int next = std::clamp(cur + mScrollDir, 0, std::max(0, maxRow));
         if (next != cur) {
             int scroll = mSequenceElements->SetFirstVisibleModelRow(next);
@@ -8947,8 +9107,8 @@ void EffectsGrid::DrawEffectMoveDragOverlay(xlGraphicsContext* ctx) {
         if (!mEffectMoveCopyMode) {
             int ox1 = mTimeline->GetPositionFromTimeMS(snap.origStartTimeMS);
             int ox2 = mTimeline->GetPositionFromTimeMS(snap.origEndTimeMS);
-            float oy1 = snap.origVisibleRow * DEFAULT_ROW_HEADING_HEIGHT + 2;
-            float oy2 = (snap.origVisibleRow + 1) * DEFAULT_ROW_HEADING_HEIGHT - 2;
+            float oy1 = std::max(mSequenceElements->GetRowTop(snap.origVisibleRow), mSequenceElements->GetTimingRowsBottom()) + 2;
+            float oy2 = mSequenceElements->GetRowBottom(snap.origVisibleRow) - 2;
             fills->AddRectAsTriangles(ox1, oy1, ox2, oy2, dimColor);
         }
 
@@ -8959,8 +9119,8 @@ void EffectsGrid::DrawEffectMoveDragOverlay(xlGraphicsContext* ctx) {
             xlColor& gBorder = snap.hasCollision ? borderCollide : (mEffectMoveCopyMode ? borderCopy : borderNormal);
             int gx1 = mTimeline->GetPositionFromTimeMS(snap.origStartTimeMS + mEffectMoveTargetDeltaMS);
             int gx2 = mTimeline->GetPositionFromTimeMS(snap.origEndTimeMS + mEffectMoveTargetDeltaMS);
-            float gy1 = snapTargetRow * DEFAULT_ROW_HEADING_HEIGHT + 2;
-            float gy2 = (snapTargetRow + 1) * DEFAULT_ROW_HEADING_HEIGHT - 2;
+            float gy1 = std::max(mSequenceElements->GetRowTop(snapTargetRow), mSequenceElements->GetTimingRowsBottom()) + 2;
+            float gy2 = mSequenceElements->GetRowBottom(snapTargetRow) - 2;
             fills->AddRectAsTriangles(gx1, gy1, gx2, gy2, gFill);
             borders->AddRectAsLines(gx1, gy1, gx2, gy2, gBorder);
         }
@@ -9775,8 +9935,11 @@ void EffectsGrid::DrawCollabOverlay(xlGraphicsContext* ctx) {
         Row_Information_Struct* ri = mSequenceElements->GetVisibleRowInformation(row);
         EffectLayer* layer = mSequenceElements->GetEffectLayer(ri);
         if (layer == nullptr) continue;
-        float y1 = row * DEFAULT_ROW_HEADING_HEIGHT + 1;
-        float y2 = (row + 1) * DEFAULT_ROW_HEADING_HEIGHT - 1;
+        // a model row scrolled part way under the timing rows shows from their bottom
+        const bool isTiming = ri->element->GetType() == ElementType::ELEMENT_TYPE_TIMING;
+        float y1 = (isTiming ? mSequenceElements->GetRowTop(row) : std::max(mSequenceElements->GetRowTop(row), mSequenceElements->GetTimingRowsBottom())) + 1;
+        float y2 = mSequenceElements->GetRowBottom(row) - 1;
+        if (y2 <= y1) continue;
         auto as = o->assigned.find(ri->element->GetUid());
         if (as != o->assigned.end()) {
             // A row only one participant may edit: tinted in their colour,

@@ -49,6 +49,7 @@
 #include "../models/DMX/DmxShutterAbility.h"
 #include "../models/DMX/DmxFloodArea.h"
 #include "../models/DMX/DmxFloodlight.h"
+#include "../models/DMX/DmxFountain.h"
 #include "../models/DMX/DmxGeneral.h"
 #include "../models/DMX/DmxImage.h"
 #include "../models/DMX/DmxMovingHeadAdv.h"
@@ -228,6 +229,8 @@ Model* XmlDeserializingModelFactory::Deserialize(pugi::xml_node node, ModelManag
         model = DeserializeDmxFloodArea(node, modelManager, importing);
     } else if (type == XmlNodeKeys::DmxFloodlightType) {
         model = DeserializeDmxFloodlight(node, modelManager, importing);
+    } else if (type == XmlNodeKeys::DmxFountainType) {
+        model = DeserializeDmxFountain(node, modelManager, importing);
     } else if (type == XmlNodeKeys::DmxGeneralType || node_name == "dmxgeneral") {
         model = DeserializeDmxGeneral(node, modelManager, importing);
     } else if (type == XmlNodeKeys::DmxServoType || node_name == "dmxservo") {
@@ -1350,6 +1353,26 @@ Model* XmlDeserializingModelFactory::DeserializeDmxFloodlight(pugi::xml_node nod
     DmxFloodlight* model = new DmxFloodlight(modelManager);
     CommonDeserializeSteps(model, node, modelManager, importing);
     DeserializeDmxModel(model, node);
+    model->Setup();
+    return model;
+}
+
+Model* XmlDeserializingModelFactory::DeserializeDmxFountain(pugi::xml_node node, ModelManager& modelManager, bool importing) {
+    DmxFountain* model = new DmxFountain(modelManager);
+    CommonDeserializeSteps(model, node, modelManager, importing);
+    DeserializeDmxModel(model, node);
+    model->SetPumpCount(node.attribute("FountainPumps").as_int(8));
+    model->SetArrangement(DmxFountain::ArrangementFromString(node.attribute("FountainArrangement").as_string("Ring")));
+    model->SetClockwise(std::string_view(node.attribute("FountainClockwise").as_string("0")) == "1");
+    model->SetPumpChannel(node.attribute("FountainPumpChannel").as_int(1));
+    model->SetHasLights(std::string_view(node.attribute("FountainLights").as_string("1")) == "1");
+    model->SetLightChannel(node.attribute("FountainLightChannel").as_int(model->GetPumpChannel() + model->GetPumpCount()));
+    model->SetMaxHeightFt(node.attribute("FountainMaxHeight").as_float(15.0f));
+    model->SetCenterMaxHeightFt(node.attribute("FountainCenterMaxHeight").as_float(0.0f));
+    model->SetNozzleSpread(node.attribute("FountainNozzleSpread").as_int(80));
+    model->SetSprayEnabled(std::string_view(node.attribute("FountainSpray").as_string("1")) == "1");
+    model->SetPoolShown(std::string_view(node.attribute("FountainPool").as_string("1")) == "1");
+    model->SetDropletsPerPump(node.attribute("FountainDroplets").as_int(700));
     model->Setup();
     return model;
 }

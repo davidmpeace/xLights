@@ -92,8 +92,47 @@ ValueCurveButton::~ValueCurveButton()
     }
 }
 
+void ValueCurveButton::ResetToDefault()
+{
+    if (_alwaysActive) {
+        _vc->SetActive(false);
+        SetActive(true);
+    } else {
+        SetActive(false);
+    }
+}
+
+// A fresh flat custom curve at the top: no other points, no colours, no wrap.
+void ValueCurveButton::MakeDefaultCurve()
+{
+    _vc->SetType("Flat"); // drops any custom points left from before
+    _vc->SetType("Custom");
+    _vc->SetValueAt(0.0f, 0.0f);
+    _vc->SetValueAt(1.0f, 0.0f);
+    _vc->SetColorKeys({});
+    _vc->SetWrap(false);
+    _vc->SetViewMax(0.0f);
+}
+
+void ValueCurveButton::SetAlwaysActive(bool b)
+{
+    _alwaysActive = b;
+    if (b && !_vc->IsActive()) {
+        // called while the panel is being built: set the curve up without telling anyone (nothing is listening yet)
+        MakeDefaultCurve();
+        _vc->SetActive(true);
+        UpdateBitmap();
+    }
+}
+
 void ValueCurveButton::SetActive(bool active)
 {
+    if (_alwaysActive && !active) {
+        active = true;
+    }
+    if (_alwaysActive && active && !_vc->IsActive()) {
+        MakeDefaultCurve();
+    }
     bool isActive = _vc->IsActive();
     if (isActive != active) {
         _vc->SetActive(active);
@@ -105,6 +144,10 @@ void ValueCurveButton::SetActive(bool active)
 
 void ValueCurveButton::ToggleActive()
 {
+    if (_alwaysActive) {
+        SetActive(true);
+        return;
+    }
     _vc->ToggleActive();
     UpdateState();
 }
@@ -131,6 +174,10 @@ void ValueCurveButton::RenderNewBitmap() {
 void ValueCurveButton::SetValue(const wxString& value)
 {
     _vc->Deserialise(value.ToStdString());
+    if (_alwaysActive && !_vc->IsActive()) {
+        SetActive(true); // a setting saved without its curve still gets one
+        return;
+    }
     UpdateState();
 }
 

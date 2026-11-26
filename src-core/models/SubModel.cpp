@@ -416,9 +416,11 @@ void SubModel::AddDefaultBuffer( std::string const& nodes )
 }
 
 void SubModel::initDefaultBuffer(const std::string &nodes) {
+    int lastGroup = -1;
     for (const auto& valstr : Split(nodes, ',')) {
         auto [start, end] = getRange(valstr);
         if (start == 0) {
+            lastGroup = -1;
             if (_vert) {
                 _row++;
             } else {
@@ -431,6 +433,16 @@ void SubModel::initDefaultBuffer(const std::string &nodes) {
             int nn = start;
             while (!done) {
                 if ((uint32_t)nn < parent->GetNodeCount()) {
+                    // the channels of one light, listed together, share a cell (see Model::GetNodeBufferGroup)
+                    const int group = parent->GetNodeBufferGroup(*parent->Nodes[nn]);
+                    if (group >= 0 && group == lastGroup) {
+                        if (_vert) {
+                            _row--;
+                        } else {
+                            _col--;
+                        }
+                    }
+                    lastGroup = group;
                     _nodeIndexes.push_back(nn);
                     NodeBaseClass* node;
                     if (_nodeIndexMap.find(nn) == _nodeIndexMap.end()) {

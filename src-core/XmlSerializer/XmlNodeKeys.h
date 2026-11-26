@@ -458,6 +458,7 @@ namespace XmlNodeKeys {
     constexpr auto DmxMovingHeadAdvType = "DmxMovingHeadAdv";
     constexpr auto DmxFloodAreaType     = "DmxFloodArea";
     constexpr auto DmxFloodlightType    = "DmxFloodlight";
+    constexpr auto DmxFountainType      = "DmxFountain";
     constexpr auto DmxGeneralType       = "DmxGeneral";
     constexpr auto DmxServoType         = "DmxServo";
     constexpr auto DmxServo3dType       = "DmxServo3d";

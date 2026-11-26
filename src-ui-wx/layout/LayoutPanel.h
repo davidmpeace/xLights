@@ -332,6 +332,7 @@ class LayoutPanel: public wxPanel
         static const long ID_ADD_DMX_SKULL;
         static const long ID_ADD_DMX_FLOODLIGHT;
         static const long ID_ADD_DMX_FLOODAREA;
+        static const long ID_ADD_DMX_FOUNTAIN;
         static const long ID_PREVIEW_MODEL_CAD_EXPORT;
         static const long ID_PREVIEW_LAYOUT_DXF_EXPORT;
         static const long ID_PREVIEW_EXPORT_FACESSTATESSUBMODELS;

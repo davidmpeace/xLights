@@ -8,6 +8,9 @@
  * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
+#include <algorithm>
+#include <cmath>
+
 #include <wx/wx.h>
 #include <wx/brush.h>
 #include <wx/numdlg.h>
@@ -272,7 +275,7 @@ RowHeading::~RowHeading()
 
 void RowHeading::ProcessTooltip(wxMouseEvent& event)
 {
-    int mSelectedRow = event.GetY() / DEFAULT_ROW_HEADING_HEIGHT;
+    int mSelectedRow = mSequenceElements->GetRowAtY(event.GetY());
     if (mSelectedRow < (int)mSequenceElements->GetVisibleRowInformationSize()) {
         auto* rowInfo = mSequenceElements->GetVisibleRowInformation(mSelectedRow);
         Element* e = rowInfo ? rowInfo->element : nullptr;
@@ -328,7 +331,7 @@ void RowHeading::OnScrollTimer(wxTimerEvent&)
     }
     MainSequencer* ms = static_cast<MainSequencer*>(GetParent());
     int cur = mSequenceElements->GetFirstVisibleModelRow();
-    int maxRow = mSequenceElements->GetTotalNumberOfModelRows() - mSequenceElements->GetMaxModelsDisplayed();
+    int maxRow = mSequenceElements->GetMaxFirstVisibleModelRow();
     int next = std::clamp(cur + _scrollDir, 0, std::max(0, maxRow));
     bool scrolled = (next != cur);
     if (scrolled) {
@@ -353,13 +356,13 @@ void RowHeading::ComputeRowDragTarget(int cursorY)
         if (ri && ri->layerIndex == 0 && ri->strandIndex < 0 && ri->nodeIndex < 0 && !ri->submodel) {
             int idx = mSequenceElements->GetElementIndex(ri->element->GetFullName(), view);
             if (idx < 0) continue;
-            if (!blocks.empty()) blocks.back().blockEndY = r * DEFAULT_ROW_HEADING_HEIGHT;
-            blocks.push_back({idx, r * DEFAULT_ROW_HEADING_HEIGHT, visCount * DEFAULT_ROW_HEADING_HEIGHT});
+            if (!blocks.empty()) blocks.back().blockEndY = mSequenceElements->GetRowTop(r);
+            blocks.push_back({idx, mSequenceElements->GetRowTop(r), mSequenceElements->GetRowBottom(visCount - 1)});
         }
     }
 
     _rowDragTargetBefore = elemCount;
-    _rowDragIndicatorY = visCount * DEFAULT_ROW_HEADING_HEIGHT;
+    _rowDragIndicatorY = visCount > 0 ? mSequenceElements->GetRowBottom(visCount - 1) : 0;
     for (const auto& b : blocks) {
         if (cursorY < (b.blockStartY + b.blockEndY) / 2) {
             _rowDragTargetBefore = b.viewIdx;
@@ -381,8 +384,50 @@ void RowHeading::SetWidth(int w)
     }
 }
 
+int RowHeading::RowEdgeAt(int x, int y) const
+{
+    if (mSequenceElements == nullptr || x > GetSize().GetWidth() - 5) {
+        return -1;
+    }
+    const int slop = FromDIP(3);
+    for (int r = 0; r < (int)mSequenceElements->GetVisibleRowInformationSize(); r++) {
+        const int edge = mSequenceElements->GetRowBottom(r);
+        if (y >= edge - slop && y <= edge + slop) {
+            return r;
+        }
+    }
+    return -1;
+}
+
+void RowHeading::ResizeRow(int row, float height)
+{
+    EffectLayer* layer = mSequenceElements->GetEffectLayer(mSequenceElements->GetVisibleRowInformation(row));
+    if (layer == nullptr) {
+        return;
+    }
+    height = std::round(height * 20.0f) / 20.0f;
+    if (std::abs(height - 1.0f) < 0.1f) {
+        height = 1.0f; // close to normal snaps back to it
+    }
+    if (layer->GetRowHeight() == std::clamp(height, 1.0f, EffectLayer::MAX_ROW_HEIGHT)) {
+        return;
+    }
+    layer->SetRowHeight(height);
+    mSequenceElements->IncrementChangeCount(nullptr);
+    // the rows below move, and scrolling may now stop elsewhere
+    mSequenceElements->PopulateVisibleRowInformation();
+    static_cast<MainSequencer*>(GetParent())->UpdateEffectGridVerticalScrollBar();
+}
+
 void RowHeading::mouseMove(wxMouseEvent& event)
 {
+    static const wxCursor s_sizeNS(wxCURSOR_SIZENS);
+    if (_resizeRow >= 0) {
+        const int top = mSequenceElements->GetRowTop(_resizeRow);
+        ResizeRow(_resizeRow, (float)(event.GetY() - top) / DEFAULT_ROW_HEADING_HEIGHT);
+        SetCursor(s_sizeNS);
+        return;
+    }
     if (_rowDragging) {
         int cursorY = std::max(0, event.GetY());
         _lastDragY = cursorY;
@@ -427,6 +472,8 @@ void RowHeading::mouseMove(wxMouseEvent& event)
     auto size = GetSize();
     if (HasCapture() || (event.GetX() > size.GetWidth() - 5 && event.GetX() < size.GetWidth())) {
         SetCursor(s_sizeWE);
+    } else if (RowEdgeAt(event.GetX(), event.GetY()) >= 0) {
+        SetCursor(s_sizeNS);
     } else {
         SetCursor(s_arrow);
     }
@@ -434,6 +481,12 @@ void RowHeading::mouseMove(wxMouseEvent& event)
 
 void RowHeading::mouseLeftUp(wxMouseEvent& event)
 {
+    if (_resizeRow >= 0) {
+        if (HasCapture()) ReleaseMouse();
+        _resizeRow = -1;
+        Refresh(false);
+        return;
+    }
     if (_rowDragging) {
         if (HasCapture()) ReleaseMouse();
         _rowDragging = false;
@@ -481,7 +534,13 @@ void RowHeading::mouseLeftDown(wxMouseEvent& event)
         _dragging = true;
         return;
     }
-    mSelectedRow = event.GetY() / DEFAULT_ROW_HEADING_HEIGHT;
+    if (int edge = RowEdgeAt(event.GetX(), event.GetY()); edge >= 0) {
+        // drag a row's bottom edge to make it taller or shorter
+        _resizeRow = edge;
+        if (!HasCapture()) CaptureMouse();
+        return;
+    }
+    mSelectedRow = mSequenceElements->GetRowAtY(event.GetY());
     if (mSelectedRow < (int)mSequenceElements->GetVisibleRowInformationSize()) {
         bool result;
         Row_Information_Struct* rowInfo = mSequenceElements->GetVisibleRowInformation(mSelectedRow);
@@ -582,7 +641,11 @@ void RowHeading::ToggleExpand(Element* element)
 
 void RowHeading::leftDoubleClick(wxMouseEvent& event)
 {
-    mSelectedRow = event.GetY()/DEFAULT_ROW_HEADING_HEIGHT;
+    if (int edge = RowEdgeAt(event.GetX(), event.GetY()); edge >= 0) {
+        ResizeRow(edge, 1.0f); // back to the normal height
+        return;
+    }
+    mSelectedRow = mSequenceElements->GetRowAtY(event.GetY());
     if (mSelectedRow >= (int)mSequenceElements->GetVisibleRowInformationSize()) {
         return;
     }
@@ -634,7 +697,7 @@ void RowHeading::leftDoubleClick(wxMouseEvent& event)
 void RowHeading::rightClick( wxMouseEvent& event)
 {
     wxMenu mnuLayer;
-    mSelectedRow = event.GetY()/DEFAULT_ROW_HEADING_HEIGHT;
+    mSelectedRow = mSequenceElements->GetRowAtY(event.GetY());
     if (mSelectedRow >= (int)mSequenceElements->GetVisibleRowInformationSize()) {
         if (xLightsApp::GetFrame()->GetMainSequencer() != nullptr &&
             xLightsFrame::CurrentSeqXmlFile != nullptr) {
@@ -2678,8 +2741,15 @@ void RowHeading::render( wxPaintEvent& event )
 
     const int indentPerLevel = FromDIP(8);
 
+    // the model rows scroll under the timing rows: keep them below
+    bool clipped = false;
     for (int i = 0; i < (int)mSequenceElements->GetVisibleRowInformationSize(); i++) {
         Row_Information_Struct* rowInfo = mSequenceElements->GetVisibleRowInformation(i);
+        if (!clipped && rowInfo->element->GetType() != ElementType::ELEMENT_TYPE_TIMING) {
+            const int timingBottom = mSequenceElements->GetTimingRowsBottom();
+            dc.SetClippingRegion(0, timingBottom, w, std::max(0, h - timingBottom));
+            clipped = true;
+        }
         wxString layers;
         int indentX = rowInfo->nestDepth * indentPerLevel;
         if (rowInfo->element->GetType() != ElementType::ELEMENT_TYPE_TIMING && rowInfo->element->GetEffectLayerCount() > 1) {
@@ -2688,10 +2758,11 @@ void RowHeading::render( wxPaintEvent& event )
         xlColor rowHeaderColor = GetHeaderColor(rowInfo, dragRow);
         wxBrush brush2(xlColorToWxColour(rowHeaderColor), wxBRUSHSTYLE_SOLID);
         dc.SetBrush(brush2);
-        int startY = DEFAULT_ROW_HEADING_HEIGHT*row;
-        endY = DEFAULT_ROW_HEADING_HEIGHT*(row+1);
+        const int rowH = mSequenceElements->GetRowHeight(row);
+        int startY = mSequenceElements->GetRowTop(row);
+        endY = startY + rowH;
         dc.SetBackgroundMode(wxTRANSPARENT);
-        dc.DrawRectangle(0, startY, w, DEFAULT_ROW_HEADING_HEIGHT + (i == 0 ? 0 : 1));
+        dc.DrawRectangle(0, startY, w, rowH + (i == 0 ? 0 : 1));
 
         Model* m = xLightsApp::GetFrame()->AllModels[rowInfo->element->GetModelName()];
         if (m != nullptr && m->GetTagColour() != xlBLACK) {
@@ -2699,7 +2770,7 @@ void RowHeading::render( wxPaintEvent& event )
             wxPen tagPen(xlColorToWxColour(m->GetTagColour()));
             dc.SetBrush(tagBrush);
             dc.SetPen(tagPen);
-            dc.DrawRectangle(2, startY + 2, DEFAULT_ROW_HEADING_MARGIN - 4, DEFAULT_ROW_HEADING_HEIGHT - 4);
+            dc.DrawRectangle(2, startY + 2, DEFAULT_ROW_HEADING_MARGIN - 4, rowH - 4);
         }
         // Live collaboration: a stripe per participant focused on this row.
         if (CollabOverlay* o = CollabOverlay::Current()) {
@@ -2710,7 +2781,7 @@ void RowHeading::render( wxPaintEvent& event )
                     wxColour c = xlColorToWxColour(it->second[k]);
                     dc.SetBrush(wxBrush(c));
                     dc.SetPen(wxPen(c));
-                    dc.DrawRectangle(w - (int)(k + 1) * sw - 1, startY + 1, sw, DEFAULT_ROW_HEADING_HEIGHT - 2);
+                    dc.DrawRectangle(w - (int)(k + 1) * sw - 1, startY + 1, sw, rowH - 2);
                 }
             }
         }
@@ -2740,7 +2811,7 @@ void RowHeading::render( wxPaintEvent& event )
             dc.DrawLine(1,startY-1,w-1,startY-1);
             dc.SetPen(*wxBLACK_PEN);
             if (rowInfo->strandIndex >= 0) {
-                wxRect r(DEFAULT_ROW_HEADING_MARGIN + indentX, startY, w - DEFAULT_ROW_HEADING_MARGIN - indentX, DEFAULT_ROW_HEADING_HEIGHT);
+                wxRect r(DEFAULT_ROW_HEADING_MARGIN + indentX, startY, w - DEFAULT_ROW_HEADING_MARGIN - indentX, rowH);
                 wxString name = rowInfo->displayName;
                 if (name == "") {
                     if (rowInfo->nodeIndex >= 0) {
@@ -2767,7 +2838,7 @@ void RowHeading::render( wxPaintEvent& event )
                     dc.DrawLabel(lay, r, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
                 }
             } else {
-                wxRect r(DEFAULT_ROW_HEADING_MARGIN + indentX, startY, w - DEFAULT_ROW_HEADING_MARGIN - indentX, DEFAULT_ROW_HEADING_HEIGHT);
+                wxRect r(DEFAULT_ROW_HEADING_MARGIN + indentX, startY, w - DEFAULT_ROW_HEADING_MARGIN - indentX, rowH);
                 dc.SetPen(*wxBLUE_PEN);
                 wxString lay = wxString::Format("[%d] ", rowInfo->layerIndex + 1);
                 if (!rowInfo->layerName.empty()) {
@@ -2801,7 +2872,7 @@ void RowHeading::render( wxPaintEvent& event )
                     }
                 }
             }
-            wxRect r(DEFAULT_ROW_HEADING_MARGIN + indentX, startY, w - DEFAULT_ROW_HEADING_MARGIN - indentX, DEFAULT_ROW_HEADING_HEIGHT);
+            wxRect r(DEFAULT_ROW_HEADING_MARGIN + indentX, startY, w - DEFAULT_ROW_HEADING_MARGIN - indentX, rowH);
             wxString lay = name + layers;
             if (!rowInfo->layerName.empty()) {
                 lay += rowInfo->layerName;
@@ -2817,7 +2888,7 @@ void RowHeading::render( wxPaintEvent& event )
                 wxColour c = xlColorToWxColour(as->second.colour);
                 dc.SetBrush(wxBrush(c));
                 dc.SetPen(wxPen(c));
-                dc.DrawRectangle(0, startY + DEFAULT_ROW_HEADING_HEIGHT - FromDIP(3), w, FromDIP(3));
+                dc.DrawRectangle(0, startY + rowH - FromDIP(3), w, FromDIP(3));
                 if (rowInfo->layerIndex == 0 && rowInfo->nodeIndex < 0) {
                     wxFont font = dc.GetFont();
                     wxFont smallFont = font; // "small" is a macro on Windows (rpcndr.h)
@@ -2841,10 +2912,10 @@ void RowHeading::render( wxPaintEvent& event )
                 // The +/- to expand/contract the elements layers
                 dc.SetBrush(*wxWHITE_BRUSH);
                 dc.SetPen(*wxBLACK_PEN);
-                dc.DrawRectangle(2 + indentX, startY + DEFAULT_ROW_HEADING_HEIGHT/2 - 4, 9, 9);
-                dc.DrawLine(2 + indentX, startY + DEFAULT_ROW_HEADING_HEIGHT/2, 9 + indentX, startY + DEFAULT_ROW_HEADING_HEIGHT/2);
+                dc.DrawRectangle(2 + indentX, startY + rowH/2 - 4, 9, 9);
+                dc.DrawLine(2 + indentX, startY + rowH/2, 9 + indentX, startY + rowH/2);
                 if (rowInfo->Collapsed) {
-                    dc.DrawLine(6 + indentX, startY + DEFAULT_ROW_HEADING_HEIGHT/2 + 4, 6 + indentX, startY + DEFAULT_ROW_HEADING_HEIGHT/2 - 4);
+                    dc.DrawLine(6 + indentX, startY + rowH/2 + 4, 6 + indentX, startY + rowH/2 - 4);
                 }
                 dc.SetPen(penOutline);
                 dc.SetBrush(brush2);
@@ -2904,13 +2975,13 @@ void RowHeading::render( wxPaintEvent& event )
                 dc.SetPen(*wxBLACK_PEN);
                 if (ti->GetActive()) {
                     dc.SetBrush(*wxWHITE_BRUSH);
-                    dc.DrawCircle(7,startY + DEFAULT_ROW_HEADING_HEIGHT/2,5);
+                    dc.DrawCircle(7,startY + rowH/2,5);
 
                     dc.SetBrush(*wxGREY_BRUSH);
-                    dc.DrawCircle(7,startY + DEFAULT_ROW_HEADING_HEIGHT/2,2);
+                    dc.DrawCircle(7,startY + rowH/2,2);
                 } else {
                     dc.SetBrush(*wxWHITE_BRUSH);
-                    dc.DrawCircle(7,startY + DEFAULT_ROW_HEADING_HEIGHT/2,5);
+                    dc.DrawCircle(7,startY + rowH/2,5);
                 }
                 dc.SetPen(penOutline);
                 dc.SetBrush(brush2);
@@ -2927,6 +2998,9 @@ void RowHeading::render( wxPaintEvent& event )
             }
         }
         row++;
+    }
+    if (clipped) {
+        dc.DestroyClippingRegion();
     }
     wxBrush b(xlColorToWxColour(ColorManager::instance()->GetColor(ColorManager::COLOR_ROW_HEADER)),wxBRUSHSTYLE_SOLID);
     dc.SetBrush(b);

@@ -4142,6 +4142,7 @@ void xLightsFrame::SetGridSpacing(int size)
 {
     mGridSpacing = size;
     DEFAULT_ROW_HEADING_HEIGHT = size + 6;
+    _sequenceElements.SetDisplayArea(mainSequencer->PanelRowHeadings->getHeight(), DEFAULT_ROW_HEADING_HEIGHT);
     mainSequencer->PanelRowHeadings->Refresh();
     mainSequencer->PanelEffectGrid->Refresh();
 }

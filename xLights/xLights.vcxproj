@@ -678,6 +678,7 @@ xcopy /Y /S /I "$(SolutionDir)..\resources\meshobjects\*" "$(TargetDir)meshobjec
     <ClCompile Include="..\src-ui-wx\modelproperties\adapters\PolyLinePropertyAdapter.cpp" />
     <ClCompile Include="..\src-ui-wx\modelproperties\adapters\MultiPointPropertyAdapter.cpp" />
     <ClCompile Include="..\src-ui-wx\modelproperties\adapters\DmxPropertyAdapter.cpp" />
+    <ClCompile Include="..\src-ui-wx\modelproperties\adapters\DmxFountainPropertyAdapter.cpp" />
     <ClCompile Include="..\src-ui-wx\modelproperties\adapters\DmxGeneralPropertyAdapter.cpp" />
     <ClCompile Include="..\src-ui-wx\modelproperties\adapters\DmxFloodlightPropertyAdapter.cpp" />
     <ClCompile Include="..\src-ui-wx\modelproperties\adapters\DmxMovingHeadPropertyAdapter.cpp" />
@@ -726,7 +727,9 @@ xcopy /Y /S /I "$(SolutionDir)..\resources\meshobjects\*" "$(TargetDir)meshobjec
     <ClCompile Include="..\src-core\models\DMX\DmxColorAbilityWheel.cpp" />
     <ClCompile Include="..\src-core\models\DMX\DmxFloodArea.cpp" />
     <ClCompile Include="..\src-core\models\DMX\DmxFloodlight.cpp" />
+    <ClCompile Include="..\src-core\models\DMX\DmxFountain.cpp" />
     <ClCompile Include="..\src-core\models\DMX\DmxGeneral.cpp" />
+    <ClCompile Include="..\src-core\models\DMX\FountainPhysics.cpp" />
     <ClCompile Include="..\src-core\models\DMX\DmxImage.cpp" />
     <ClCompile Include="..\src-core\models\DMX\DmxModel.cpp" />
     <ClCompile Include="..\src-core\models\DMX\DmxMovingHead.cpp" />
@@ -839,6 +842,7 @@ xcopy /Y /S /I "$(SolutionDir)..\resources\meshobjects\*" "$(TargetDir)meshobjec
     <ClCompile Include="..\src-core\effects\MorphEffect.cpp" />
     <ClCompile Include="..\src-ui-wx\effectpanels\MorphPanel.cpp" />
     <ClCompile Include="..\src-core\effects\MusicEffect.cpp" />
+    <ClCompile Include="..\src-core\effects\FountainsEffect.cpp" />
     <ClCompile Include="..\src-core\effects\OffEffect.cpp" />
     <ClCompile Include="..\src-core\effects\OnEffect.cpp" />
     <ClCompile Include="..\src-core\effects\PianoEffect.cpp" />
@@ -1037,6 +1041,7 @@ xcopy /Y /S /I "$(SolutionDir)..\resources\meshobjects\*" "$(TargetDir)meshobjec
     <ClCompile Include="..\src-ui-wx\sequencer\EffectDropTarget.cpp" />
     <ClCompile Include="..\src-core\render\EffectLayer.cpp" />
     <ClCompile Include="..\src-ui-wx\sequencer\EffectsGrid.cpp" />
+    <ClCompile Include="..\src-ui-wx\sequencer\EffectsGridInline.cpp" />
     <ClCompile Include="..\src-core\render\Element.cpp" />
     <ClCompile Include="..\src-ui-wx\sequencer\MainSequencer.cpp" />
     <ClCompile Include="..\src-core\lyrics\LyricBreakdown.cpp" />
@@ -1443,7 +1448,9 @@ xcopy /Y /S /I "$(SolutionDir)..\resources\meshobjects\*" "$(TargetDir)meshobjec
     <ClInclude Include="..\src-core\models\DMX\DmxColorAbilityWheel.h" />
     <ClInclude Include="..\src-core\models\DMX\DmxFloodArea.h" />
     <ClInclude Include="..\src-core\models\DMX\DmxFloodlight.h" />
+    <ClInclude Include="..\src-core\models\DMX\DmxFountain.h" />
     <ClInclude Include="..\src-core\models\DMX\DmxGeneral.h" />
+    <ClInclude Include="..\src-core\models\DMX\FountainPhysics.h" />
     <ClInclude Include="..\src-core\models\DMX\DmxImage.h" />
     <ClInclude Include="..\src-core\models\DMX\DmxModel.h" />
     <ClInclude Include="..\src-core\models\DMX\DmxMovingHead.h" />
@@ -1562,6 +1569,7 @@ xcopy /Y /S /I "$(SolutionDir)..\resources\meshobjects\*" "$(TargetDir)meshobjec
     <ClInclude Include="..\src-core\effects\MorphEffect.h" />
     <ClInclude Include="..\src-ui-wx\effectpanels\MorphPanel.h" />
     <ClInclude Include="..\src-core\effects\MusicEffect.h" />
+    <ClInclude Include="..\src-core\effects\FountainsEffect.h" />
     <ClInclude Include="..\src-core\effects\OffEffect.h" />
     <ClInclude Include="..\src-core\effects\OnEffect.h" />
     <ClInclude Include="..\src-core\effects\PianoEffect.h" />
@@ -1949,6 +1957,7 @@ xcopy /Y /S /I "$(SolutionDir)..\resources\meshobjects\*" "$(TargetDir)meshobjec
     <ClInclude Include="..\src-ui-wx\modelproperties\adapters\PolyLinePropertyAdapter.h" />
     <ClInclude Include="..\src-ui-wx\modelproperties\adapters\MultiPointPropertyAdapter.h" />
     <ClInclude Include="..\src-ui-wx\modelproperties\adapters\DmxPropertyAdapter.h" />
+    <ClInclude Include="..\src-ui-wx\modelproperties\adapters\DmxFountainPropertyAdapter.h" />
     <ClInclude Include="..\src-ui-wx\modelproperties\adapters\DmxGeneralPropertyAdapter.h" />
     <ClInclude Include="..\src-ui-wx\modelproperties\adapters\DmxFloodlightPropertyAdapter.h" />
     <ClInclude Include="..\src-ui-wx\modelproperties\adapters\DmxMovingHeadPropertyAdapter.h" />

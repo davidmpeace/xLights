@@ -175,6 +175,9 @@ public:
     EffectManager& GetEffectManager() override { return effectManager; }
     SequenceData& GetSeqData() { return _seqData; }
     const SequenceData& GetSeqData() const { return _seqData; }
+    const SequenceData* GetRenderedSequenceData() const override {
+        return IsSequenceLoaded() && _seqData.IsValidData() ? &_seqData : nullptr;
+    }
 
     const std::string& GetShowDirectory() const override { return showDirectory; }
     const std::string& GetFseqDirectory() const override { return fseqDirectory; }

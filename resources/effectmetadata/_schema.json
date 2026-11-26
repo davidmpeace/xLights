@@ -82,6 +82,14 @@
                     "default": false,
                     "description": "Whether this property supports value curves for animation"
                 },
+                "valueCurveOnly": {
+                    "type": "boolean",
+                    "description": "The setting is only its value curve: an Edit button replaces the slider and text box, and the curve is always on"
+                },
+                "valueCurveColor": {
+                    "type": "boolean",
+                    "description": "The value curve editor also offers colour keyframes (a colour over time carried by the curve)"
+                },
                 "vcMin": {
                     "type": "number",
                     "description": "Value curve minimum (overrides 'min' when VC range differs from slider range)"

@@ -103,6 +103,21 @@ public:
     {
         return false;
     }
+    // Inline editing (desktop sequencer grid): one of the effect's value curves edited right on the effect. The
+    // setting that holds it (E_VALUECURVE_...), its range, and whether it carries colour keys.
+    virtual bool SupportsInlineEdit() const { return false; }
+    virtual std::string GetInlineEditCurveSetting() const { return ""; }
+    virtual void GetInlineEditCurveRange(float& min, float& max) const { min = 0.0f; max = 100.0f; }
+    virtual bool InlineEditHasColor() const { return false; }
+    // Whether inline editing shows the curve's points (false: only its colour keys).
+    virtual bool InlineEditHasCurve() const { return true; }
+    // The colour shown where the curve has no colour keys yet.
+    virtual xlColor GetInlineEditBaseColor(const Effect* e) const { return xlBLACK; }
+    // The value a curve that isn't on yet starts flat at (usually the setting's slider).
+    virtual float GetInlineEditFlatValue(const Effect* e) const { float min, max; GetInlineEditCurveRange(min, max); return min; }
+    // Where the curve lies on the effect: curve x is `start + x * scale` of the way through the effect. False when
+    // none of it shows.
+    virtual bool GetInlineEditCurveSpan(const Effect* e, float& start, float& scale) const { start = 0.0f; scale = 1.0f; return true; }
     virtual bool PressButton(const std::string& id, SettingsMap& paletteMap, SettingsMap& settings)
     {
         return false;

@@ -3835,6 +3835,7 @@ struct LayoutEditorView: View {
         // LAY-1 — DMX / moving-head family.
         case "DmxFloodArea":    return "DMX Flood Area"
         case "DmxFloodlight":   return "DMX Floodlight"
+        case "DmxFountain":     return "DMX Fountain"
         case "DmxGeneral":      return "DMX General"
         case "DmxMovingHead":   return "DMX Moving Head"
         case "DmxMovingHeadAdv":return "DMX Moving Head Adv"

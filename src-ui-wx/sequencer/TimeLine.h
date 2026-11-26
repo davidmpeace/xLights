@@ -96,6 +96,8 @@ public:
     int GetMaxZoomLevel();
     void ZoomIn();
     void ZoomOut();
+    // Zooms keeping the time at `position` (pixels) where it is: into or out of what's under the cursor.
+    void ZoomAtPosition(bool zoomIn, int position);
     void ZoomSelection();
     int GetTotalViewableTimeMS(int zoom);
 

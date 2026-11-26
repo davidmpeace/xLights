@@ -994,6 +994,8 @@
 		<Unit filename="../src-ui-wx/effectpanels/MovingHeadPanels/MovingHeadDimmerPanel.h" />
 		<Unit filename="../src-core/effects/MusicEffect.cpp" />
 		<Unit filename="../src-core/effects/MusicEffect.h" />
+		<Unit filename="../src-core/effects/FountainsEffect.cpp" />
+		<Unit filename="../src-core/effects/FountainsEffect.h" />
 		<Unit filename="../src-core/effects/OffEffect.cpp" />
 		<Unit filename="../src-core/effects/OffEffect.h" />
 		<Unit filename="../src-core/effects/OnEffect.cpp" />
@@ -1303,6 +1305,8 @@
 		<Unit filename="../src-core/models/DMX/DmxFloodArea.h" />
 		<Unit filename="../src-core/models/DMX/DmxFloodlight.cpp" />
 		<Unit filename="../src-core/models/DMX/DmxFloodlight.h" />
+		<Unit filename="../src-core/models/DMX/DmxFountain.cpp" />
+		<Unit filename="../src-core/models/DMX/DmxFountain.h" />
 		<Unit filename="../src-core/models/DMX/DmxGeneral.cpp" />
 		<Unit filename="../src-core/models/DMX/DmxGeneral.h" />
 		<Unit filename="../src-core/models/DMX/DmxImage.cpp" />
@@ -1326,6 +1330,8 @@
 		<Unit filename="../src-core/models/DMX/DmxShutterAbility.h" />
 		<Unit filename="../src-core/models/DMX/DmxSkull.cpp" />
 		<Unit filename="../src-core/models/DMX/DmxSkull.h" />
+		<Unit filename="../src-core/models/DMX/FountainPhysics.cpp" />
+		<Unit filename="../src-core/models/DMX/FountainPhysics.h" />
 		<Unit filename="../src-core/models/DMX/Mesh.cpp" />
 		<Unit filename="../src-core/models/DMX/Mesh.h" />
 		<Unit filename="../src-core/models/DMX/MovingHeads/MhChannel.cpp" />
@@ -1534,6 +1540,7 @@
 		<Unit filename="../src-core/render/EffectLayer.h" />
 		<Unit filename="../src-ui-wx/sequencer/ElementLayers.h" />
 		<Unit filename="../src-ui-wx/sequencer/EffectsGrid.cpp" />
+		<Unit filename="../src-ui-wx/sequencer/EffectsGridInline.cpp" />
 		<Unit filename="../src-ui-wx/sequencer/CollabOverlay.h" />
 		<Unit filename="../src-ui-wx/sequencer/EffectsGrid.h" />
 		<Unit filename="../src-core/render/Element.cpp" />
@@ -1656,6 +1663,8 @@
 		<Unit filename="../src-ui-wx/modelproperties/adapters/MultiPointPropertyAdapter.h" />
 		<Unit filename="../src-ui-wx/modelproperties/adapters/DmxPropertyAdapter.cpp" />
 		<Unit filename="../src-ui-wx/modelproperties/adapters/DmxPropertyAdapter.h" />
+		<Unit filename="../src-ui-wx/modelproperties/adapters/DmxFountainPropertyAdapter.cpp" />
+		<Unit filename="../src-ui-wx/modelproperties/adapters/DmxFountainPropertyAdapter.h" />
 		<Unit filename="../src-ui-wx/modelproperties/adapters/DmxGeneralPropertyAdapter.cpp" />
 		<Unit filename="../src-ui-wx/modelproperties/adapters/DmxGeneralPropertyAdapter.h" />
 		<Unit filename="../src-ui-wx/modelproperties/adapters/DmxFloodlightPropertyAdapter.cpp" />

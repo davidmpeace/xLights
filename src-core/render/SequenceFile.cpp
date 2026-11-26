@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -1357,6 +1358,16 @@ std::vector<std::string> SequenceFile::GetTimingList(const SequenceElements& seq
 
 // Legacy Save()/WriteEffects/AddJukebox removed — Save now uses BuildDocument + pugixml
 
+// A layer's sequencer row height, when it isn't the normal one.
+static void WriteRowHeight(const EffectLayer* layer, pugi::xml_node node)
+{
+    if (layer->GetRowHeight() != 1.0f) {
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%.2f", layer->GetRowHeight());
+        node.append_attribute("rowHeight") = buf;
+    }
+}
+
 static void WriteEffectsPugi(EffectLayer* layer,
     pugi::xml_node& effect_layer_node,
     std::unordered_map<std::string, int>& colorPalettes,
@@ -1539,6 +1550,7 @@ bool SequenceFile::BuildDocument(pugi::xml_document& doc, SequenceElements& seq_
                 for (int j = 0; j < (int)tm->GetEffectLayerCount(); ++j) {
                     EffectLayer* layer = tm->GetEffectLayer(j);
                     auto effect_layer_node = element_effects_node.append_child("EffectLayer");
+                    WriteRowHeight(layer, effect_layer_node);
                     for (int k = 0; k < layer->GetEffectCount(); ++k) {
                         Effect* effect = layer->GetEffect(k);
                         auto effect_node = effect_layer_node.append_child("Effect");
@@ -1559,6 +1571,7 @@ bool SequenceFile::BuildDocument(pugi::xml_document& doc, SequenceElements& seq_
                 if (!layer->GetLayerName().empty()) {
                     effect_layer_node.append_attribute("layerName") = layer->GetLayerName();
                 }
+                WriteRowHeight(layer, effect_layer_node);
                 WriteEffectsPugi(layer, effect_layer_node, colorPalettes, colorPalette_node, effectStrings, effectDB_Node);
             }
 
@@ -1570,7 +1583,7 @@ bool SequenceFile::BuildDocument(pugi::xml_document& doc, SequenceElements& seq_
                 StrandElement* strEl = dynamic_cast<StrandElement*>(se);
                 for (int j = 0; j < num_layers; ++j) {
                     EffectLayer* layer = se->GetEffectLayer(j);
-                    if (layer->GetEffectCount() != 0 || !layer->GetLayerName().empty()) {
+                    if (layer->GetEffectCount() != 0 || !layer->GetLayerName().empty() || layer->GetRowHeight() != 1.0f) {
                         auto eln = element_effects_node.append_child(strEl == nullptr ? "SubModelEffectLayer" : "Strand");
                         if (strEl != nullptr) {
                             eln.append_attribute("index") = strEl->GetStrand();
@@ -1581,6 +1594,7 @@ bool SequenceFile::BuildDocument(pugi::xml_document& doc, SequenceElements& seq_
                         if (!layer->GetLayerName().empty()) {
                             eln.append_attribute("layerName") = layer->GetLayerName();
                         }
+                        WriteRowHeight(layer, eln);
                         if (j > 0) {
                             eln.append_attribute("layer") = j;
                         }

@@ -53,6 +53,11 @@ FireEffect::~FireEffect()
     //dtor
 }
 
+float FireEffect::GetInlineEditFlatValue(const Effect* e) const
+{
+    return (float)e->GetSettings().GetInt("E_SLIDER_Fire_Height", sHeightDefault);
+}
+
 void FireEffect::OnMetadataLoaded()
 {
     sHeightDefault = GetIntDefault("Fire_Height", sHeightDefault);

@@ -27,6 +27,7 @@
 #include "render/ValueCurve.h"
 #include "RowHeading.h"
 
+#include <algorithm>
 #include <map>
 #include <array>
 
@@ -89,6 +90,8 @@ typedef struct findDataEffect {
     std::string GetStrandSubmodel() const;
 } findDataEffect;
 
+class RenderableEffect;
+
 class EffectsGrid : public GRAPHICS_BASE_CLASS
 {
 
@@ -125,6 +128,8 @@ public:
     void PlayLoopedEffect(Effect* eff, bool loop);
 
     void DeleteSelectedEffects();
+    // Deletes the point or colour key selected on an inline-edited effect; false when none is selected.
+    bool DeleteInlineSelection();
     void FillRegionFromTimingMarks();
     void SetEffectsDescription();
     void ResetEffect();
@@ -223,7 +228,11 @@ public:
 
 protected:
     bool m_wheel_down = false;
-    int m_previous_mouse_x = 0;
+    // Middle-button drag pans the grid like a hand tool: the time and row grabbed stay under the cursor.
+    double m_panAnchorMS = 0.0;  // the time grabbed
+    double m_panMSPerPixel = 1.0;
+    int m_panAnchorY = -1;       // the point grabbed in the model rows (scroll + y; -1: on a timing row, which doesn't scroll)
+    void PanTo(int x, int y);
 
 private:
     Effect* GetEffectAtRowAndTime(int row, int ms,int &index, HitLocation &selectionType, int y = -1);
@@ -337,6 +346,72 @@ private:
     bool mGridNodeValues = true;
     bool _doubleClick = false;
 
+    // Inline editing: in a row at least INLINE_EDIT_ROW_HEIGHT normal rows tall, an effect that supports it
+    // (RenderableEffect::SupportsInlineEdit) has its value curve edited right on it, below a short bar that keeps the
+    // move/resize handles. Where the parts of an inline effect sit in its row:
+    struct InlineEditGeom {
+        Effect* effect = nullptr;
+        RenderableEffect* re = nullptr;
+        int row = -1;     // visible row
+        float x0 = 0.0f;  // the effect's start and end (unclipped)
+        float x1 = 0.0f;
+        int barTop = 0, barBottom = 0;
+        int bodyTop = 0, bodyBottom = 0;     // the curve over the effect's background
+        int stripTop = 0, stripBottom = 0;   // the colour keys (when it has them)
+        bool hasColor = false;
+        bool hasCurve = true;  // false: only the colour keys are edited
+        xlColor baseColor;     // what the colour strip shows with no keys yet
+        // the part of the curve that can be edited: curve x 0..xmax (none when xmax <= 0), at start + x * scale of the
+        // effect
+        float start = 0.0f, scale = 1.0f, xmax = 0.0f;
+        float CurveToX(float cx) const { return x0 + (start + cx * scale) * (x1 - x0); }
+        float XToCurve(float px) const { return x1 > x0 ? ((px - x0) / (x1 - x0) - start) / scale : 0.0f; }
+        float LevelToY(float v) const { return (bodyBottom - 2) - v * (bodyBottom - bodyTop - 4); }
+        float YToLevel(float py) const { return std::clamp(((bodyBottom - 2) - py) / std::max(1, bodyBottom - bodyTop - 4), 0.0f, 1.0f); }
+    };
+    static constexpr float INLINE_EDIT_ROW_HEIGHT = 5.0f;
+    bool IsInlineEditing(const Effect* e) const;
+    bool GetInlineGeom(Effect* e, int row, InlineEditGeom& g) const;
+    // The inline-edited effect under (x, y), in its curve or colour strip.
+    bool InlineHit(int x, int y, InlineEditGeom& g) const;
+    bool LoadInlineCurve(const InlineEditGeom& g, ValueCurve& vc) const;
+    // The curve point / colour key at (x, y) that can be edited, or -1.
+    int InlinePointAt(const InlineEditGeom& g, const ValueCurve& vc, float x, float y) const;
+    int InlineKeyAt(const InlineEditGeom& g, const ValueCurve& vc, float x) const;
+    // The cursor over an inline curve: a hand on a point or key, a hand with a plus where Ctrl/Cmd-click adds one.
+    // False (cursor untouched) when (x, y) isn't on one.
+    bool UpdateInlineCursor(int x, int y, bool adding);
+    void OnInlineCursorTimer(wxTimerEvent& event);
+    void RenderInlineEffect(Effect* e);
+    // Sets the curve; with `undo`, as one undo step from mInlineBefore (and renders).
+    void ApplyInlineCurve(Effect* e, RenderableEffect* re, ValueCurve vc, bool undo);
+    bool InlineMouseDown(wxMouseEvent& event);
+    bool InlineMouseMove(wxMouseEvent& event);
+    bool InlineMouseUp(wxMouseEvent& event);
+    bool InlineDoubleClick(wxMouseEvent& event);
+    // Right-click a point (Hard Point / Ease / Custom) or a colour key (Blend / Hard).
+    bool InlineRightClick(wxMouseEvent& event);
+    // The selected point's Bezier handle at (x, y) when it is a Custom one: -1 in, 1 out, 0 none.
+    int InlineHandleAt(const InlineEditGeom& g, const ValueCurve& vc, float x, float y) const;
+    void DrawInlineEdit(const InlineEditGeom& g, xlVertexColorAccumulator* bg);
+    void ClearInlineSelection();
+    // the one selected point (by its x) or colour key (by index), across every inline-edited effect
+    Effect* mInlineEffect = nullptr;
+    bool mInlineColor = false;
+    float mInlineSelX = -1.0f;
+    int mInlineKey = -1;
+    // a point or key being dragged: the curve as dragged (points that line up aren't dropped until it's saved)
+    bool mInlineDragging = false;
+    int mInlineRow = -1;
+    int mInlineIndex = -1;
+    int mInlineHandle = 0; // a Bezier handle being dragged instead: -1 in, 1 out
+    bool mInlineClick = false; // the button went down on an inline curve: its release is ours too
+    ValueCurve mInlineVc;
+    std::string mInlineBefore;
+    // follows Ctrl/Cmd while the mouse rests over an inline curve (no mouse event comes when only a key changes)
+    wxTimer mInlineCursorTimer;
+    bool mInlineCursorTimerBound = false;
+
     int mStartPixelOffset;
 
     wxWindow* mParent;
@@ -368,6 +443,12 @@ private:
     std::array<float[2], EffectManager::eff_LASTEFFECT> effectIconLocations;
     xlTexture *effectIconTexture;
     xlVertexTextureAccumulator *effectIcons;
+    // Draws everything the accumulators above hold.
+    void FlushEffectAccumulators(xlGraphicsContext* ctx);
+    // A model row scrolled part way under the timing rows (pinned at the top): paints the timing rows over it again.
+    void DrawTimingCover(xlGraphicsContext* ctx);
+    // where the timing marks' lines down the grid stop (-1: the bottom of the grid)
+    int mTimingLinesBottom = -1;
 
     int mResizingMode;
     int mStartResizeTimeMS;
@@ -381,6 +462,7 @@ private:
     bool mDragAddToSelection = false;
     std::vector<Effect*> mAdditiveDragBaseSelection;
     int mDragStartRow;
+    int mDragStartScrollPx = 0;
     int mDragStartX;
     int mDragStartTimeMS = 0; // lasso anchor in time so it survives horizontal scroll/zoom
     int mDragStartY;

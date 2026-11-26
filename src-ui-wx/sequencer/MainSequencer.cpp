@@ -398,10 +398,11 @@ void MainSequencer::SetShowAlternateTimingMark(bool b) {
 
 void MainSequencer::UpdateEffectGridVerticalScrollBar()
 {
-    int position = mSequenceElements->GetFirstVisibleModelRow();
-    int range = mSequenceElements->GetTotalNumberOfModelRows();
-    int pageSize = mSequenceElements->GetMaxModelsDisplayed();
-    int thumbSize = mSequenceElements->GetMaxModelsDisplayed();
+    // in pixels: the model rows scroll smoothly, not a row at a time
+    int position = mSequenceElements->GetModelScrollPixels();
+    int pageSize = std::max(1, mSequenceElements->GetModelViewPixels());
+    int thumbSize = pageSize;
+    int range = mSequenceElements->GetMaxModelScrollPixels() + thumbSize;
     ScrollBarEffectsVertical->SetScrollbar(position,thumbSize,range,pageSize);
     ScrollBarEffectsVertical->Refresh();
     PanelEffectGrid->Draw();
@@ -460,9 +461,7 @@ void MainSequencer::OnScrollBarEffectGridHorzScroll(wxScrollEvent& event)
 
 void MainSequencer::OnScrollBarEffectsVerticalScrollChanged(wxScrollEvent& event)
 {
-    int position = ScrollBarEffectsVertical->GetThumbPosition();
-    int scroll = mSequenceElements->SetFirstVisibleModelRow(position);
-    PanelEffectGrid->ScrollBy(scroll);
+    mSequenceElements->SetModelScrollPixels(ScrollBarEffectsVertical->GetThumbPosition());
     UpdateEffectGridVerticalScrollBar();
 }
 
@@ -493,63 +492,15 @@ void MainSequencer::mouseWheelMoved(wxMouseEvent& event)
         wxCommandEvent eventScroll(EVT_HORIZ_SCROLL);
         HorizontalScrollChanged(eventScroll);
     } else {
-        int position = ScrollBarEffectsVertical->GetThumbPosition();
-        int positionAdj = 1;
-        if (fromTrackPad) {
-            static int accumulated = 0;
-            static long long lastEventTime = 0;
-            long long eventTime = event.GetTimestamp();
-            long long diffTime = eventTime - lastEventTime;
-            lastEventTime = eventTime;
-            if (diffTime > 500) {
-                accumulated = 0;
-            }
-            if (accumulated < 0 && event.GetWheelRotation() > 0) {
-                if (std::abs(accumulated) > DEFAULT_ROW_HEADING_HEIGHT) {
-                    positionAdj = std::abs(accumulated) / DEFAULT_ROW_HEADING_HEIGHT;
-                }
-                accumulated = i;
-                i = -1;
-            } else if (accumulated > 0 && event.GetWheelRotation() < 0) {
-                if (std::abs(accumulated) > DEFAULT_ROW_HEADING_HEIGHT) {
-                    positionAdj = std::abs(accumulated) / DEFAULT_ROW_HEADING_HEIGHT;
-                }
-                accumulated = i;
-                i = 1;
-            } else {
-                accumulated += event.GetWheelRotation();
-                if (std::abs(accumulated) > DEFAULT_ROW_HEADING_HEIGHT) {
-                    positionAdj = std::abs(accumulated) / DEFAULT_ROW_HEADING_HEIGHT;
-                    if (accumulated > 0) {
-                        accumulated -= positionAdj * DEFAULT_ROW_HEADING_HEIGHT;
-                    } else {
-                        accumulated += positionAdj * DEFAULT_ROW_HEADING_HEIGHT;
-                    }
-                } else {
-                    positionAdj = 0;
-                }
-                if (event.GetWheelRotation() == 0) {
-                    accumulated = 0;
-                }
-            }
+        // by the pixel: a trackpad as far as the fingers move, a wheel a row per notch
+        int pixels = i;
+        if (!fromTrackPad) {
+            const int notches = i / std::max(1, event.GetWheelDelta());
+            pixels = (notches != 0 ? notches : (i > 0 ? 1 : i < 0 ? -1 : 0)) * DEFAULT_ROW_HEADING_HEIGHT;
         }
-        
-        if (positionAdj) {
-            if (i < 0) {
-                if (position < ScrollBarEffectsVertical->GetRange()-1) {
-                    position += positionAdj;
-                    ScrollBarEffectsVertical->SetThumbPosition(position);
-                    int scroll = mSequenceElements->SetFirstVisibleModelRow(position);
-                    PanelEffectGrid->ScrollBy(scroll);
-                }
-            } else if (i > 0) {
-                if (position > 0) {
-                    position -= positionAdj;
-                    ScrollBarEffectsVertical->SetThumbPosition(position);
-                    int scroll = mSequenceElements->SetFirstVisibleModelRow(position);
-                    PanelEffectGrid->ScrollBy(scroll);
-                }
-            }
+        if (pixels != 0) {
+            mSequenceElements->SetModelScrollPixels(mSequenceElements->GetModelScrollPixels() - pixels);
+            UpdateEffectGridVerticalScrollBar();
         }
         mSequenceElements->PopulateVisibleRowInformation();
         PanelEffectGrid->ForceRefresh();  // call this so we can check if we need to update which effects are selected
@@ -948,6 +899,12 @@ void MainSequencer::OnCharHook(wxKeyEvent& event)
             event.StopPropagation();
             return;
         }
+    }
+
+    // a point or colour key selected on an inline-edited effect goes before any effect does
+    if ((uc == WXK_DELETE || uc == WXK_BACK) && !event.ShiftDown() && PanelEffectGrid->DeleteInlineSelection()) {
+        event.StopPropagation();
+        return;
     }
 
     if (HandleSequencerKeyBinding(event)) return;

@@ -19,6 +19,7 @@ class CubeModel;
 class CustomModel;
 class DmxFloodArea;
 class DmxFloodlight;
+class DmxFountain;
 class DmxGeneral;
 class DmxMovingHead;
 class DmxMovingHeadAdv;
@@ -57,6 +58,7 @@ public:
     virtual void Visit(const CustomModel& model) = 0;
     virtual void Visit(const DmxFloodArea& model) = 0;
     virtual void Visit(const DmxFloodlight& model) = 0;
+    virtual void Visit(const DmxFountain& model) = 0;
     virtual void Visit(const DmxGeneral& model) = 0;
     virtual void Visit(const DmxMovingHead& model) = 0;
     virtual void Visit(const DmxMovingHeadAdv& model) = 0;

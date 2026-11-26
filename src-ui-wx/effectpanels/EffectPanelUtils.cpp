@@ -283,10 +283,21 @@ void EffectPanelUtils::OnVCButtonClick(wxCommandEvent& event)
         txt = (wxTextCtrl*)vc->GetParent()->FindWindow(name);
     }
 
-    vc->ToggleActive();
+    // an always-active curve (the setting is the curve) just opens the editor
+    const bool alwaysActive = vc->IsAlwaysActive();
+    if (alwaysActive) {
+        vc->SetActive(true);
+    } else {
+        vc->ToggleActive();
+    }
     if (vc->GetValue()->IsActive())
     {
         ValueCurveDialog vcd(vc->GetParent(), vc->GetValue(), slideridd, ValueCurve::GetSequenceElements());
+        // the effect re-renders as the curve is edited (the panel picks up the change from the button)
+        vcd.SetLiveChangeCallback([vc]() { vc->NotifyChange(); });
+        if (vc->SupportsColor()) {
+            vcd.EnableColor();
+        }
         OptimiseDialogPosition(&vcd);
         if (vcd.ShowModal() == wxOK)
         {
@@ -309,7 +320,9 @@ void EffectPanelUtils::OnVCButtonClick(wxCommandEvent& event)
             {
                 txt->Enable();
             }
-            vc->SetActive(false);
+            if (!alwaysActive) {
+                vc->SetActive(false);
+            }
         }
         vc->UpdateState();
         if (vcd.DidExport())

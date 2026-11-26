@@ -12,6 +12,7 @@
 #include <limits>
 
 #include <algorithm>
+#include <cmath>
 #include <spdlog/fmt/fmt.h>
 
 #include "SequenceElements.h"
@@ -63,6 +64,7 @@ SequenceElements::SequenceElements(RenderContext *ctx)
     mTimingRowCount = 0;
     mMaxRowsDisplayed = 0;
     mFirstVisibleModelRow = 0;
+    mModelScrollPixels = 0;
     mChangeCount = 0;
     mMasterViewChangeCount = 0;
     mCurrentView = 0;
@@ -110,6 +112,7 @@ void SequenceElements::Clear() {
     mSelectedTimingRow = -1;
     mTimingRowCount = 0;
     mFirstVisibleModelRow = 0;
+    mModelScrollPixels = 0;
     mChangeCount = 0;
     _modelRowFilter = nullptr;
     mMasterViewChangeCount++;
@@ -1224,6 +1227,7 @@ bool SequenceElements::LoadSequencerFile(SequenceFile& xml_file, pugi::xml_docum
                                 if (!layerName.empty()) {
                                     effectLayer->SetLayerName(layerName);
                                 }
+                                effectLayer->SetRowHeight(effectLayerNode.attribute("rowHeight").as_float(1.0f));
                                 loaded += LoadEffects(effectLayer, elemType, effectLayerNode, effectStrings, colorPalettes, importing);
                                 if (count) {
                                     if (renderContext) {
@@ -1280,6 +1284,7 @@ void SequenceElements::PrepareViews(SequenceFile& xml_file)
     PopulateRowInformation();
     // Set to the first model/view
     mFirstVisibleModelRow = 0;
+    mModelScrollPixels = 0;
 }
 
 void SequenceElements::AddView(const std::string &viewName)
@@ -1720,7 +1725,49 @@ void SequenceElements::PopulateRowInformation()
 void SequenceElements::PopulateVisibleRowInformation()
 {
     mVisibleRowInformation.clear();
+    mVisibleRowTops.clear();
+    mVisibleRowHeights.clear();
+    mVisibleTimingRows = 0;
+    mVisibleTimingBottom = 0;
     if (mRowInformation.size() == 0) { return; }
+    if (mRowPixels > 0) {
+        // by pixel: the timing rows that fit, then the model rows from the scroll position down to the bottom (the
+        // first and last may show only in part)
+        mVisibleRowHeights.clear();
+        mVisibleRowTops.clear();
+        int y = 0;
+        for (int row = 0; row < mTimingRowCount && static_cast<size_t>(row) < mRowInformation.size(); row++) {
+            const int h = RowPixels(mRowInformation[row]);
+            if (y + h > mDisplayPixels) {
+                break;
+            }
+            mVisibleRowInformation.push_back(mRowInformation[row]);
+            mVisibleRowTops.push_back(y);
+            mVisibleRowHeights.push_back(h);
+            y += h;
+        }
+        mVisibleTimingRows = (int)mVisibleRowInformation.size();
+        mVisibleTimingBottom = y;
+
+        const std::vector<int> starts = ModelRowStarts();
+        const int total = (int)starts.size() - 1;
+        mModelScrollPixels = std::clamp(mModelScrollPixels, 0, std::max(0, starts.back() - GetModelViewPixels()));
+        // the model row the scroll position falls in
+        int first = (int)(std::upper_bound(starts.begin(), starts.end(), mModelScrollPixels) - starts.begin()) - 1;
+        first = std::clamp(first, 0, std::max(0, total - 1));
+        mFirstVisibleModelRow = first;
+        int top = y - (mModelScrollPixels - starts[first]);
+        for (int m = first; m < total && top < mDisplayPixels; m++) {
+            Row_Information_Struct& ri = mRowInformation[mTimingRowCount + m];
+            ri.RowNumber = (int)mVisibleRowInformation.size();
+            mVisibleRowInformation.push_back(ri);
+            mVisibleRowTops.push_back(top);
+            mVisibleRowHeights.push_back(starts[m + 1] - starts[m]);
+            top += starts[m + 1] - starts[m];
+        }
+        mMaxRowsDisplayed = (int)mVisibleRowInformation.size();
+        return;
+    }
     // Add all timing element rows. They should always be first in the list
     int row;
     for (row = 0; row < mTimingRowCount; row++)
@@ -1741,12 +1788,128 @@ void SequenceElements::PopulateVisibleRowInformation()
     }
 }
 
+float SequenceElements::GetRowHeightScale(const Row_Information_Struct* ri) const
+{
+    const EffectLayer* layer = GetEffectLayer(ri);
+    return layer != nullptr ? layer->GetRowHeight() : 1.0f;
+}
+
+int SequenceElements::RowPixels(const Row_Information_Struct& ri) const
+{
+    return std::max(1, (int)std::lround(mRowPixels * GetRowHeightScale(&ri)));
+}
+
+void SequenceElements::SetDisplayArea(int pixels, int rowHeight)
+{
+    mDisplayPixels = std::max(0, pixels);
+    mRowPixels = std::max(1, rowHeight);
+    mMaxRowsDisplayed = mDisplayPixels / mRowPixels; // until the rows are laid out
+    PopulateVisibleRowInformation(); // keeps the scroll position (as far as it still goes)
+}
+
+std::vector<int> SequenceElements::ModelRowStarts() const
+{
+    const int total = std::max(0, (int)mRowInformation.size() - mTimingRowCount);
+    std::vector<int> starts(total + 1, 0);
+    for (int m = 0; m < total; m++) {
+        starts[m + 1] = starts[m] + RowPixels(mRowInformation[mTimingRowCount + m]);
+    }
+    return starts;
+}
+
+int SequenceElements::TimingRowsPixels() const
+{
+    int y = 0;
+    for (int row = 0; row < mTimingRowCount && static_cast<size_t>(row) < mRowInformation.size(); row++) {
+        const int h = RowPixels(mRowInformation[row]);
+        if (y + h > mDisplayPixels) {
+            break;
+        }
+        y += h;
+    }
+    return y;
+}
+
+int SequenceElements::GetMaxModelScrollPixels() const
+{
+    if (mRowPixels <= 0) {
+        return 0;
+    }
+    return std::max(0, ModelRowStarts().back() - std::max(0, mDisplayPixels - TimingRowsPixels()));
+}
+
+void SequenceElements::SetModelScrollPixels(int pixels)
+{
+    mModelScrollPixels = std::max(0, pixels); // the most it can be is set as the rows are laid out
+    PopulateVisibleRowInformation();
+}
+
+int SequenceElements::GetRowTop(int visibleRow) const
+{
+    const int rowPx = mRowPixels > 0 ? mRowPixels : 1;
+    const int n = (int)mVisibleRowTops.size();
+    if (n == 0 || visibleRow < 0) {
+        return visibleRow * rowPx;
+    }
+    if (visibleRow < n) {
+        return mVisibleRowTops[visibleRow];
+    }
+    return mVisibleRowTops[n - 1] + mVisibleRowHeights[n - 1] + (visibleRow - n) * rowPx;
+}
+
+int SequenceElements::GetRowHeight(int visibleRow) const
+{
+    if (visibleRow >= 0 && visibleRow < (int)mVisibleRowHeights.size()) {
+        return mVisibleRowHeights[visibleRow];
+    }
+    return mRowPixels > 0 ? mRowPixels : 1;
+}
+
+int SequenceElements::GetRowAtY(int y) const
+{
+    const int rowPx = mRowPixels > 0 ? mRowPixels : 1;
+    const int n = (int)mVisibleRowTops.size();
+    if (n == 0 || y < 0) {
+        return y / rowPx;
+    }
+    // the timing rows first: they cover any model row scrolled under them
+    for (int r = 0; r < n; r++) {
+        if (y < mVisibleRowTops[r] + mVisibleRowHeights[r]) {
+            return r;
+        }
+    }
+    const int bottom = mVisibleRowTops[n - 1] + mVisibleRowHeights[n - 1];
+    return n + (y - bottom) / rowPx;
+}
+
+int SequenceElements::GetMaxFirstVisibleModelRow()
+{
+    const int total = GetTotalNumberOfModelRows();
+    if (mRowPixels <= 0) {
+        return std::max(0, total - GetMaxModelsDisplayed());
+    }
+    // the row scrolling as far as it goes stops in (one more when that leaves it part way through it, as rows go)
+    const std::vector<int> starts = ModelRowStarts();
+    const int maxScroll = GetMaxModelScrollPixels();
+    int row = (int)(std::upper_bound(starts.begin(), starts.end(), maxScroll) - starts.begin()) - 1;
+    row = std::clamp(row, 0, std::max(0, total - 1));
+    if (starts[row] < maxScroll) {
+        row = std::min(row + 1, std::max(0, total - 1));
+    }
+    return row;
+}
+
 int SequenceElements::SetFirstVisibleModelRow(int row)
 {
     int old = mFirstVisibleModelRow;
 
+    if (mRowPixels > 0) {
+        // to the top of that row (or as far as it scrolls)
+        const std::vector<int> starts = ModelRowStarts();
+        mModelScrollPixels = starts[std::clamp(row, 0, (int)starts.size() - 1)];
+    }
     // They all fit on screen. So set to first model element.
-    if(mRowInformation.size() <= static_cast<size_t>(mMaxRowsDisplayed))
+    else if(mRowInformation.size() <= static_cast<size_t>(mMaxRowsDisplayed))
     {
         mFirstVisibleModelRow = 0;
     }
@@ -2030,6 +2193,14 @@ void SequenceElements::SetMaxRowsDisplayed(int maxRows)
 
 int SequenceElements::GetMaxModelsDisplayed()
 {
+    if (mRowPixels > 0) {
+        // the model rows showing now
+        int timingShown = 0;
+        for (const auto& ri : mVisibleRowInformation) {
+            timingShown += ri.element != nullptr && ri.element->GetType() == ElementType::ELEMENT_TYPE_TIMING ? 1 : 0;
+        }
+        return std::max(1, (int)mVisibleRowInformation.size() - timingShown);
+    }
     return mMaxRowsDisplayed - mTimingRowCount;
 }
 

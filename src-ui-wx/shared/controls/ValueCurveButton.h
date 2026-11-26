@@ -19,6 +19,9 @@ class ValueCurveButton :
     public wxBitmapButton
 {
     ValueCurve* _vc;
+    bool _supportsColor = false;
+    bool _alwaysActive = false;
+    void MakeDefaultCurve();
     void RenderNewBitmap();
 
 public:
@@ -39,4 +42,13 @@ public:
     void UpdateState();
     void UpdateBitmap();
     void NotifyChange();
+    // The curve's editor also offers colour keyframes (see ValueCurveDialog::EnableColor).
+    void SetSupportsColor(bool b) { _supportsColor = b; }
+    bool SupportsColor() const { return _supportsColor; }
+    // A curve that is never switched off (the setting is the curve, with no slider): clicking only opens the
+    // editor, and it starts as a flat custom curve at the max.
+    void SetAlwaysActive(bool b);
+    bool IsAlwaysActive() const { return _alwaysActive; }
+    // Off, or for an always-active curve a fresh default one.
+    void ResetToDefault();
 };

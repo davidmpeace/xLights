@@ -12,6 +12,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <list>
@@ -24,8 +25,17 @@
 
 #define VC_X_POINTS 200.0
 
+#include "../utils/Color.h"
+
 class AudioManager;
 class SequenceElements;
+
+// A colour keyframe on a value curve (for callers that let the curve carry a colour as well, like the Fountains effect).
+struct vcColorKey {
+    float x = 0.0f; // 0-1 across the curve
+    xlColor color = xlBLACK;
+    bool blend = true; // true: the colour before it fades into it; false: it cuts straight to it
+};
 
 class vcSortablePoint
 {
@@ -39,15 +49,39 @@ public:
     {
         return (float)(1.0f / VC_X_POINTS);
     }
+    // How the curve leaves and arrives at a custom point. Hard: straight lines (a segment between two hard points is
+    // linear). Ease: flat into and out of the point. Custom: Bezier handles the user places.
+    enum class Shape : uint8_t {
+        Hard = 0,
+        Ease,
+        Custom
+    };
+
     float x;
     float y;
     bool wrapped; // y was wrapped into 0..1; a change between neighbours is a jump, not a slope
+    Shape shape = Shape::Hard;
+    // Custom handles, relative to the point (x as a fraction of the curve, y normalised 0-1): `in` toward the previous
+    // point (dx <= 0), `out` toward the next (dx >= 0). Clamped to the segment when the curve is evaluated.
+    float inDx = 0.0f;
+    float inDy = 0.0f;
+    float outDx = 0.0f;
+    float outDy = 0.0f;
     vcSortablePoint(float xx, float yy, bool wrap)
     {
         x = Normalise(xx);
         y = yy;
         wrapped = wrap;
     }
+    void CopyShape(const vcSortablePoint& o)
+    {
+        shape = o.shape;
+        inDx = o.inDx;
+        inDy = o.inDy;
+        outDx = o.outDx;
+        outDy = o.outDy;
+    }
+    bool IsHard() const { return shape == Shape::Hard; }
     bool IsNear(float xx, float yy) const
     {
         return (x == Normalise(xx) && yy >= y - 0.05 && yy <= y + 0.05);
@@ -88,6 +122,7 @@ class ValueCurve
 {
     std::list<vcSortablePoint> _values;
     std::list<vcSortablePoint> _baseCustomValues;
+    std::vector<vcColorKey> _colorKeys; // sorted by x
     std::string _type;
     std::string _id;
     std::string _timingTrack;
@@ -95,6 +130,7 @@ class ValueCurve
     bool _isFilterLabelRegex = false;
     float _max;
     float _min;
+    float _viewMax = 0.0f; // the top of the editor's graph, in the same units as _max; 0 (or out of range): _max
     float _divisor;
     int _timeOffset;
     float _parameter1;
@@ -165,6 +201,12 @@ public:
     void ConvertChangedScale(float newmin, float newmax);
     float GetMax() const { assert(_max != MAXVOIDF); return _max; }
     float GetMin() const { assert(_min != MINVOIDF); return _min; }
+    // The top of the value range the editor shows: a custom max the user picked below the real one, or the real max.
+    // It only simplifies editing; the output range stays Min to Max.
+    float GetViewMax() const { return HasViewMax() ? _viewMax : GetMax(); }
+    bool HasViewMax() const { return _viewMax > _min && _viewMax < _max; }
+    // Anything outside (Min, Max) clears it.
+    void SetViewMax(float viewMax) { _viewMax = viewMax > _min && viewMax < _max ? viewMax : 0.0f; }
     int GetDivisor() const { assert(_divisor != MAXVOID); return (int)_divisor; }
     void SetRealValue() { _realValues = true; }
     void SetLimits(float min, float max) { _min = min; _max = max; }
@@ -212,6 +254,17 @@ public:
     float FindMinPointLessThan(float point) const;
     float FindMaxPointGreaterThan(float point) const;
     bool NearCustomPoint(float x, float y) const;
+    // The point at x (a set point), or nullptr.
+    const vcSortablePoint* FindPoint(float x) const;
+    // Sets the shape of the point at x; a new Custom shape starts as Ease (handles a third of the way to each neighbour, flat).
+    void SetPointShape(float x, vcSortablePoint::Shape shape);
+    // Copies the shape and handles of `from` onto the point at x.
+    void CopyPointShape(float x, const vcSortablePoint& from);
+    void SetPointHandles(float x, float inDx, float inDy, float outDx, float outDy);
+    // y (normalised) on the segment from a to b at x, a.x <= x <= b.x: straight between hard points, a Bezier otherwise.
+    static float SegmentValue(const vcSortablePoint& a, const vcSortablePoint& b, float x);
+    // The Bezier control points of the segment from a to b, as GetValueAt uses them.
+    static void SegmentControls(const vcSortablePoint& a, const vcSortablePoint& b, float& c1x, float& c1y, float& c2x, float& c2y);
     float GetPointAt(float x) const;
     void SetPointAt(float x, float y);
     std::string GetId() const { return _id; }
@@ -225,4 +278,15 @@ public:
     void ConvertDivider(int oldDivider, int newDivider);
     void ScaleAndOffsetValues(float scale, int offset);
     void ReconstructBaseCustomValues();
+    // Colour keyframes, independent of the curve type and its cycles. With none the colour is black throughout.
+    [[nodiscard]] const std::vector<vcColorKey>& GetColorKeys() const { return _colorKeys; }
+    [[nodiscard]] bool HasColorKeys() const { return !_colorKeys.empty(); }
+    void SetColorKeys(std::vector<vcColorKey> keys);
+    // The colour at offset (0-1). A single key is solid throughout. Otherwise: the first key's colour from the start,
+    // each key fading or cutting from the one before, the last held to the end. With Wrap on, the start belongs to the
+    // loop instead: a Blend first key fades in from the last key (so the curve loops seamlessly), a Hard one holds the
+    // last colour until it cuts in.
+    [[nodiscard]] xlColor GetColorAt(float offset) const;
+    // A custom curve's one cycle of points (repeated Cycles times across the curve) replaced, e.g. after editing them.
+    void SetBaseCustomPoints(const std::list<vcSortablePoint>& pts) { _baseCustomValues = pts; RenderType(); }
 };

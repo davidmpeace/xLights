@@ -566,6 +566,9 @@
     <ClCompile Include="..\src-core\effects\OnEffect.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
+    <ClCompile Include="..\src-core\effects\FountainsEffect.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
     <ClCompile Include="..\src-core\effects\OffEffect.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
@@ -764,6 +767,12 @@
     <ClCompile Include="..\src-core\models\RulerObject.cpp">
       <Filter>Models</Filter>
     </ClCompile>
+    <ClCompile Include="..\src-core\models\DMX\DmxFountain.cpp">
+      <Filter>Models\DMX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src-core\models\DMX\FountainPhysics.cpp">
+      <Filter>Models\DMX</Filter>
+    </ClCompile>
     <ClCompile Include="..\src-core\models\DMX\DmxGeneral.cpp">
       <Filter>Models\DMX</Filter>
     </ClCompile>
@@ -796,6 +805,9 @@
       <Filter>render</Filter>
     </ClCompile>
     <ClCompile Include="..\src-ui-wx\sequencer\EffectsGrid.cpp">
+      <Filter>sequencer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src-ui-wx\sequencer\EffectsGridInline.cpp">
       <Filter>sequencer</Filter>
     </ClCompile>
     <ClCompile Include="..\src-core\render\Element.cpp">
@@ -1145,6 +1157,9 @@
       <Filter>modelproperties\adapters</Filter>
     </ClCompile>
     <ClCompile Include="..\src-ui-wx\modelproperties\adapters\DmxPropertyAdapter.cpp">
+      <Filter>modelproperties\adapters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src-ui-wx\modelproperties\adapters\DmxFountainPropertyAdapter.cpp">
       <Filter>modelproperties\adapters</Filter>
     </ClCompile>
     <ClCompile Include="..\src-ui-wx\modelproperties\adapters\DmxGeneralPropertyAdapter.cpp">
@@ -2283,6 +2298,9 @@
     <ClInclude Include="..\src-core\effects\OnEffect.h">
       <Filter>Effects</Filter>
     </ClInclude>
+    <ClInclude Include="..\src-core\effects\FountainsEffect.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
     <ClInclude Include="..\src-core\effects\OffEffect.h">
       <Filter>Effects</Filter>
     </ClInclude>
@@ -2472,6 +2490,12 @@
     </ClInclude>
     <ClInclude Include="..\src-core\models\RulerObject.h">
       <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src-core\models\DMX\DmxFountain.h">
+      <Filter>Models\DMX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src-core\models\DMX\FountainPhysics.h">
+      <Filter>Models\DMX</Filter>
     </ClInclude>
     <ClInclude Include="..\src-core\models\DMX\DmxGeneral.h">
       <Filter>Models\DMX</Filter>
@@ -2844,6 +2868,9 @@
       <Filter>modelproperties\adapters</Filter>
     </ClInclude>
     <ClInclude Include="..\src-ui-wx\modelproperties\adapters\DmxPropertyAdapter.h">
+      <Filter>modelproperties\adapters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src-ui-wx\modelproperties\adapters\DmxFountainPropertyAdapter.h">
       <Filter>modelproperties\adapters</Filter>
     </ClInclude>
     <ClInclude Include="..\src-ui-wx\modelproperties\adapters\DmxGeneralPropertyAdapter.h">

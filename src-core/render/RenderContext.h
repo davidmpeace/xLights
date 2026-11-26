@@ -23,6 +23,7 @@ class JobPool;
 class Model;
 class OutputModelManager;
 class PreviewCamera;
+class SequenceData;
 class SequenceElements;
 class TimingElement;
 class UICallbacks;
@@ -57,6 +58,9 @@ public:
     virtual bool IsLayoutLocked() const { return false; }
     virtual AudioManager* GetCurrentMediaManager() const = 0;
     virtual const std::string& GetHeaderInfo(HEADER_INFO_TYPES type) const = 0;
+    // The open sequence's rendered frames, for previews that draw more than the
+    // current frame (a fountain's water still in the air). nullptr when none.
+    virtual const SequenceData* GetRenderedSequenceData() const { return nullptr; }
 
     // ---- model access ----
     virtual Model* GetModel(const std::string& name) const = 0;

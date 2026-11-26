@@ -32,6 +32,7 @@
 #include "adapters/DmxPropertyAdapter.h"
 #include "adapters/DmxGeneralPropertyAdapter.h"
 #include "adapters/DmxFloodlightPropertyAdapter.h"
+#include "adapters/DmxFountainPropertyAdapter.h"
 #include "adapters/DmxMovingHeadPropertyAdapter.h"
 #include "adapters/DmxMovingHeadAdvPropertyAdapter.h"
 #include "adapters/DmxSkullPropertyAdapter.h"
@@ -85,6 +86,8 @@ std::unique_ptr<ModelPropertyAdapter> ModelPropertyManager::CreateAdapter(Model&
         case DisplayAsType::DmxFloodArea:
         case DisplayAsType::DmxFloodlight:
             return std::make_unique<DmxFloodlightPropertyAdapter>(model);
+        case DisplayAsType::DmxFountain:
+            return std::make_unique<DmxFountainPropertyAdapter>(model);
         case DisplayAsType::DmxGeneral:
             return std::make_unique<DmxGeneralPropertyAdapter>(model);
         case DisplayAsType::DmxMovingHead:

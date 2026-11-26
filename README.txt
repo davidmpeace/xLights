@@ -11,6 +11,11 @@ Issue Tracker is found here: www.github.com/xLightsSequencer/xLights/issues
 XLIGHTS/NUTCRACKER RELEASE NOTES
 ---------------------------------
 2026.22  November ??, 2026
+    -enh (dpeace)                DMX Fountain model: pumps in a ring, ring with center, line, square or grid (one
+                                 channel each) with RGB light rings that take any effect (Single Line, or Per Preview
+                                 from a 2D/3D camera), automatic Lights / Pumps (and Perimeter / Center) submodels,
+                                 a center pump with its own max height;
+                                 the previews fly the water with real fountain physics (air drag, pump spin-up, spray)
     -bug (derwin12)              Link controller upload preference changes are saved again
     -enh (dkulp)                 Live collaboration (beta, off by default): host or join a session on the local
                                  network and edit one sequence together (File > Collaborate)

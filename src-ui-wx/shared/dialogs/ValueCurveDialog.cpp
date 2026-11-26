@@ -16,6 +16,7 @@
 #include <wx/dcbuffer.h>
 #include <wx/file.h>
 #include <wx/filedlg.h>
+#include <wx/menu.h>
 #include <wx/msgdlg.h>
 #include <wx/settings.h>
 #include <wx/stdpaths.h>
@@ -26,6 +27,7 @@
 #include "UtilFunctions.h"
 #include "shared/utils/wxUtilities.h"
 #include "render/ValueCurve.h"
+#include "color/xlColourData.h"
 #include "ValueCurveDialog.h"
 #include "shared/utils/ValueCurveRendering.h"
 #include "xLightsApp.h"
@@ -35,7 +37,9 @@
 #include "render/SequenceElements.h"
 
 #include <log.h>
+#include <spdlog/fmt/fmt.h>
 #include <algorithm>
+#include <optional>
 #include <cmath>
 
 BEGIN_EVENT_TABLE(ValueCurvePanel, wxWindow)
@@ -59,6 +63,7 @@ ValueCurvePanel::ValueCurvePanel(wxWindow* parent, Element* timingElement, int s
     Connect(wxEVT_PAINT, (wxObjectEventFunction)&ValueCurvePanel::Paint, 0, this);
     Connect(wxEVT_MOUSE_CAPTURE_LOST, (wxObjectEventFunction)&ValueCurvePanel::mouseCaptureLost, 0, this);
     Connect(wxEVT_LEFT_DCLICK, (wxObjectEventFunction)&ValueCurvePanel::mouseLeftDClick, 0, this);
+    Connect(wxEVT_RIGHT_DOWN, (wxObjectEventFunction)&ValueCurvePanel::mouseRightDown, 0, this);
     // ReSharper disable CppVirtualFunctionCallInsideCtor
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     // ReSharper restore CppVirtualFunctionCallInsideCtor
@@ -68,19 +73,21 @@ ValueCurvePanel::ValueCurvePanel(wxWindow* parent, Element* timingElement, int s
     _timingElement = timingElement;
 }
 
-#define X_VC_MARGIN 5.0
-#define Y_VC_MARGIN 3.0
+// the left margin (_leftMargin, sized to the labels) holds the values; top and bottom leave room for the max / min
+// label text
+#define X_VC_RIGHT 5.0
+#define Y_VC_MARGIN 9.0
 
 void ValueCurvePanel::Convert(float& x, float& y, wxMouseEvent& event) {
     wxSize size = GetSize();
-    float startX = X_VC_MARGIN;
+    float startX = _leftMargin;
     float startY = Y_VC_MARGIN;
-    float bw = size.GetWidth() - 2 * X_VC_MARGIN;
+    float bw = size.GetWidth() - (_leftMargin + X_VC_RIGHT);
     float bh = size.GetHeight() - 2 * Y_VC_MARGIN;
 
-    if (event.GetX() < X_VC_MARGIN) {
+    if (event.GetX() < _leftMargin) {
         x = 0;
-    } else if (event.GetX() > X_VC_MARGIN + bw) {
+    } else if (event.GetX() > _leftMargin + bw) {
         x = 1.0;
     } else {
         x = (event.GetX() - startX) / bw;
@@ -92,6 +99,7 @@ void ValueCurvePanel::Convert(float& x, float& y, wxMouseEvent& event) {
     } else {
         y = 1.0 - (event.GetY() - startY) / bh;
     }
+    y /= ViewScale(); // the graph's top is the view max
 }
 
 //(*IdInit(ValueCurveDialog)
@@ -352,7 +360,56 @@ ValueCurveDialog::ValueCurveDialog(wxWindow* parent, ValueCurve* vc, bool slider
     _vcp->SetValue(_vc);
     _vcp->SetType(_vc->GetType());
     _vcp->SetTimeOffset(_vc->GetTimeOffset());
-    FlexGridSizer4->Add(_vcp, 1, wxALL | wxEXPAND, 2);
+    // the graph, and under it the colour bar when the caller allows colour
+    _graphSizer = new wxBoxSizer(wxVERTICAL);
+    _graphSizer->Add(_vcp, 1, wxEXPAND);
+    FlexGridSizer4->Add(_graphSizer, 1, wxALL | wxEXPAND, 2);
+
+    // Graph Max: a row under the curve type. Lowering it only makes editing simpler (the graph, the sliders that
+    // span the whole range and the point values stop there); it is saved with the curve.
+    // laid out like the parameter rows: label, slider, text box. The slider steps in the curve's own units (as the
+    // parameter sliders do), from just above Min to the real Max (the full range).
+    const wxString graphMaxTip = wxString::Format("The top of the graph and of the sliders, up to %s (the full range).", _vcp->FormatValue(_vc->GetMax()));
+    _viewMaxSlider = new wxSlider(this, wxID_ANY, (int)std::lround(_vc->GetViewMax()), (int)std::floor(_vc->GetMin()) + 1,
+                                  std::max((int)std::floor(_vc->GetMin()) + 2, (int)std::lround(_vc->GetMax())));
+    _viewMaxSlider->SetToolTip(graphMaxTip);
+    _viewMaxText = new wxTextCtrl(this, wxID_ANY, _vcp->FormatValue(_vc->GetViewMax()), wxDefaultPosition, TextCtrl_Parameter1->GetSize(), wxTE_PROCESS_ENTER);
+    _viewMaxText->SetToolTip(graphMaxTip);
+    // dragging moves the graph's top as it goes (it changes no output, so nothing re-renders)
+    _viewMaxSlider->Bind(wxEVT_SLIDER, [this](wxCommandEvent&) { SetViewMax((float)_viewMaxSlider->GetValue()); });
+    _viewMaxText->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { ApplyViewMax(); });
+    _viewMaxText->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) { ApplyViewMax(); e.Skip(); });
+    FlexGridSizer2->Insert(3, new wxStaticText(this, wxID_ANY, "Graph Max"), 1, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
+    FlexGridSizer2->Insert(4, _viewMaxSlider, 1, wxALL | wxEXPAND, 2);
+    FlexGridSizer2->Insert(5, _viewMaxText, 1, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
+
+    // Edit Points / Cycles Preview: only for a custom curve with more than one cycle
+    auto* cyclesLabel = new wxStaticText(this, wxID_ANY, "Cycles");
+    auto* cyclesButtons = new wxPanel(this);
+    auto* cyclesSizer = new wxBoxSizer(wxHORIZONTAL);
+    _editPointsButton = new wxToggleButton(cyclesButtons, wxID_ANY, "Edit Points");
+    _cyclesPreviewButton = new wxToggleButton(cyclesButtons, wxID_ANY, "Cycles Preview");
+    _editPointsButton->SetToolTip("Edit the points of one cycle; every cycle follows.");
+    _cyclesPreviewButton->SetToolTip("See the cycles repeated across the curve.");
+    cyclesSizer->Add(_editPointsButton, 0, wxRIGHT, 4);
+    cyclesSizer->Add(_cyclesPreviewButton, 0);
+    cyclesButtons->SetSizer(cyclesSizer);
+    auto* cyclesSpacer = new wxStaticText(this, wxID_ANY, wxEmptyString);
+    FlexGridSizer2->Insert(6, cyclesLabel, 1, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
+    FlexGridSizer2->Insert(7, cyclesButtons, 1, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
+    FlexGridSizer2->Insert(8, cyclesSpacer, 1, wxALL, 2);
+    _cyclesRow = { cyclesLabel, cyclesButtons, cyclesSpacer };
+    _editPointsButton->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { _cyclesPreview = false; UpdateCyclesMode(); });
+    _cyclesPreviewButton->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { _cyclesPreview = true; UpdateCyclesMode(); });
+    // edits on the one-cycle copy go back to the curve as its cycle
+    _vcp->SetEditedCallback([this]() {
+        if (_editVc) {
+            _vc->SetBaseCustomPoints(_editVc->GetPoints());
+        }
+    });
+    // the panel draws the min / max (and the lines between) beside its grid
+    StaticText_TopValue->Hide();
+    StaticText_BottomValue->Hide();
     // ReSharper disable once CppVirtualFunctionCallInsideCtor
     Layout();
     // ReSharper disable once CppVirtualFunctionCallInsideCtor
@@ -444,13 +501,153 @@ ValueCurveDialog::~ValueCurveDialog() {
 }
 
 void ValueCurveDialog::OnButton_OkClick(wxCommandEvent& event) {
+    _liveTimer.Stop();
     _vc->SetRealValue();
     EndDialog(wxOK);
 }
 
 void ValueCurveDialog::OnButton_CancelClick(wxCommandEvent& event) {
+    _liveTimer.Stop();
     *_vc = _backup;
+    if (_liveChange && LiveSignature() != _liveSig) {
+        _liveChange(); // the preview goes back to the original curve
+    }
     EndDialog(wxCANCEL);
+}
+
+// The colour editor is a simpler dialog: always a custom curve of one cycle over the full range, with no time
+// offset or timing track, so all that shows is the graph, the colour bar, Wrap Values and OK / Cancel.
+void ValueCurveDialog::EnableColor() {
+    if (_colorBar != nullptr) {
+        return;
+    }
+    if (_vc->GetType() != "Custom") {
+        _vc->SetType("Custom"); // starts from the points the old type drew
+    }
+    Choice1->SetStringSelection("Custom");
+    _vcp->SetType("Custom");
+    _vc->SetParameter1(1);
+    _vc->SetTimeOffset(0);
+    _vcp->SetTimeOffset(0);
+    Slider_TimeOffset->SetValue(0);
+    TextCtrl_TimeOffset->ChangeValue("0");
+    _vc->SetTimingTrack("");
+    _vc->SetViewMax(0.0f); // the full range
+    SetSliderMinMax();
+    ValidateWindow();
+
+    _colorBar = new ValueCurveColorBar(this, _vcp);
+    _colorBar->SetValue(_vc);
+    _graphSizer->Add(_colorBar, 0, wxEXPAND | wxTOP, 6);
+    // a colour key and a curve point are never selected together
+    _colorBar->SetSelectedCallback([this]() { _vcp->Deselect(); });
+    _vcp->SetSelectedCallback([this]() { _colorBar->Deselect(); });
+    _colorBar->SetChangedCallback([this]() { PushLiveChange(); });
+
+    for (wxWindow* w : GetChildren()) {
+        if (w != _vcp && w != _colorBar && w != CheckBox_WrapValues && w != Button_Ok && w != Button_Cancel) {
+            w->Hide();
+        }
+    }
+    _vcp->SetMinSize(wxSize(600, 260));
+    Layout();
+    Fit();
+}
+
+void ValueCurveDialog::PushLiveChange() {
+    if (_liveChange) {
+        _liveSig = LiveSignature();
+        _liveChange();
+    }
+}
+
+// Shows Edit Points / Cycles Preview for a custom curve with more than one cycle and points the graph at the right
+// curve: a one-cycle copy to edit, or the curve itself (the repeated cycles, read only).
+void ValueCurveDialog::UpdateCyclesMode() {
+    if (_vcp == nullptr || _editPointsButton == nullptr) {
+        return; // still being built
+    }
+    const bool cycles = _vc->GetType() == "Custom" && std::lround(_vc->GetParameter1()) > 1;
+    for (auto* w : _cyclesRow) {
+        w->Show(cycles);
+    }
+    if (cycles && !_cyclesPreview) {
+        // a fresh copy each time, so it follows Reverse, Flip, presets and the like done to the curve
+        _editVc = std::make_unique<ValueCurve>(*_vc);
+        _editVc->SetParameter1(1);
+        _vcp->SetValue(_editVc.get());
+        _vcp->ClearSelection();
+    } else if (_editVc) {
+        _vcp->SetValue(_vc);
+        _vcp->ClearSelection();
+        _editVc.reset();
+    }
+    if (!cycles) {
+        _cyclesPreview = true; // the next time Cycles goes above 1 it starts in the preview
+    }
+    _editPointsButton->SetValue(cycles && !_cyclesPreview);
+    _cyclesPreviewButton->SetValue(cycles && _cyclesPreview);
+    Layout();
+    _vcp->Refresh();
+    if (_colorBar != nullptr) {
+        _colorBar->Refresh(); // Reverse, Wrap, Load... change the colours too
+    }
+}
+
+// Reads Graph Max: anything at or above the real max (or empty, or not above the min) means the full range.
+void ValueCurveDialog::ApplyViewMax() {
+    wxString text = _viewMaxText->GetValue();
+    text.Trim(true).Trim(false);
+    const float shown = text.IsEmpty() ? 0.0f : (float)std::strtod(text.utf8_str(), nullptr);
+    SetViewMax(shown * _vc->GetDivisor());
+}
+
+// Sets Graph Max (in the curve's own units) and keeps its slider, its text box, the parameter sliders and the graph
+// in step.
+void ValueCurveDialog::SetViewMax(float raw) {
+    const float before = _vc->GetViewMax();
+    _vc->SetViewMax(raw);
+    _viewMaxText->ChangeValue(_vcp->FormatValue(_vc->GetViewMax()));
+    _viewMaxSlider->SetValue((int)std::lround(_vc->GetViewMax()));
+    if (_vc->GetViewMax() != before) {
+        SetSliderMinMax();
+        ValidateWindow();
+        _vcp->Refresh();
+    }
+}
+
+void ValueCurveDialog::SetLiveChangeCallback(std::function<void()> onChange) {
+    _liveChange = std::move(onChange);
+    _liveSig = LiveSignature();
+    _liveTimer.SetOwner(this);
+    Bind(wxEVT_TIMER, &ValueCurveDialog::OnLiveTimer, this, _liveTimer.GetId());
+    _liveTimer.Start(150);
+}
+
+// Everything about the curve that changes its output, without serialising it (which tidies the points).
+std::string ValueCurveDialog::LiveSignature() const {
+    std::string s = fmt::format("{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|", _vc->GetType(), _vc->IsActive(), _vc->GetParameter1(), _vc->GetParameter2(),
+                                _vc->GetParameter3(), _vc->GetParameter4(), _vc->GetTimeOffset(), _vc->GetWrap(), _vc->GetTimingTrack(),
+                                _vc->GetFilterLabelText(), _vc->IsFilterLabelRegex());
+    for (const auto& p : _vc->GetPoints()) {
+        s += fmt::format("{}:{}:{}:{}:{}:{}:{};", p.x, p.y, (int)p.shape, p.inDx, p.inDy, p.outDx, p.outDy);
+    }
+    s += "|";
+    for (const auto& k : _vc->GetColorKeys()) {
+        s += fmt::format("{}:{}:{}:{}:{};", k.x, k.color.red, k.color.green, k.color.blue, k.blend);
+    }
+    return s;
+}
+
+void ValueCurveDialog::OnLiveTimer(wxTimerEvent& event) {
+    if (!_liveChange || wxGetMouseState().LeftIsDown()) {
+        return; // mid-drag: wait for the release
+    }
+    std::string sig = LiveSignature();
+    if (sig != _liveSig) {
+        _liveSig = sig;
+        _liveChange();
+    }
 }
 
 void ValueCurveDialog::SetParameter100(int p, float v) {
@@ -461,7 +658,7 @@ void ValueCurveDialog::SetParameter100(int p, float v) {
         low = _vc->GetMin();
     }
     if (high == MAXVOID) {
-        high = _vc->GetMax();
+        high = _vc->GetViewMax();
     }
 
     float vv = (high - low) * v / 100.0 + low;
@@ -502,8 +699,8 @@ void ValueCurveDialog::SetSliderMinMax() {
     ValueCurve::GetRangeParm1(_vc->GetType(), min, max);
     if (min == MINVOID) {
         Slider_Parameter1->SetMin(_vc->GetMin());
-        Slider_Parameter1->SetMax(_vc->GetMax());
-        Slider_Parameter1->SetPageSize(computePageSize(_vc->GetMin(), _vc->GetMax()));
+        Slider_Parameter1->SetMax(_vc->GetViewMax());
+        Slider_Parameter1->SetPageSize(computePageSize(_vc->GetMin(), _vc->GetViewMax()));
     } else {
         Slider_Parameter1->SetMin(min);
         Slider_Parameter1->SetMax(max);
@@ -513,8 +710,8 @@ void ValueCurveDialog::SetSliderMinMax() {
     ValueCurve::GetRangeParm2(_vc->GetType(), min, max);
     if (min == MINVOID) {
         Slider_Parameter2->SetMin(_vc->GetMin());
-        Slider_Parameter2->SetMax(_vc->GetMax());
-        Slider_Parameter2->SetPageSize(computePageSize(_vc->GetMin(), _vc->GetMax()));
+        Slider_Parameter2->SetMax(_vc->GetViewMax());
+        Slider_Parameter2->SetPageSize(computePageSize(_vc->GetMin(), _vc->GetViewMax()));
     } else {
         Slider_Parameter2->SetMin(min);
         Slider_Parameter2->SetMax(max);
@@ -524,8 +721,8 @@ void ValueCurveDialog::SetSliderMinMax() {
     ValueCurve::GetRangeParm3(_vc->GetType(), min, max);
     if (min == MINVOID) {
         Slider_Parameter3->SetMin(_vc->GetMin());
-        Slider_Parameter3->SetMax(_vc->GetMax());
-        Slider_Parameter3->SetPageSize(computePageSize(_vc->GetMin(), _vc->GetMax()));
+        Slider_Parameter3->SetMax(_vc->GetViewMax());
+        Slider_Parameter3->SetPageSize(computePageSize(_vc->GetMin(), _vc->GetViewMax()));
     } else {
         Slider_Parameter3->SetMin(min);
         Slider_Parameter3->SetMax(max);
@@ -534,8 +731,8 @@ void ValueCurveDialog::SetSliderMinMax() {
     ValueCurve::GetRangeParm4(_vc->GetType(), min, max);
     if (min == MINVOID) {
         Slider_Parameter4->SetMin(_vc->GetMin());
-        Slider_Parameter4->SetMax(_vc->GetMax());
-        Slider_Parameter4->SetPageSize(computePageSize(_vc->GetMin(), _vc->GetMax()));
+        Slider_Parameter4->SetMax(_vc->GetViewMax());
+        Slider_Parameter4->SetPageSize(computePageSize(_vc->GetMin(), _vc->GetViewMax()));
     } else {
         Slider_Parameter4->SetMin(min);
         Slider_Parameter4->SetMax(max);
@@ -695,6 +892,7 @@ void ValueCurvePanel::Undo() {
         } else {
             _vc->SetValueAt(p.x, p.y);
         }
+        NotifyEdited();
     }
 }
 
@@ -721,29 +919,28 @@ float ValueCurvePanel::ToNormalised(float y) {
 
 void ValueCurvePanel::mouseLeftDClick(wxMouseEvent& event) {
     if (_type == "Custom" && std::lround(_vc->GetParameter1()) == 1 && _timeOffset == 0) {
-        float x, y;
-        Convert(x, y, event);
-
-        if (_vc->NearCustomPoint(x, y)) {
-            auto point = vcSortablePoint::Normalise(x);
-            wxTextEntryDialog dlg(GetParent(), "Enter value:", "Manual entry", std::to_string(ToReal(_vc->GetPointAt(point))));
-            if (dlg.ShowModal() == wxID_OK) {
-                float v = wxAtof(dlg.GetValue());
-                if (v < _vc->GetMin() / _vc->GetDivisor())
-                    v = _vc->GetMin() / _vc->GetDivisor();
-                if (v > _vc->GetMax() / _vc->GetDivisor())
-                    v = _vc->GetMax() / _vc->GetDivisor();
-                SaveUndoSelected();
-                _vc->SetValueAt(x, ToNormalised(v));
-                Refresh();
-            }
+        const float point = PointNear(event.GetX(), event.GetY());
+        if (point >= 0.0f) {
+            EditPoint(point);
         }
     }
 }
 void ValueCurvePanel::mouseLeftDown(wxMouseEvent& event) {
+    if (IsEditable() && (_dragHandle = HandleAt(event.GetX(), event.GetY())) != 0) {
+        if (!HasCapture()) {
+            CaptureMouse();
+        }
+        NotifySelected();
+        Refresh();
+        return;
+    }
     if (_type == "Custom" && std::lround(_vc->GetParameter1()) == 1 && _timeOffset == 0) {
         float x, y;
         Convert(x, y, event);
+        const float hit = PointNear(event.GetX(), event.GetY());
+        if (hit >= 0.0f) {
+            x = hit;
+        }
         _grabbedPoint = x;
         if (_grabbedPoint < 0.0f) {
             _grabbedPoint = 0.0f;
@@ -752,22 +949,29 @@ void ValueCurvePanel::mouseLeftDown(wxMouseEvent& event) {
         }
         _grabbedPoint = vcSortablePoint::Normalise(_grabbedPoint);
         _originalGrabbedPoint = _grabbedPoint;
+        NotifySelected();
         _minGrabbedPoint = _vc->FindMinPointLessThan(_grabbedPoint);
         _maxGrabbedPoint = _vc->FindMaxPointGreaterThan(_grabbedPoint);
         SaveUndoSelected();
-        CaptureMouse();
+        // a press can arrive while the last one still holds the mouse (its release went missing)
+        if (!HasCapture()) {
+            CaptureMouse();
+        }
         mouseMoved(event);
         Refresh();
     }
 }
 void ValueCurvePanel::mouseCaptureLost(wxMouseCaptureLostEvent& event) {
+    _dragHandle = 0;
     if (_type == "Custom" && std::lround(_vc->GetParameter1()) == 1 && _timeOffset == 0) {
         // lets not do anything
     }
     Refresh();
 }
 void ValueCurvePanel::mouseLeftUp(wxMouseEvent& event) {
-    if (_type == "Custom" && std::lround(_vc->GetParameter1()) == 1 && _timeOffset == 0 && HasCapture()) {
+    if (_dragHandle != 0) {
+        _dragHandle = 0;
+    } else if (_type == "Custom" && std::lround(_vc->GetParameter1()) == 1 && _timeOffset == 0 && HasCapture()) {
         float x, y;
         Convert(x, y, event);
         if (y < 0.0f) {
@@ -775,8 +979,13 @@ void ValueCurvePanel::mouseLeftUp(wxMouseEvent& event) {
         } else if (y > 1.0f) {
             y = 1.0f;
         }
+        y = SnapY(y, event);
         _vc->SetValueAt(_grabbedPoint, y);
         //_grabbedPoint = -1;
+        NotifyEdited();
+    }
+    // always let go, even if the curve stopped being editable mid-drag
+    if (HasCapture()) {
         ReleaseMouse();
     }
     Refresh();
@@ -786,6 +995,7 @@ void ValueCurvePanel::Delete() {
     if (_grabbedPoint > 0.0 && _grabbedPoint < 1.0) {
         _vc->DeletePoint(_grabbedPoint);
         _grabbedPoint = -1;
+        NotifyEdited();
         Refresh();
     } else {
         wxBell();
@@ -816,26 +1026,49 @@ void ValueCurvePanel::mouseMoved(wxMouseEvent& event) {
             y = 1.0f;
         }
 
-        if (_vc->NearCustomPoint(x, y)) {
+        if (PointNear(event.GetX(), event.GetY()) >= 0.0f || HandleAt(event.GetX(), event.GetY()) != 0) {
             SetCursor(s_hand);
         } else {
             SetCursor(s_cross);
         }
 
+        if (HasCapture() && _dragHandle != 0) {
+            DragHandle(x, y, event.ShiftDown() || event.ControlDown() || event.RawControlDown() || event.CmdDown());
+            NotifyEdited();
+            Refresh();
+            return;
+        }
+
         if (HasCapture()) {
-            if (x <= _minGrabbedPoint) {
-                x = _minGrabbedPoint;
-            } else if (x > _maxGrabbedPoint) {
-                x = _maxGrabbedPoint;
+            y = SnapY(y, event);
+            // the point's shape goes with it when it moves
+            std::optional<vcSortablePoint> shape;
+            if (const vcSortablePoint* sp = _vc->FindPoint(vcSortablePoint::Normalise(_grabbedPoint))) {
+                shape = *sp;
             }
 
             if (_originalGrabbedPoint == 0 || _originalGrabbedPoint == 1.0) {
                 // dont allow x to change
             } else {
-                _vc->DeletePoint(_grabbedPoint);
-                _grabbedPoint = x;
+                // a point between the ends can be dragged past its neighbours; the ends stay put
+                const float step = vcSortablePoint::perPoint();
+                const float cur = vcSortablePoint::Normalise(_grabbedPoint);
+                x = std::clamp(vcSortablePoint::Normalise(x), step, 1.0f - step);
+                if (x != cur) {
+                    _vc->DeletePoint(_grabbedPoint);
+                    // landing on another point: carry on just past it, in the direction of the drag
+                    const float dir = x > cur ? step : -step;
+                    while (x > 0.0f && x < 1.0f && _vc->IsSetPoint(x)) {
+                        x = vcSortablePoint::Normalise(x + dir);
+                    }
+                    _grabbedPoint = x > 0.0f && x < 1.0f ? x : cur;
+                }
             }
             _vc->SetValueAt(_grabbedPoint, y);
+            if (shape) {
+                _vc->CopyPointShape(_grabbedPoint, *shape);
+            }
+            NotifyEdited();
 
             Refresh();
         }
@@ -945,14 +1178,16 @@ void ValueCurveDialog::OnTextCtrl_Parameter1Text(wxCommandEvent& event) {
     if (low == MINVOID)
         i *= _vc->GetDivisor();
     _vc->SetParameter1(i);
-    _vcp->Refresh();
+    _cyclesPreview = true; // changing Cycles shows what it looks like
+    UpdateCyclesMode();
 }
 
 void ValueCurveDialog::OnSlider_Parameter1CmdSliderUpdated(wxScrollEvent& event) {
     int val = Slider_Parameter1->GetValue();
     UpdateLinkedTextCtrl(event);
     _vc->SetParameter1(val);
-    _vcp->Refresh();
+    _cyclesPreview = true; // changing Cycles shows what it looks like
+    UpdateCyclesMode();
 }
 
 void ValueCurveDialog::OnTextCtrl_Parameter2Text(wxCommandEvent& event) {
@@ -1027,10 +1262,10 @@ void ValueCurveDialog::OnSlider_Parameter4CmdSliderUpdated(wxScrollEvent& event)
 
 void ValueCurvePanel::DrawTiming(wxAutoBufferedPaintDC& pdc, long timeMS) {
     wxSize s = GetSize();
-    float w = s.GetWidth() - 2 * X_VC_MARGIN;
+    float w = s.GetWidth() - (_leftMargin + X_VC_RIGHT);
     long interval = _end - _start;
     float pos = (float)(timeMS - _start) / (float)interval;
-    int x = pos * w + X_VC_MARGIN;
+    int x = pos * w + _leftMargin;
 
     pdc.SetPen(*wxBLUE);
     pdc.DrawLine(x, 0, x, s.GetHeight());
@@ -1054,18 +1289,350 @@ void ValueCurvePanel::DrawTiming(wxAutoBufferedPaintDC& pdc) {
     }
 }
 
+// The x of the point within a few pixels of (mx, my), the nearest if there are several; -1 if none.
+float ValueCurvePanel::PointNear(int mx, int my) const {
+    float best = -1.0f;
+    int bestDist = 7 * 7;
+    for (const auto& pt : _vc->GetPoints()) {
+        const wxPoint p = ToPixel(pt.x, pt.y);
+        const int d = (p.x - mx) * (p.x - mx) + (p.y - my) * (p.y - my);
+        if (d < bestDist) {
+            bestDist = d;
+            best = pt.x;
+        }
+    }
+    return best;
+}
+
+// Graph units per curve unit: the curve's 0-1 spans Min to the real Max, the graph's Min to the view max.
+float ValueCurvePanel::ViewScale() const {
+    if (_vc == nullptr) {
+        return 1.0f;
+    }
+    const float range = _vc->GetMax() - _vc->GetMin();
+    const float view = _vc->GetViewMax() - _vc->GetMin();
+    return range > 0.0f && view > 0.0f ? range / view : 1.0f;
+}
+
+void ValueCurvePanel::PlotRange(int& x0, int& x1) const {
+    x0 = (int)std::lround(_leftMargin);
+    x1 = GetSize().GetWidth() - (int)X_VC_RIGHT;
+}
+
+bool ValueCurvePanel::IsEditable() const {
+    return _vc != nullptr && _type == "Custom" && std::lround(_vc->GetParameter1()) == 1 && _timeOffset == 0;
+}
+
+wxPoint ValueCurvePanel::ToPixel(float x, float y) const {
+    wxSize size = GetSize();
+    float w = size.GetWidth() - (_leftMargin + X_VC_RIGHT);
+    float h = size.GetHeight() - 2 * Y_VC_MARGIN;
+    return wxPoint(std::lround(x * w + _leftMargin), std::lround(size.GetHeight() - ToView(y) * h - Y_VC_MARGIN));
+}
+
+// The selected point's Bezier handles (normalised), when it is a custom point: the first point has only an out
+// handle, the last only an in one.
+bool ValueCurvePanel::SelectedHandles(float& px, float& py, bool& hasIn, float& inX, float& inY, bool& hasOut, float& outX, float& outY) const {
+    hasIn = hasOut = false;
+    if (!IsEditable() || _grabbedPoint < 0) {
+        return false;
+    }
+    const std::list<vcSortablePoint> pts = _vc->GetPoints();
+    const float gx = vcSortablePoint::Normalise(_grabbedPoint);
+    for (auto it = pts.begin(); it != pts.end(); ++it) {
+        if (!(*it == gx)) {
+            continue;
+        }
+        if (it->shape != vcSortablePoint::Shape::Custom) {
+            return false;
+        }
+        px = it->x;
+        py = it->y;
+        float c1x, c1y, c2x, c2y;
+        if (it != pts.begin()) {
+            ValueCurve::SegmentControls(*std::prev(it), *it, c1x, c1y, inX, inY);
+            hasIn = true;
+        }
+        if (std::next(it) != pts.end()) {
+            ValueCurve::SegmentControls(*it, *std::next(it), outX, outY, c2x, c2y);
+            hasOut = true;
+        }
+        return true;
+    }
+    return false;
+}
+
+// -1 for the selected point's in handle under the mouse, 1 for its out handle, 0 for neither.
+int ValueCurvePanel::HandleAt(int mx, int my) const {
+    float px, py, inX, inY, outX, outY;
+    bool hasIn, hasOut;
+    if (!SelectedHandles(px, py, hasIn, inX, inY, hasOut, outX, outY)) {
+        return 0;
+    }
+    auto isNear = [&](float x, float y) {
+        wxPoint p = ToPixel(x, y);
+        return std::abs(p.x - mx) <= 6 && std::abs(p.y - my) <= 6;
+    };
+    if (hasOut && isNear(outX, outY)) {
+        return 1;
+    }
+    if (hasIn && isNear(inX, inY)) {
+        return -1;
+    }
+    return 0;
+}
+
+// Moves the handle being dragged to (x, y), keeping it on its own side of the point and inside the segment. With
+// `mirror` (a modifier held) on a point with both handles, the other handle goes exactly opposite, and the dragged
+// one is held to the shorter of the two segments so neither passes a neighbour.
+void ValueCurvePanel::DragHandle(float x, float y, bool mirror) {
+    const std::list<vcSortablePoint> pts = _vc->GetPoints();
+    const float gx = vcSortablePoint::Normalise(_grabbedPoint);
+    for (auto it = pts.begin(); it != pts.end(); ++it) {
+        if (!(*it == gx)) {
+            continue;
+        }
+        const bool hasPrev = it != pts.begin();
+        const bool hasNext = std::next(it) != pts.end();
+        const float before = hasPrev ? it->x - std::prev(it)->x : 0.0f; // room on each side
+        const float after = hasNext ? std::next(it)->x - it->x : 0.0f;
+        mirror = mirror && hasPrev && hasNext;
+        float reach = _dragHandle < 0 ? before : after;
+        if (mirror) {
+            reach = std::min(before, after);
+        }
+        float dx = _dragHandle < 0 ? std::clamp(x - it->x, -reach, 0.0f) : std::clamp(x - it->x, 0.0f, reach);
+        float dy = y - it->y;
+
+        float inDx = it->inDx, inDy = it->inDy, outDx = it->outDx, outDy = it->outDy;
+        if (_dragHandle < 0 && hasPrev) {
+            inDx = dx;
+            inDy = dy;
+            if (mirror) {
+                outDx = -dx;
+                outDy = -dy;
+            }
+        } else if (_dragHandle > 0 && hasNext) {
+            outDx = dx;
+            outDy = dy;
+            if (mirror) {
+                inDx = -dx;
+                inDy = -dy;
+            }
+        }
+        _vc->SetPointHandles(it->x, inDx, inDy, outDx, outDy);
+        return;
+    }
+}
+
+void ValueCurvePanel::DrawHandles(wxAutoBufferedPaintDC& pdc) {
+    float px, py, inX, inY, outX, outY;
+    bool hasIn, hasOut;
+    if (!SelectedHandles(px, py, hasIn, inX, inY, hasOut, outX, outY)) {
+        return;
+    }
+    const wxColour orange(255, 160, 40);
+    const wxPoint p = ToPixel(px, py);
+    pdc.SetBrush(wxBrush(orange));
+    for (int side : { -1, 1 }) {
+        if ((side < 0 && !hasIn) || (side > 0 && !hasOut)) {
+            continue;
+        }
+        const wxPoint hp = side < 0 ? ToPixel(inX, inY) : ToPixel(outX, outY);
+        pdc.SetPen(wxPen(orange, 1, wxPENSTYLE_SOLID));
+        pdc.DrawLine(p, hp);
+        pdc.SetPen(wxPen(_dragHandle == side ? *wxWHITE : orange, 1, wxPENSTYLE_SOLID));
+        pdc.DrawCircle(hp, 4);
+    }
+    pdc.SetBrush(*wxTRANSPARENT_BRUSH);
+}
+
+// Type in a point's position (0-100% across the curve; the ends stay put) and value.
+void ValueCurvePanel::EditPoint(float point) {
+    const vcSortablePoint* pt = _vc->FindPoint(point);
+    if (pt == nullptr) {
+        return;
+    }
+    const vcSortablePoint before = *pt;
+    const bool end = point <= 0.0f || point >= 1.0f;
+
+    wxDialog dlg(GetParent(), wxID_ANY, "Edit Point");
+    auto* grid = new wxFlexGridSizer(2, 2, 6, 8);
+    grid->AddGrowableCol(1);
+    auto* xText = new wxTextCtrl(&dlg, wxID_ANY, wxString::Format("%.1f", before.x * 100.0f));
+    auto* vText = new wxTextCtrl(&dlg, wxID_ANY, FormatValue(_vc->GetMin() + before.y * (_vc->GetMax() - _vc->GetMin())));
+    grid->Add(new wxStaticText(&dlg, wxID_ANY, "X (0 - 100%):"), 0, wxALIGN_CENTER_VERTICAL);
+    grid->Add(xText, 1, wxEXPAND);
+    grid->Add(new wxStaticText(&dlg, wxID_ANY, wxString::Format("Value (%s - %s):", FormatValue(_vc->GetMin()), FormatValue(_vc->GetViewMax()))), 0, wxALIGN_CENTER_VERTICAL);
+    grid->Add(vText, 1, wxEXPAND);
+    if (end) {
+        xText->Disable(); // the first and last points are always at 0% and 100%
+    }
+    auto* top = new wxBoxSizer(wxVERTICAL);
+    top->Add(grid, 1, wxALL | wxEXPAND, 10);
+    top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
+    dlg.SetSizerAndFit(top);
+    vText->SetFocus();
+    vText->SelectAll();
+    if (dlg.ShowModal() != wxID_OK) {
+        return;
+    }
+
+    const float lo = _vc->GetMin() / _vc->GetDivisor();
+    const float hi = _vc->GetViewMax() / _vc->GetDivisor();
+    const float v = std::clamp((float)std::strtod(vText->GetValue().utf8_str(), nullptr), std::min(lo, hi), std::max(lo, hi));
+    float newX = point;
+    if (!end) {
+        const float step = vcSortablePoint::perPoint();
+        const float pct = std::clamp((float)std::strtod(xText->GetValue().utf8_str(), nullptr), 0.0f, 100.0f);
+        newX = std::clamp(vcSortablePoint::Normalise(pct / 100.0f), step, 1.0f - step);
+        if (newX != point && _vc->IsSetPoint(newX)) {
+            wxMessageBox(wxString::Format("There is already a point at %.1f%%.", newX * 100.0f), "Edit Point", wxOK | wxICON_INFORMATION, this);
+            return;
+        }
+    }
+
+    _grabbedPoint = point;
+    SaveUndoSelected();
+    if (newX != point) {
+        _vc->DeletePoint(point);
+    }
+    _vc->SetValueAt(newX, ToNormalised(v));
+    _vc->CopyPointShape(newX, before); // its shape goes with it
+    _grabbedPoint = newX;
+    NotifyEdited();
+    Refresh();
+}
+
+// Right-click a point: choose how the curve passes through it.
+void ValueCurvePanel::mouseRightDown(wxMouseEvent& event) {
+    if (!IsEditable()) {
+        return;
+    }
+    const float px = PointNear(event.GetX(), event.GetY());
+    if (px < 0.0f) {
+        return;
+    }
+    const vcSortablePoint* pt = _vc->FindPoint(px);
+    if (pt == nullptr) {
+        return;
+    }
+    _grabbedPoint = px;
+    NotifySelected();
+    Refresh();
+
+    wxMenu menu;
+    const int idHard = wxNewId(), idEase = wxNewId(), idCustom = wxNewId();
+    menu.AppendRadioItem(idHard, "Hard Point");
+    menu.AppendRadioItem(idEase, "Ease");
+    menu.AppendRadioItem(idCustom, "Custom");
+    menu.Check(pt->shape == vcSortablePoint::Shape::Ease ? idEase : pt->shape == vcSortablePoint::Shape::Custom ? idCustom : idHard, true);
+    menu.Bind(wxEVT_MENU, [this, px, idHard, idEase, idCustom](wxCommandEvent& e) {
+        vcSortablePoint::Shape shape = e.GetId() == idEase ? vcSortablePoint::Shape::Ease
+                                     : e.GetId() == idCustom ? vcSortablePoint::Shape::Custom
+                                                             : vcSortablePoint::Shape::Hard;
+        _vc->SetPointShape(px, shape);
+        _grabbedPoint = px;
+        NotifyEdited();
+        Refresh();
+    });
+    PopupMenu(&menu);
+}
+
+// Shift, Ctrl or Cmd held: the nearest multiple of 5 of the value as shown, kept inside the curve's range.
+float ValueCurvePanel::SnapY(float y, const wxMouseEvent& event) {
+    if (!(event.ShiftDown() || event.ControlDown() || event.RawControlDown() || event.CmdDown())) {
+        return y;
+    }
+    const float lo = _vc->GetMin() / _vc->GetDivisor();
+    const float hi = _vc->GetViewMax() / _vc->GetDivisor();
+    float v = std::round(ToReal(y) / 5.0f) * 5.0f;
+    v = std::clamp(v, std::min(lo, hi), std::max(lo, hi));
+    return std::clamp(ToNormalised(v), 0.0f, 1.0f);
+}
+
+wxString ValueCurvePanel::FormatValue(float raw) const {
+    const float v = raw / _vc->GetDivisor();
+    switch (_vc->GetDivisor()) {
+    case 1:
+        // whole numbers as they are, anything else to one decimal
+        if (std::fabs(v - std::round(v)) < 0.05f) {
+            return wxString::Format("%d", (int)std::lround(v));
+        }
+        return wxString::Format("%.1f", v);
+    case 10:
+        return wxString::Format("%.1f", v);
+    default:
+        return wxString::Format("%.2f", v);
+    }
+}
+
+// Wide enough for the widest value the margin can show: the five line labels, and a dragged point's value (up to
+// one more decimal than the line labels), plus the box drawn around it.
+void ValueCurvePanel::UpdateLeftMargin(wxDC& dc) {
+    if (_vc == nullptr) {
+        return;
+    }
+    dc.SetFont(GetFont());
+    wxCoord widest = 0;
+    auto measure = [&](const wxString& s) {
+        wxCoord tw = 0, tht = 0;
+        dc.GetTextExtent(s, &tw, &tht);
+        widest = std::max(widest, tw);
+    };
+    for (int i = 0; i <= 4; i++) {
+        measure(FormatValue(_vc->GetMin() + i * (_vc->GetViewMax() - _vc->GetMin()) / 4.0f));
+    }
+    for (float raw : { _vc->GetMin(), _vc->GetMax() }) {
+        measure(wxString::Format("%.1f", raw / _vc->GetDivisor()));
+    }
+    _leftMargin = std::max(30.0f, (float)widest + 12.0f);
+}
+
+// A grey box around the plot, dotted lines at a quarter, half and three quarters of the range, and the values
+// of all five lines down the left.
+void ValueCurvePanel::DrawGrid(wxAutoBufferedPaintDC& pdc, float w, float h) {
+    const wxColour grey(128, 128, 128);
+    const int left = (int)_leftMargin;
+    const int top = (int)Y_VC_MARGIN;
+
+    pdc.SetBrush(*wxTRANSPARENT_BRUSH);
+    pdc.SetPen(wxPen(grey, 1, wxPENSTYLE_DOT));
+    for (int i = 1; i < 4; i++) {
+        int y = std::lround(top + h - i * h / 4.0f);
+        pdc.DrawLine(left, y, left + (int)w, y);
+    }
+    pdc.SetPen(wxPen(grey, 1, wxPENSTYLE_SOLID));
+    pdc.DrawRectangle(left, top, (int)w + 1, (int)h + 1);
+
+    if (_vc == nullptr) {
+        return;
+    }
+    pdc.SetFont(GetFont());
+    pdc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+    for (int i = 0; i <= 4; i++) {
+        wxString label = FormatValue(_vc->GetMin() + i * (_vc->GetViewMax() - _vc->GetMin()) / 4.0f);
+        wxCoord tw = 0, tht = 0;
+        pdc.GetTextExtent(label, &tw, &tht);
+        int y = std::lround(top + h - i * h / 4.0f);
+        pdc.DrawText(label, left - 4 - tw, y - tht / 2);
+    }
+}
+
 void ValueCurvePanel::Paint(wxPaintEvent& event) {
     // wxPaintDC pdc(this);
     wxAutoBufferedPaintDC pdc(this);
+    UpdateLeftMargin(pdc);
     pdc.SetPen(wxPen(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNHIGHLIGHT)));
     pdc.SetBrush(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_FRAMEBK)));
     wxSize size = GetSize();
-    float w = size.GetWidth() - 2 * X_VC_MARGIN;
+    float w = size.GetWidth() - (_leftMargin + X_VC_RIGHT);
     float th = size.GetHeight();
     float h = size.GetHeight() - 2 * Y_VC_MARGIN;
 
     pdc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
 
+    DrawGrid(pdc, w, h);
     DrawTiming(pdc);
 
     pdc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -1100,9 +1667,24 @@ void ValueCurvePanel::Paint(wxPaintEvent& event) {
             return val;
         };
 
-        if (pts.size() > 1) {
-            std::list<vcSortablePoint>::iterator last = pts.begin();
-            for (auto p = ++pts.begin(); p != pts.end(); ++p) {
+        // the line through the points, with curved segments drawn as many short pieces
+        std::list<vcSortablePoint> line;
+        for (auto it = pts.begin(); it != pts.end(); ++it) {
+            line.push_back(*it);
+            auto nx = std::next(it);
+            if (nx != pts.end() && !(it->IsHard() && nx->IsHard()) && it->IsWrapped() == nx->IsWrapped()) {
+                constexpr int PIECES = 32;
+                for (int s = 1; s < PIECES; ++s) {
+                    float sx = it->x + (nx->x - it->x) * s / (float)PIECES;
+                    vcSortablePoint sp(sx, std::clamp(ValueCurve::SegmentValue(*it, *nx, sx), 0.0f, 1.0f), it->IsWrapped());
+                    sp.x = sx; // off the point grid on purpose
+                    line.push_back(sp);
+                }
+            }
+        }
+        if (line.size() > 1) {
+            std::list<vcSortablePoint>::iterator last = line.begin();
+            for (auto p = ++line.begin(); p != line.end(); ++p) {
                 double x = alignX(p->x);
                 double lastx = alignX(last->x);
 
@@ -1114,19 +1696,19 @@ void ValueCurvePanel::Paint(wxPaintEvent& event) {
 
                     double yat1 = (1.0 - lastx) * (p->y - last->y) + last->y;
                     if (last->IsWrapped() == p->IsWrapped()) {
-                        pdc.DrawLine(lastx * w + X_VC_MARGIN, th - last->y * h - Y_VC_MARGIN,
-                                     1.0 * w + X_VC_MARGIN, th - yat1 * h - Y_VC_MARGIN);
+                        pdc.DrawLine(lastx * w + _leftMargin, th - ToView(last->y) * h - Y_VC_MARGIN,
+                                     1.0 * w + _leftMargin, th - ToView(yat1) * h - Y_VC_MARGIN);
                     } else {
-                        pdc.DrawLine(lastx * w + X_VC_MARGIN, th - p->y * h - Y_VC_MARGIN,
-                                     1.0 * w + X_VC_MARGIN, th - p->y * h - Y_VC_MARGIN);
+                        pdc.DrawLine(lastx * w + _leftMargin, th - ToView(p->y) * h - Y_VC_MARGIN,
+                                     1.0 * w + _leftMargin, th - ToView(p->y) * h - Y_VC_MARGIN);
                     }
 
                     if (last->IsWrapped() == p->IsWrapped()) {
-                        pdc.DrawLine(0.0 * w + X_VC_MARGIN, th - yat1 * h - Y_VC_MARGIN,
-                                     x * w + X_VC_MARGIN, th - p->y * h - Y_VC_MARGIN);
+                        pdc.DrawLine(0.0 * w + _leftMargin, th - ToView(yat1) * h - Y_VC_MARGIN,
+                                     x * w + _leftMargin, th - ToView(p->y) * h - Y_VC_MARGIN);
                     } else {
-                        pdc.DrawLine(0.0 * w + X_VC_MARGIN, th - p->y * h - Y_VC_MARGIN,
-                                     x * w + X_VC_MARGIN, th - p->y * h - Y_VC_MARGIN);
+                        pdc.DrawLine(0.0 * w + _leftMargin, th - ToView(p->y) * h - Y_VC_MARGIN,
+                                     x * w + _leftMargin, th - ToView(p->y) * h - Y_VC_MARGIN);
                     }
                 } else {
                     if (x > 1.0) {
@@ -1137,18 +1719,25 @@ void ValueCurvePanel::Paint(wxPaintEvent& event) {
                     }
 
                     if (last->IsWrapped() == p->IsWrapped()) {
-                        pdc.DrawLine(lastx * w + X_VC_MARGIN, th - last->y * h - Y_VC_MARGIN,
-                                     x * w + X_VC_MARGIN, th - p->y * h - Y_VC_MARGIN);
+                        pdc.DrawLine(lastx * w + _leftMargin, th - ToView(last->y) * h - Y_VC_MARGIN,
+                                     x * w + _leftMargin, th - ToView(p->y) * h - Y_VC_MARGIN);
                     } else {
-                        pdc.DrawLine(lastx * w + X_VC_MARGIN, th - p->y * h - Y_VC_MARGIN,
-                                     x * w + X_VC_MARGIN, th - p->y * h - Y_VC_MARGIN);
+                        pdc.DrawLine(lastx * w + _leftMargin, th - ToView(p->y) * h - Y_VC_MARGIN,
+                                     x * w + _leftMargin, th - ToView(p->y) * h - Y_VC_MARGIN);
                     }
                 }
                 last = p;
             }
         }
 
-        pdc.SetPen(wxPen(*wxRED, 2, wxPENSTYLE_SOLID));
+        // the points; the selected one is the same square in blue
+        const bool selecting = _grabbedPoint != -1 && IsEditable();
+        const float selectedX = vcSortablePoint::Normalise(_grabbedPoint);
+        if (selecting) {
+            DrawHandles(pdc);
+        }
+        const wxPen red(*wxRED, 2, wxPENSTYLE_SOLID);
+        const wxPen blue(*wxBLUE, 2, wxPENSTYLE_SOLID);
         for (auto it = pts.begin(); it != pts.end(); ++it) {
             double x = alignX(it->x);
 
@@ -1156,12 +1745,34 @@ void ValueCurvePanel::Paint(wxPaintEvent& event) {
             if (x > 1.0) {
                 x -= 1.0;
             }
-            pdc.DrawRectangle((x * w) - 2 + X_VC_MARGIN, th - (it->y * h) - 2 - Y_VC_MARGIN, 5, 5);
+            pdc.SetPen(selecting && *it == selectedX ? blue : red);
+            pdc.DrawRectangle((x * w) - 2 + _leftMargin, th - (ToView(it->y) * h) - 2 - Y_VC_MARGIN, 5, 5);
         }
 
         if (_grabbedPoint != -1 && _type == "Custom" && std::lround(_vc->GetParameter1()) == 1 && _timeOffset == 0) {
-            pdc.SetPen(wxPen(*wxBLUE, 2, wxPENSTYLE_SOLID));
-            pdc.DrawRectangle((_grabbedPoint * w) - 2 + X_VC_MARGIN, th - (_vc->GetValueAt(_grabbedPoint, 0, 1) * h) - 2 - Y_VC_MARGIN, 5, 5);
+            // the point as stored (at its normalised x), not the line a hair beside it at the raw drag position
+            const float gx = vcSortablePoint::Normalise(_grabbedPoint);
+            const float gy = _vc->IsSetPoint(gx) ? _vc->GetPointAt(gx) : _vc->GetValueAt(_grabbedPoint, 0, 1);
+            const int py = std::lround(th - ToView(gy) * h - Y_VC_MARGIN);
+            if (HasCapture() && _dragHandle == 0) {
+                // dragging: a guide across the plot and the point's value in the left margin, over the other labels
+                const wxColour lightBlue(110, 180, 255);
+                pdc.SetPen(wxPen(lightBlue, 1, wxPENSTYLE_DOT));
+                pdc.DrawLine((int)_leftMargin, py, (int)(_leftMargin + w), py);
+
+                wxString label = FormatValue(_vc->GetMin() + gy * (_vc->GetMax() - _vc->GetMin()));
+                pdc.SetFont(GetFont());
+                wxCoord tw = 0, tht = 0;
+                pdc.GetTextExtent(label, &tw, &tht);
+                const int lx = (int)_leftMargin - 4 - tw;
+                const int ly = py - tht / 2;
+                pdc.SetPen(wxPen(lightBlue, 1, wxPENSTYLE_SOLID));
+                pdc.SetBrush(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_FRAMEBK)));
+                pdc.DrawRectangle(lx - 3, ly - 1, tw + 6, tht + 2);
+                pdc.SetBrush(*wxTRANSPARENT_BRUSH);
+                pdc.SetTextForeground(lightBlue);
+                pdc.DrawText(label, lx, ly);
+            }
         }
     }
 }
@@ -1175,7 +1786,7 @@ void ValueCurveDialog::ValidateWindow() {
     if (min == MINVOID)
         min = _vc->GetMin();
     if (max == MAXVOID)
-        max = _vc->GetMax();
+        max = _vc->GetViewMax();
     if (Slider_Parameter1->GetMin() != min || Slider_Parameter1->GetMax() != max)
         Slider_Parameter1->SetRange(min, max);
     Slider_Parameter1->SetPageSize(computePageSize(min, max));
@@ -1184,7 +1795,7 @@ void ValueCurveDialog::ValidateWindow() {
     if (min == MINVOID)
         min = _vc->GetMin();
     if (max == MAXVOID)
-        max = _vc->GetMax();
+        max = _vc->GetViewMax();
     if (Slider_Parameter2->GetMin() != min || Slider_Parameter2->GetMax() != max)
         Slider_Parameter2->SetRange(min, max);
     Slider_Parameter2->SetPageSize(computePageSize(min, max));
@@ -1193,7 +1804,7 @@ void ValueCurveDialog::ValidateWindow() {
     if (min == MINVOID)
         min = _vc->GetMin();
     if (max == MAXVOID)
-        max = _vc->GetMax();
+        max = _vc->GetViewMax();
     if (Slider_Parameter3->GetMin() != min || Slider_Parameter3->GetMax() != max)
         Slider_Parameter3->SetRange(min, max);
     Slider_Parameter3->SetPageSize(computePageSize(min, max));
@@ -1202,7 +1813,7 @@ void ValueCurveDialog::ValidateWindow() {
     if (min == MINVOID)
         min = _vc->GetMin();
     if (max == MAXVOID)
-        max = _vc->GetMax();
+        max = _vc->GetViewMax();
     if (Slider_Parameter4->GetMin() != min || Slider_Parameter4->GetMax() != max)
         Slider_Parameter4->SetRange(min, max);
     Slider_Parameter4->SetPageSize(computePageSize(min, max));
@@ -1469,14 +2080,17 @@ void ValueCurveDialog::ValidateWindow() {
         Fit();
         SetSize(currentWidth, GetSize().y);
     }
+
+    UpdateCyclesMode();
 }
 
 void ValueCurveDialog::OnChar(wxKeyEvent& event) {
     wxChar uc = event.GetUnicodeKey();
-    if (_vc->GetType() == "Custom" && std::lround(_vc->GetParameter1()) == 1 && Slider_TimeOffset->GetValue() == 0 && (int)uc == (int)WXK_DELETE && _vcp->HasSelected()) {
+    // the graph decides whether its points are editable (Edit Points edits a one-cycle copy)
+    if (_vcp->IsEditable() && (int)uc == (int)WXK_DELETE && _vcp->HasSelected()) {
         _vcp->SaveUndoSelected();
         _vcp->Delete();
-    } else if (_vc->GetType() == "Custom" && std::lround(_vc->GetParameter1()) == 1 && Slider_TimeOffset->GetValue() == 0 && (uc == 'Z' || uc == 'z') && event.ControlDown() && _vcp->IsDirty()) {
+    } else if (_vcp->IsEditable() && (uc == 'Z' || uc == 'z') && event.ControlDown() && _vcp->IsDirty()) {
         _vcp->Undo();
     } else {
         event.Skip();
@@ -1486,6 +2100,7 @@ void ValueCurveDialog::OnChar(wxKeyEvent& event) {
 
 void ValueCurveDialog::OnCheckBox_WrapValuesClick(wxCommandEvent& event) {
     _vc->SetWrap(CheckBox_WrapValues->IsChecked());
+    UpdateCyclesMode();
     Refresh();
 }
 
@@ -1733,4 +2348,258 @@ void ValueCurveDialog::OnTextCtrl_FilterLabelText(wxCommandEvent& event)
 void ValueCurveDialog::OnCheckBox_FilterLabelRegexClick(wxCommandEvent& event)
 {
     _vc->SetFilterLabelRegex(CheckBox_FilterLabelRegex->IsChecked());
+}
+
+// --- colour keyframe bar ---------------------------------------------------------------------------------------
+
+ValueCurveColorBar::ValueCurveColorBar(wxWindow* parent, ValueCurvePanel* graph) :
+    wxWindow(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, 26), wxWANTS_CHARS), _graph(graph) {
+    SetMinSize(wxSize(200, 26));
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
+    SetToolTip("Colour over time. Click to add a colour, drag to move it, double-click to change it, right-click for Blend / Hard, Delete to remove it.");
+    Bind(wxEVT_PAINT, &ValueCurveColorBar::OnPaint, this);
+    Bind(wxEVT_LEFT_DOWN, &ValueCurveColorBar::OnLeftDown, this);
+    Bind(wxEVT_LEFT_UP, &ValueCurveColorBar::OnLeftUp, this);
+    Bind(wxEVT_MOTION, &ValueCurveColorBar::OnMotion, this);
+    Bind(wxEVT_LEFT_DCLICK, &ValueCurveColorBar::OnLeftDClick, this);
+    Bind(wxEVT_RIGHT_DOWN, &ValueCurveColorBar::OnRightDown, this);
+    Bind(wxEVT_KEY_DOWN, &ValueCurveColorBar::OnKeyDown, this);
+    Bind(wxEVT_MOUSE_CAPTURE_LOST, &ValueCurveColorBar::OnCaptureLost, this);
+}
+
+float ValueCurveColorBar::ToX(int mx) const {
+    int x0, x1;
+    _graph->PlotRange(x0, x1);
+    return x1 > x0 ? std::clamp((float)(mx - x0) / (float)(x1 - x0), 0.0f, 1.0f) : 0.0f;
+}
+
+int ValueCurveColorBar::ToPixel(float x) const {
+    int x0, x1;
+    _graph->PlotRange(x0, x1);
+    return x0 + (int)std::lround(x * (x1 - x0));
+}
+
+// The key under mx (the nearest within a few pixels), or -1.
+int ValueCurveColorBar::KeyAt(int mx) const {
+    if (_vc == nullptr) {
+        return -1;
+    }
+    const auto& keys = _vc->GetColorKeys();
+    int best = -1;
+    int bestDist = 8;
+    for (int i = 0; i < (int)keys.size(); ++i) {
+        const int d = std::abs(ToPixel(keys[i].x) - mx);
+        if (d < bestDist) {
+            bestDist = d;
+            best = i;
+        }
+    }
+    return best;
+}
+
+void ValueCurveColorBar::Select(int key) {
+    _selected = key;
+    if (key >= 0 && _onSelected) {
+        _onSelected();
+    }
+    Refresh();
+}
+
+void ValueCurveColorBar::SetKeys(std::vector<vcColorKey> keys, const vcColorKey* keep) {
+    vcColorKey kept;
+    if (keep != nullptr) {
+        kept = *keep;
+    }
+    _vc->SetColorKeys(std::move(keys));
+    _selected = -1;
+    if (keep != nullptr) {
+        const auto& sorted = _vc->GetColorKeys();
+        for (int i = 0; i < (int)sorted.size(); ++i) {
+            if (sorted[i].x == kept.x && sorted[i].color == kept.color && sorted[i].blend == kept.blend) {
+                _selected = i;
+                break;
+            }
+        }
+    }
+}
+
+void ValueCurveColorBar::OnPaint(wxPaintEvent& event) {
+    wxAutoBufferedPaintDC dc(this);
+    const wxSize size = GetSize();
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.SetBrush(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_FRAMEBK)));
+    dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
+    if (_vc == nullptr) {
+        return;
+    }
+    if (_selected >= (int)_vc->GetColorKeys().size()) {
+        _selected = -1;
+    }
+    int x0, x1;
+    _graph->PlotRange(x0, x1);
+    const int top = 4, bottom = size.GetHeight() - 4;
+    // the colour at every pixel column
+    for (int px = x0; px <= x1; ++px) {
+        const xlColor c = _vc->GetColorAt(x1 > x0 ? (float)(px - x0) / (float)(x1 - x0) : 0.0f);
+        dc.SetPen(wxPen(xlColorToWxColour(c)));
+        dc.DrawLine(px, top, px, bottom);
+    }
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    dc.SetPen(wxPen(wxColour(128, 128, 128)));
+    dc.DrawRectangle(x0, top, x1 - x0 + 1, bottom - top);
+
+    // the keys: a circle fades in (Blend), a square cuts in (Hard); the selected one ringed in light blue
+    const int cy = size.GetHeight() / 2;
+    const auto& keys = _vc->GetColorKeys();
+    for (int i = 0; i < (int)keys.size(); ++i) {
+        const int cx = ToPixel(keys[i].x);
+        const bool sel = i == _selected;
+        dc.SetBrush(wxBrush(xlColorToWxColour(keys[i].color)));
+        for (int ring = 0; ring < 2; ++ring) {
+            // outer ring: light blue when selected, else white; inner: black, so it shows on any colour
+            dc.SetPen(ring == 0 ? wxPen(sel ? wxColour(110, 180, 255) : *wxWHITE, sel ? 3 : 2) : wxPen(*wxBLACK, 1));
+            const int r = ring == 0 ? 7 : 5;
+            if (keys[i].blend) {
+                dc.DrawCircle(cx, cy, r);
+            } else {
+                dc.DrawRectangle(cx - r, cy - r, 2 * r + 1, 2 * r + 1);
+            }
+        }
+    }
+}
+
+void ValueCurveColorBar::OnLeftDown(wxMouseEvent& event) {
+    if (_vc == nullptr) {
+        return;
+    }
+    SetFocus();
+    const int key = KeyAt(event.GetX());
+    if (key >= 0) {
+        Select(key);
+        _dragging = true;
+        if (!HasCapture()) {
+            CaptureMouse();
+        }
+        return;
+    }
+    int x0, x1;
+    _graph->PlotRange(x0, x1);
+    if (event.GetX() < x0 - 4 || event.GetX() > x1 + 4) {
+        return;
+    }
+    // a new key, starting at the colour already there, then pick its colour
+    vcColorKey k;
+    k.x = ToX(event.GetX());
+    k.color = _vc->GetColorAt(k.x);
+    k.blend = true;
+    std::vector<vcColorKey> keys = _vc->GetColorKeys();
+    keys.push_back(k);
+    SetKeys(std::move(keys), &k);
+    Select(_selected);
+    Changed();
+    PickColour(true);
+}
+
+void ValueCurveColorBar::OnMotion(wxMouseEvent& event) {
+    if (!_dragging || !HasCapture() || _vc == nullptr || _selected < 0) {
+        return;
+    }
+    std::vector<vcColorKey> keys = _vc->GetColorKeys();
+    keys[_selected].x = ToX(event.GetX());
+    const vcColorKey moved = keys[_selected];
+    SetKeys(std::move(keys), &moved);
+    Changed();
+}
+
+void ValueCurveColorBar::OnLeftUp(wxMouseEvent& event) {
+    _dragging = false;
+    if (HasCapture()) {
+        ReleaseMouse();
+    }
+}
+
+void ValueCurveColorBar::OnCaptureLost(wxMouseCaptureLostEvent& event) {
+    _dragging = false;
+}
+
+void ValueCurveColorBar::OnLeftDClick(wxMouseEvent& event) {
+    const int key = KeyAt(event.GetX());
+    if (key < 0) {
+        return;
+    }
+    _dragging = false;
+    if (HasCapture()) {
+        ReleaseMouse();
+    }
+    Select(key);
+    PickColour(false);
+}
+
+void ValueCurveColorBar::OnRightDown(wxMouseEvent& event) {
+    const int key = KeyAt(event.GetX());
+    if (key < 0) {
+        return;
+    }
+    Select(key);
+    wxMenu menu;
+    const int idBlend = wxNewId(), idHard = wxNewId();
+    menu.AppendRadioItem(idBlend, "Blend");
+    menu.AppendRadioItem(idHard, "Hard");
+    menu.Check(_vc->GetColorKeys()[key].blend ? idBlend : idHard, true);
+    menu.Bind(wxEVT_MENU, [this, idBlend](wxCommandEvent& e) {
+        if (_selected < 0) {
+            return;
+        }
+        std::vector<vcColorKey> keys = _vc->GetColorKeys();
+        keys[_selected].blend = e.GetId() == idBlend;
+        const vcColorKey changed = keys[_selected];
+        SetKeys(std::move(keys), &changed);
+        Changed();
+    });
+    PopupMenu(&menu);
+}
+
+void ValueCurveColorBar::OnKeyDown(wxKeyEvent& event) {
+    const int code = event.GetKeyCode();
+    if ((code == WXK_DELETE || code == WXK_BACK || code == WXK_NUMPAD_DELETE) && _vc != nullptr && _selected >= 0 &&
+        _selected < (int)_vc->GetColorKeys().size()) {
+        std::vector<vcColorKey> keys = _vc->GetColorKeys();
+        keys.erase(keys.begin() + _selected);
+        SetKeys(std::move(keys), nullptr);
+        Changed();
+        return;
+    }
+    event.Skip();
+}
+
+// The colour picker for the selected key; the bar and the render follow every change. Cancel puts things back (and
+// takes away a key that was only just added).
+void ValueCurveColorBar::PickColour(bool removeOnCancel) {
+    if (_vc == nullptr || _selected < 0) {
+        return;
+    }
+    const std::vector<vcColorKey> before = _vc->GetColorKeys();
+    vcColorKey added = before[_selected];
+    auto apply = [this](const wxColour& c) {
+        if (_selected < 0) {
+            return;
+        }
+        std::vector<vcColorKey> keys = _vc->GetColorKeys();
+        keys[_selected].color = wxColourToXlColor(c);
+        _vc->SetColorKeys(std::move(keys)); // same x, so the order (and the selection) holds
+        Changed();
+    };
+    auto const& [res, colour] = xlColourData::INSTANCE.ShowColorDialog(this, xlColorToWxColour(before[_selected].color), apply);
+    if (res == wxID_OK) {
+        apply(colour);
+    } else {
+        std::vector<vcColorKey> keys = before;
+        if (removeOnCancel) {
+            keys.erase(keys.begin() + _selected);
+            SetKeys(std::move(keys), nullptr);
+        } else {
+            SetKeys(std::move(keys), &added);
+        }
+        Changed();
+    }
 }

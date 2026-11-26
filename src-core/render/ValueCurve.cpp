@@ -567,11 +567,28 @@ void ValueCurve::Reverse()
         _timeOffset = 100 - _timeOffset;
     }
 
+    if (!_colorKeys.empty()) {
+        // the fade into key i+1 becomes the fade into key i once time runs backwards
+        std::vector<vcColorKey> keys = _colorKeys;
+        const bool firstBlend = keys.front().blend;
+        for (size_t i = 0; i < keys.size(); ++i) {
+            keys[i].blend = i + 1 < _colorKeys.size() ? _colorKeys[i + 1].blend : firstBlend;
+            keys[i].x = 1.0f - keys[i].x;
+        }
+        SetColorKeys(std::move(keys));
+    }
+
     if (_type == "Custom")
     {
         for (auto& it : _values)
         {
             it.x = 1.0 - it.x;
+            // what led in now leads out
+            float inDx = it.inDx, inDy = it.inDy;
+            it.inDx = -it.outDx;
+            it.inDy = it.outDy;
+            it.outDx = -inDx;
+            it.outDy = inDy;
         }
         _values.sort();
         if (_parameter1 == 1.0f) {
@@ -646,6 +663,8 @@ void ValueCurve::Flip()
         for (auto& it : _values)
         {
             it.y = 1.0 - it.y;
+            it.inDy = -it.inDy;
+            it.outDy = -it.outDy;
         }
         if (_parameter1 == 1.0f) {
             _baseCustomValues = _values;
@@ -710,6 +729,7 @@ void ValueCurve::ConvertDivider(int oldDivider, int newDivider)
     _parameter4 = (_parameter4 * (float)newDivider) / (float)oldDivider;
     _min = (_min * (float)newDivider) / (float)oldDivider;
     _max = (_max * (float)newDivider) / (float)oldDivider;
+    _viewMax = (_viewMax * (float)newDivider) / (float)oldDivider;
 
     // values are 0-1 normalised so dont need to be converted
 }
@@ -1396,7 +1416,11 @@ void ValueCurve::RenderType()
             for (int i = 0; i < cycles; ++i) {
                 for (const auto& pt : _baseCustomValues) {
                     float newX = (pt.x + i) / (float)cycles;
-                    _values.push_back(vcSortablePoint(newX, pt.y, pt.wrapped));
+                    vcSortablePoint np(newX, pt.y, pt.wrapped);
+                    np.CopyShape(pt);
+                    np.inDx /= cycles;
+                    np.outDx /= cycles;
+                    _values.push_back(np);
                 }
             }
             _values.sort();
@@ -1452,6 +1476,8 @@ void ValueCurve::SetDefault(float min, float max, int divisor)
     _audioTrackName = "";
     _filterLabelText = "";
     _isFilterLabelRegex = false;
+    _viewMax = 0.0f;
+    _colorKeys.clear();
     _parameter1 = 0;
     _parameter2 = 0;
     _parameter3 = 0;
@@ -1527,6 +1553,8 @@ void ValueCurve::Deserialise(const std::string& s, bool holdminmax)
         _timingTrack = "";
         _filterLabelText = "";
         _isFilterLabelRegex = false;
+        _viewMax = 0.0f;
+        _colorKeys.clear();
 
         float oldmin = _min;
         float oldmax = _max;
@@ -1630,6 +1658,20 @@ std::string ValueCurve::Serialise()
         }
         res += "Min=" + fmtVC(_min) + "|";
         res += "Max=" + fmtVC(_max) + "|";
+        if (!_colorKeys.empty()) {
+            // x:RRGGBB:B (blend) or :H (hard), ; between keys
+            res += "Colors=";
+            for (size_t i = 0; i < _colorKeys.size(); ++i) {
+                const auto& k = _colorKeys[i];
+                char hex[8];
+                std::snprintf(hex, sizeof(hex), "%02X%02X%02X", k.color.red, k.color.green, k.color.blue);
+                res += (i ? ";" : "") + fmtVC(k.x) + ":" + hex + ":" + (k.blend ? "B" : "H");
+            }
+            res += "|";
+        }
+        if (HasViewMax()) {
+            res += "VMax=" + fmtVC(_viewMax) + "|";
+        }
         if (_timingTrack != "") {
             res += "TT=" + EscapePipe(_timingTrack) + "|";
         }
@@ -1685,7 +1727,14 @@ std::string ValueCurve::Serialise()
             res += "Values=";
             for (auto it = _values.begin(); it != _values.end(); ++it)
             {
+                // x:y, then :E for an eased point or :C:inDx:inDy:outDx:outDy for a custom one (readers that only
+                // know x:y stop at the second colon)
                 res += fmtVC(it->x) + ":" + fmtVC(it->y);
+                if (it->shape == vcSortablePoint::Shape::Ease) {
+                    res += ":E";
+                } else if (it->shape == vcSortablePoint::Shape::Custom) {
+                    res += ":C:" + fmtVC(it->inDx) + ":" + fmtVC(it->inDy) + ":" + fmtVC(it->outDx) + ":" + fmtVC(it->outDy);
+                }
                 if (std::next(it) != _values.end())
                 {
                     res += ";";
@@ -1824,6 +1873,30 @@ void ValueCurve::SetSerialisedValue(const std::string &k, const std::string &s)
         _min = std::strtof(s.c_str(), nullptr);
     } else if (k == "Max") {
         _max = std::strtof(s.c_str(), nullptr);
+    } else if (k == "VMax") {
+        _viewMax = std::strtof(s.c_str(), nullptr);
+    } else if (k == "Colors") {
+        std::vector<vcColorKey> keys;
+        size_t start = 0;
+        while (start < s.size()) {
+            size_t end = s.find(';', start);
+            std::string item = s.substr(start, end == std::string::npos ? std::string::npos : end - start);
+            size_t c1 = item.find(':');
+            size_t c2 = c1 == std::string::npos ? std::string::npos : item.find(':', c1 + 1);
+            if (c1 != std::string::npos) {
+                vcColorKey key;
+                key.x = std::strtof(item.substr(0, c1).c_str(), nullptr);
+                unsigned long rgb = std::strtoul(item.substr(c1 + 1, c2 == std::string::npos ? std::string::npos : c2 - c1 - 1).c_str(), nullptr, 16);
+                key.color = xlColor((uint8_t)((rgb >> 16) & 0xFF), (uint8_t)((rgb >> 8) & 0xFF), (uint8_t)(rgb & 0xFF));
+                key.blend = c2 == std::string::npos || item.substr(c2 + 1) != "H";
+                keys.push_back(key);
+            }
+            if (end == std::string::npos) {
+                break;
+            }
+            start = end + 1;
+        }
+        SetColorKeys(std::move(keys));
     } else if (k == "P1") {
         _parameter1 = std::strtof(s.c_str(), nullptr);
     } else if (k == "TO") {
@@ -1852,10 +1925,30 @@ void ValueCurve::SetSerialisedValue(const std::string &k, const std::string &s)
             }
             idx = vs.find(':');
             if (idx != std::string::npos) {
-                float x = std::strtof(vs.substr(0, idx).c_str(), nullptr);
-                float y = std::strtof(vs.substr(idx + 1).c_str(), nullptr);
+                std::vector<std::string> f;
+                size_t start = 0;
+                while (true) {
+                    size_t c = vs.find(':', start);
+                    f.push_back(vs.substr(start, c == std::string::npos ? std::string::npos : c - start));
+                    if (c == std::string::npos) {
+                        break;
+                    }
+                    start = c + 1;
+                }
+                float x = std::strtof(f[0].c_str(), nullptr);
+                float y = std::strtof(f[1].c_str(), nullptr);
 
-                _values.push_back(vcSortablePoint(x, y, false));
+                vcSortablePoint pt(x, y, false);
+                if (f.size() >= 3 && f[2] == "E") {
+                    pt.shape = vcSortablePoint::Shape::Ease;
+                } else if (f.size() >= 7 && f[2] == "C") {
+                    pt.shape = vcSortablePoint::Shape::Custom;
+                    pt.inDx = std::strtof(f[3].c_str(), nullptr);
+                    pt.inDy = std::strtof(f[4].c_str(), nullptr);
+                    pt.outDx = std::strtof(f[5].c_str(), nullptr);
+                    pt.outDy = std::strtof(f[6].c_str(), nullptr);
+                }
+                _values.push_back(pt);
             }
         }
         if (!_values.empty()) {
@@ -2292,7 +2385,7 @@ float ValueCurve::GetValueAt(float offset, long startMS, long endMS)
                 res = it->y;
             }
             else {
-                res = last.y + (it->y - last.y) * (queryOffset - last.x) / (it->x - last.x);
+                res = SegmentValue(last, *it, queryOffset);
             }
         }
     }
@@ -2356,7 +2449,7 @@ void ValueCurve::RemoveExcessCustomPoints()
 
     while (it1 != _values.end() && it2 != _values.end() && it3 != _values.end())
     {
-        if (it1->y == it2->y && it2->y == it3->y)
+        if (it1->y == it2->y && it2->y == it3->y && it1->IsHard() && it2->IsHard() && it3->IsHard())
         {
             _values.erase(it2);
             it2 = it1;
@@ -2375,17 +2468,19 @@ void ValueCurve::RemoveExcessCustomPoints()
 
 void ValueCurve::SetValueAt(float offset, float value, bool force)
 {
+    vcSortablePoint np(offset, value, false);
     auto it = _values.begin();
     while (it != _values.end() && *it <= offset)
     {
         if (*it == offset && !force)
         {
+            np.CopyShape(*it); // a new value for the same point keeps its shape
             _values.remove(*it);
             break;
         }
         ++it;
     }
-    _values.push_back(vcSortablePoint(offset, value, false));
+    _values.push_back(np);
     _values.sort();
 
     if (_type == "Custom" && _parameter1 == 1.0f) {
@@ -2456,6 +2551,189 @@ bool ValueCurve::NearCustomPoint(float x, float y) const
     return false;
 }
 
+void ValueCurve::SetColorKeys(std::vector<vcColorKey> keys)
+{
+    for (auto& k : keys) {
+        k.x = std::clamp(k.x, 0.0f, 1.0f);
+    }
+    std::stable_sort(keys.begin(), keys.end(), [](const vcColorKey& a, const vcColorKey& b) { return a.x < b.x; });
+    _colorKeys = std::move(keys);
+}
+
+xlColor ValueCurve::GetColorAt(float offset) const
+{
+    if (_colorKeys.empty()) {
+        return xlBLACK;
+    }
+    if (_colorKeys.size() == 1) {
+        return _colorKeys.front().color; // it goes from itself to itself: solid throughout, Blend or Hard
+    }
+    const float o = std::clamp(offset, 0.0f, 1.0f);
+    auto mix = [](const xlColor& a, const xlColor& b, float t) {
+        t = std::clamp(t, 0.0f, 1.0f);
+        return xlColor((uint8_t)std::lround(a.red + (b.red - a.red) * t),
+                       (uint8_t)std::lround(a.green + (b.green - a.green) * t),
+                       (uint8_t)std::lround(a.blue + (b.blue - a.blue) * t));
+    };
+    const vcColorKey& first = _colorKeys.front();
+    const vcColorKey& last = _colorKeys.back();
+    const bool loop = _wrap && first.blend;
+
+    size_t next = 0;
+    while (next < _colorKeys.size() && _colorKeys[next].x <= o) {
+        ++next;
+    }
+    if (next == 0) {
+        // before the first key
+        if (loop) {
+            const float from = last.x - 1.0f;
+            return mix(last.color, first.color, first.x > from ? (o - from) / (first.x - from) : 1.0f);
+        }
+        if (_wrap) {
+            return last.color; // a hard first key: the loop holds the last colour until it cuts in
+        }
+        return first.color; // not looping: the first colour from the start
+    }
+    if (next == _colorKeys.size()) {
+        // after the last key
+        if (loop) {
+            const float to = first.x + 1.0f;
+            return mix(last.color, first.color, to > last.x ? (o - last.x) / (to - last.x) : 0.0f);
+        }
+        return last.color;
+    }
+    const vcColorKey& a = _colorKeys[next - 1];
+    const vcColorKey& b = _colorKeys[next];
+    if (!b.blend || b.x <= a.x) {
+        return a.color;
+    }
+    return mix(a.color, b.color, (o - a.x) / (b.x - a.x));
+}
+
+const vcSortablePoint* ValueCurve::FindPoint(float x) const
+{
+    for (const auto& it : _values) {
+        if (it == x) {
+            return &it;
+        }
+    }
+    return nullptr;
+}
+
+void ValueCurve::SetPointShape(float x, vcSortablePoint::Shape shape)
+{
+    for (auto it = _values.begin(); it != _values.end(); ++it) {
+        if (!(*it == x)) {
+            continue;
+        }
+        if (shape == vcSortablePoint::Shape::Custom && it->shape != vcSortablePoint::Shape::Custom) {
+            // start from the eased shape: flat handles a third of the way to each neighbour
+            auto prev = it == _values.begin() ? _values.end() : std::prev(it);
+            auto next = std::next(it);
+            it->inDx = prev != _values.end() ? -(it->x - prev->x) / 3.0f : 0.0f;
+            it->outDx = next != _values.end() ? (next->x - it->x) / 3.0f : 0.0f;
+            it->inDy = 0.0f;
+            it->outDy = 0.0f;
+        }
+        it->shape = shape;
+        break;
+    }
+    if (_type == "Custom" && _parameter1 == 1.0f) {
+        _baseCustomValues = _values;
+    }
+}
+
+void ValueCurve::CopyPointShape(float x, const vcSortablePoint& from)
+{
+    for (auto& it : _values) {
+        if (it == x) {
+            it.CopyShape(from);
+            break;
+        }
+    }
+    if (_type == "Custom" && _parameter1 == 1.0f) {
+        _baseCustomValues = _values;
+    }
+}
+
+void ValueCurve::SetPointHandles(float x, float inDx, float inDy, float outDx, float outDy)
+{
+    for (auto& it : _values) {
+        if (it == x) {
+            it.inDx = std::min(0.0f, inDx);
+            it.inDy = inDy;
+            it.outDx = std::max(0.0f, outDx);
+            it.outDy = outDy;
+            break;
+        }
+    }
+    if (_type == "Custom" && _parameter1 == 1.0f) {
+        _baseCustomValues = _values;
+    }
+}
+
+void ValueCurve::SegmentControls(const vcSortablePoint& a, const vcSortablePoint& b, float& c1x, float& c1y, float& c2x, float& c2y)
+{
+    const float len = b.x - a.x;
+    switch (a.shape) {
+    case vcSortablePoint::Shape::Ease:
+        c1x = a.x + len / 3.0f;
+        c1y = a.y;
+        break;
+    case vcSortablePoint::Shape::Custom:
+        // kept inside the segment so the curve stays a function of x
+        c1x = a.x + std::clamp(a.outDx, 0.0f, len);
+        c1y = a.y + a.outDy;
+        break;
+    default:
+        c1x = a.x;
+        c1y = a.y;
+        break;
+    }
+    switch (b.shape) {
+    case vcSortablePoint::Shape::Ease:
+        c2x = b.x - len / 3.0f;
+        c2y = b.y;
+        break;
+    case vcSortablePoint::Shape::Custom:
+        c2x = b.x + std::clamp(b.inDx, -len, 0.0f);
+        c2y = b.y + b.inDy;
+        break;
+    default:
+        c2x = b.x;
+        c2y = b.y;
+        break;
+    }
+}
+
+float ValueCurve::SegmentValue(const vcSortablePoint& a, const vcSortablePoint& b, float x)
+{
+    const float len = b.x - a.x;
+    if (len <= 0.0f) {
+        return b.y;
+    }
+    if (a.IsHard() && b.IsHard()) {
+        return a.y + (b.y - a.y) * (x - a.x) / len;
+    }
+    float c1x, c1y, c2x, c2y;
+    SegmentControls(a, b, c1x, c1y, c2x, c2y);
+    auto bez = [](float p0, float p1, float p2, float p3, float t) {
+        const float u = 1.0f - t;
+        return u * u * u * p0 + 3.0f * u * u * t * p1 + 3.0f * u * t * t * p2 + t * t * t * p3;
+    };
+    // the t where the curve reaches x (x(t) rises from a.x to b.x)
+    float lo = 0.0f, hi = 1.0f;
+    for (int i = 0; i < 30; ++i) {
+        const float mid = (lo + hi) / 2.0f;
+        if (bez(a.x, c1x, c2x, b.x, mid) < x) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    return bez(a.y, c1y, c2y, b.y, (lo + hi) / 2.0f);
+}
+
 float ValueCurve::GetPointAt(float x) const
 {
     for (const auto& it : _values) {
@@ -2504,6 +2782,8 @@ void ValueCurve::ScaleAndOffsetValues(float scale, int offset)
         }
         for (auto& it : _values) {
             it.y = ScaleVal(it.y, range);
+            it.inDy *= scale * _divisor;
+            it.outDy *= scale * _divisor;
         }
         if (_parameter1 == 1.0f) {
             _baseCustomValues = _values;
@@ -2570,7 +2850,11 @@ void ValueCurve::ReconstructBaseCustomValues() {
             if (count >= N) break;
             float newX = pt.x * c;
             if (newX > 1.0f) newX = 1.0f;
-            _baseCustomValues.push_back(vcSortablePoint(newX, pt.y, pt.wrapped));
+            vcSortablePoint np(newX, pt.y, pt.wrapped);
+            np.CopyShape(pt);
+            np.inDx *= c;
+            np.outDx *= c;
+            _baseCustomValues.push_back(np);
             count++;
         }
         _baseCustomValues.sort();

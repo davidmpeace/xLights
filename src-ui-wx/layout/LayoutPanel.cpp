@@ -529,6 +529,7 @@ const long LayoutPanel::ID_ADD_DMX_SERVO = wxNewId();
 const long LayoutPanel::ID_ADD_DMX_SERVO_3D = wxNewId();
 const long LayoutPanel::ID_ADD_DMX_FLOODLIGHT = wxNewId();
 const long LayoutPanel::ID_ADD_DMX_FLOODAREA = wxNewId();
+const long LayoutPanel::ID_ADD_DMX_FOUNTAIN = wxNewId();
 const long LayoutPanel::ID_PREVIEW_MODEL_CAD_EXPORT = wxNewId();
 const long LayoutPanel::ID_PREVIEW_LAYOUT_DXF_EXPORT = wxNewId();
 const long LayoutPanel::ID_PREVIEW_EXPORT_FACESSTATESSUBMODELS = wxNewId();
@@ -10190,6 +10191,7 @@ void LayoutPanel::DisplayAddDmxPopup() {
         AddObjectButton(mnuObjects, ID_ADD_DMX_SERVO_3D, "Servo 3D", add_dmx_servo3d_xpm);
     }
     AddObjectButton(mnuObjects, ID_ADD_DMX_SKULL, "Skull", add_dmx_skulltronix_xpm);
+    AddObjectButton(mnuObjects, ID_ADD_DMX_FOUNTAIN, "Fountain", add_dmx_fountain_xpm);
     mnuObjects.Connect(wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&LayoutPanel::OnAddDmxPopup, nullptr, this);
     selectedDmxModelType = "";
     PopupMenu(&mnuObjects);
@@ -10241,6 +10243,11 @@ void LayoutPanel::OnAddDmxPopup(wxCommandEvent& event)
     else if (id == ID_ADD_DMX_SKULL) {
         spdlog::debug("OnAddDmxPopup - ID_ADD_DMX_SKULL");
         selectedDmxModelType = "DmxSkull";
+        object_created = true;
+    }
+    else if (id == ID_ADD_DMX_FOUNTAIN) {
+        spdlog::debug("OnAddDmxPopup - ID_ADD_DMX_FOUNTAIN");
+        selectedDmxModelType = "DmxFountain";
         object_created = true;
     }
 
