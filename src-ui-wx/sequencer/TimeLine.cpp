@@ -8,6 +8,7 @@
  * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
+#include <algorithm>
 #include <cmath>
 
 #include <wx/wx.h>
@@ -32,6 +33,7 @@
 #include "render/SequenceElementCommands.h"
 #include "xLightsMain.h"
 #include "shared/utils/wxUtilities.h"
+#include "shared/utils/ExternalHooksUI.h"
 #include <log.h>
 
 #include <functional>
@@ -1074,6 +1076,7 @@ int TimeLine::GetTimeFrequency() const
 void TimeLine::SetZoomLevel(int level)
 {
     mInFitZoom = false;
+    mFreeZoom = false;
     mZoomLevel = level;
     if( (mZoomMarkerMS != -1) && ((mEndTimeMS - mStartTimeMS) > 0) )
     {
@@ -1138,6 +1141,19 @@ int TimeLine::GetZoomLevel() const
 
 void TimeLine::ZoomOut()
 {
+    if (mFreeZoom) {
+        // from a smooth zoom: the next level out
+        const int tick = TimePerMajorTickInMS();
+        const int maxZoom = GetMaxZoomLevel();
+        for (int z = 0; z < maxZoom; ++z) {
+            if (TimePerMajorTickInMS(z) > tick) {
+                SetZoomLevel(z);
+                return;
+            }
+        }
+        SetFitZoom();
+        return;
+    }
     if (mInFitZoom) {
         mInFitZoom = false;
         int maxZoom = GetMaxZoomLevel();
@@ -1171,6 +1187,85 @@ void TimeLine::ZoomOut()
     }
 }
 
+void TimeLine::WheelZoom(const wxMouseEvent& event, int position)
+{
+    // a trackpad reports how far the fingers moved, in pixels; a wheel turns in notches (WheelDelta each), counted
+    // as NOTCH_PIXELS of travel so a quick spin zooms further than a slow one
+    constexpr double NOTCH_PIXELS = 40.0;
+    double pixels = event.GetWheelRotation();
+    if (!IsMouseEventFromTouchpad()) {
+        pixels = pixels / std::max(1, event.GetWheelDelta()) * NOTCH_PIXELS;
+    }
+    // e^(0.008 * 100): about 2.2x for 100 px of travel; scrolling up (positive) zooms in
+    constexpr double ZOOM_PER_PIXEL = 0.008;
+    QueueZoom(-pixels * ZOOM_PER_PIXEL, position);
+}
+
+void TimeLine::MagnifyZoom(double magnification, int position)
+{
+    // spreading the fingers (positive) zooms in
+    QueueZoom(-std::log1p(std::max(-0.9, magnification)), position);
+}
+
+void TimeLine::QueueZoom(double logFactor, int position)
+{
+    // events come faster than the sequencer redraws: gather them and zoom once per pass of the event loop
+    mPendingZoomLog += logFactor;
+    mPendingZoomPosition = position;
+    if (mPendingZoomQueued) {
+        return;
+    }
+    mPendingZoomQueued = true;
+    CallAfter([this]() {
+        mPendingZoomQueued = false;
+        const double factor = std::exp(mPendingZoomLog);
+        mPendingZoomLog = 0.0;
+        if (std::abs(factor - 1.0) > 0.0001) {
+            ZoomByFactor(factor, mPendingZoomPosition);
+        }
+    });
+}
+
+void TimeLine::ZoomByFactor(double factor, int position)
+{
+    const int w = GetSize().x;
+    if (w <= 0 || mTimeLength <= 0) {
+        return;
+    }
+    const double tickNow = mFreeZoom ? mFreeTickMS : (double)TimePerMajorTickInMS();
+    const double anchorMS = mStartTimeMS + position * tickNow / PIXELS_PER_MAJOR_HASH;
+    // from a frame per tick to the whole sequence across the window
+    const double minTick = (double)TimePerMajorTickInMS(0);
+    const double fitTick = (double)mTimeLength * PIXELS_PER_MAJOR_HASH / (double)w;
+    const double tick = std::clamp(tickNow * factor, minTick, std::max(minTick, fitTick));
+    if (factor > 1.0 && tick >= fitTick) {
+        if (!mInFitZoom) {
+            SetFitZoom(); // all of it shows: the usual fit to the window
+        }
+        return;
+    }
+    mInFitZoom = false;
+    mFreeZoom = true;
+    mFreeTickMS = tick;
+    // the level just in from it, for the waveform's cache and the scrollbar
+    const int maxZoom = GetMaxZoomLevel();
+    int level = 0;
+    for (int z = 0; z < maxZoom; ++z) {
+        if (TimePerMajorTickInMS(z) <= tick) {
+            level = z;
+        }
+    }
+    mZoomLevel = std::min(level, std::max(0, maxZoom - 1));
+    // keep the anchored time under the cursor, the view within the sequence
+    const double viewMS = w * (double)TimePerMajorTickInMS() / PIXELS_PER_MAJOR_HASH;
+    const double start = anchorMS - position * (double)TimePerMajorTickInMS() / PIXELS_PER_MAJOR_HASH;
+    mStartTimeMS = (int)std::lround(std::clamp(start, 0.0, std::max(0.0, (double)mTimeLength - viewMS)));
+    mEndTimeMS = GetMaxViewableTimeMS();
+    mStartPixelOffset = GetPixelOffsetFromStartTime();
+    RecalcMarkerPositions();
+    RaiseChangeTimeline();
+}
+
 void TimeLine::ZoomAtPosition(bool zoomIn, int position)
 {
     // SetZoomLevel keeps the zoom marker where it is on screen: make that the time under the cursor for this zoom
@@ -1186,6 +1281,18 @@ void TimeLine::ZoomAtPosition(bool zoomIn, int position)
 
 void TimeLine::ZoomIn()
 {
+    if (mFreeZoom) {
+        // from a smooth zoom: the next level in
+        const int tick = TimePerMajorTickInMS();
+        int level = 0;
+        for (int z = 0; z < GetMaxZoomLevel(); ++z) {
+            if (TimePerMajorTickInMS(z) < tick) {
+                level = z;
+            }
+        }
+        SetZoomLevel(level);
+        return;
+    }
     if (mInFitZoom) {
         mInFitZoom = false;
         SetZoomLevel(GetMaxZoomLevel() - 1);
@@ -1240,6 +1347,7 @@ void TimeLine::SetFitZoom()
     mFitTimePerMajorTickMS = niceFitTickMS(idealTickMS);
     mZoomLevel = GetMaxZoomLevel();  // keep Waveform using overview-level audio data
     mInFitZoom = true;
+    mFreeZoom = false;
     mStartTimeMS = 0;
     mStartPixelOffset = 0;
     mEndTimeMS = GetMaxViewableTimeMS();  // may be slightly > mTimeLength due to rounding up
@@ -1679,6 +1787,9 @@ void TimeLine::DrawRectangle(wxDC& dc, int x1, int y1, int x2, int y2)
 
 int TimeLine::TimePerMajorTickInMS()
 {
+    if (mFreeZoom && mFreeTickMS > 0.0) {
+        return std::max(1, (int)std::lround(mFreeTickMS));
+    }
     if (mInFitZoom && mTimeLength > 0) {
         int w = GetSize().x;
         if (w > 0) {

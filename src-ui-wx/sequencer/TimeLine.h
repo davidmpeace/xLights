@@ -98,6 +98,10 @@ public:
     void ZoomOut();
     // Zooms keeping the time at `position` (pixels) where it is: into or out of what's under the cursor.
     void ZoomAtPosition(bool zoomIn, int position);
+    // Smooth zoom around the time at `position`: a scroll wheel / trackpad (Cmd + scroll) zooms in proportion to how
+    // far it moves, a pinch by its magnification. Bursts of events are applied together.
+    void WheelZoom(const wxMouseEvent& event, int position);
+    void MagnifyZoom(double magnification, int position);
     void ZoomSelection();
     int GetTotalViewableTimeMS(int zoom);
 
@@ -204,6 +208,14 @@ private:
     bool mShowAlternateTimingFormat;
     bool mInFitZoom = false;
     double mFitTimePerMajorTickMS = 0.0;
+    // Smooth zoom: any time per tick, not just ZoomLevelValues (mZoomLevel then holds the level just in from it)
+    bool mFreeZoom = false;
+    double mFreeTickMS = 0.0;
+    double mPendingZoomLog = 0.0;
+    int mPendingZoomPosition = 0;
+    bool mPendingZoomQueued = false;
+    void QueueZoom(double logFactor, int position);
+    void ZoomByFactor(double factor, int position);
 
     void Paint(wxPaintEvent& event);
     void render(wxDC& dc);

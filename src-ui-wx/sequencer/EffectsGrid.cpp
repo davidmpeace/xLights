@@ -8547,26 +8547,18 @@ void EffectsGrid::CreateEffectIconTextures(xlGraphicsContext* ctx) {
 }
 
 void EffectsGrid::magnify(wxMouseEvent& event) {
-    magSinceLast += event.GetMagnification();
-    if (magSinceLast > 0.05f) {
-        if (mTimeline != nullptr) {
-            mTimeline->ZoomAtPosition(true, event.GetX()); // into what's under the cursor
-        }
-        magSinceLast = 0;
-    } else if (magSinceLast < -0.05f) {
-        if (mTimeline != nullptr) {
-            mTimeline->ZoomAtPosition(false, event.GetX());
-        }
-        magSinceLast = 0;
+    // a pinch zooms smoothly into or out of what's under the fingers
+    if (mTimeline != nullptr) {
+        mTimeline->MagnifyZoom(event.GetMagnification(), event.GetX());
     }
 }
 
 void EffectsGrid::mouseWheelMoved(wxMouseEvent& event) {
     magSinceLast = 0;
-    if (event.CmdDown()) {
-        // into or out of what's under the cursor
+    if (event.CmdDown() || event.RawControlDown()) {
+        // smooth zoom into or out of what's under the cursor
         if (mTimeline != nullptr) {
-            mTimeline->ZoomAtPosition(event.GetWheelRotation() >= 0, event.GetX());
+            mTimeline->WheelZoom(event, event.GetX());
         }
     } else if (event.ShiftDown()) {
         int i = event.GetWheelRotation();

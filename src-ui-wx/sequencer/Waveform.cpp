@@ -684,16 +684,10 @@ void Waveform::mouseMoved(wxMouseEvent& event)
 
 void Waveform::mouseWheelMoved(wxMouseEvent& event)
 {
-    if(event.CmdDown()) {
-        int i = event.GetWheelRotation();
-        if (i < 0) {
-            wxCommandEvent eventZoom(EVT_ZOOM);
-            eventZoom.SetInt(ZOOM_OUT);
-            wxPostEvent(mParent, eventZoom);
-        } else {
-            wxCommandEvent eventZoom(EVT_ZOOM);
-            eventZoom.SetInt(ZOOM_IN);
-            wxPostEvent(mParent, eventZoom);
+    if(event.CmdDown() || event.RawControlDown()) {
+        // smooth zoom into or out of what's under the cursor
+        if (mTimeline != nullptr) {
+            mTimeline->WheelZoom(event, event.GetX());
         }
     } else if (event.ShiftDown()) {
         int i = event.GetWheelRotation();
