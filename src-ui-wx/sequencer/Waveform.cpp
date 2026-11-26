@@ -229,6 +229,14 @@ void Waveform::mouseLeftDown( wxMouseEvent& event)
     wxCommandEvent eventSelected(EVT_WAVE_FORM_HIGHLIGHT);
     eventSelected.SetInt(0);
     wxPostEvent(mParent, eventSelected);
+
+    // stopped or paused: show the frame clicked on, as a scrub does (playing carries on as it was)
+    const int status = xLightsApp::GetFrame()->GetPlayStatus();
+    if (m_drag_mode == DRAG_NORMAL && status != PLAY_TYPE_EFFECT && status != PLAY_TYPE_MODEL) {
+        wxCommandEvent eventScrub(EVT_SCRUB);
+        eventScrub.SetInt(mTimeline->GetSelectedPositionStartMS());
+        wxPostEvent(mParent, eventScrub);
+    }
 }
 
 void Waveform::mouseLeftUp( wxMouseEvent& event)
