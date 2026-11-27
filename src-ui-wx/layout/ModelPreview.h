@@ -43,6 +43,7 @@ class PreviewPane;
 class LayoutGroup;
 class xLightsFrame;
 class xlVertex3Accumulator;
+class xlImage;
 
 class ModelPreview : public GRAPHICS_BASE_CLASS, public IModelPreview
 {
@@ -165,6 +166,9 @@ public:
     float GetCameraRotationX() const override { return (is3d ? camera3d->GetAngleX() : camera2d->GetAngleX()); }
     float GetCameraRotationY() const override { return (is3d ? camera3d->GetAngleY() : camera2d->GetAngleY()); }
     void SetPan(float deltax, float deltay, float deltaz);
+    // pans the 3D camera across the screen as it is turned: by world units, or by pixels so the point turned about follows the mouse
+    void PanCamera3D(float right, float down);
+    void PanCamera3DPixels(float right, float down);
     struct View2DOffset { float panX, panY, zoomCorrX, zoomCorrY; };
     View2DOffset Get2DViewOffset() const { return { camera2d->GetPanX(), camera2d->GetPanY(), camera2d->GetZoomCorrX(), camera2d->GetZoomCorrY() }; }
     void Set2DViewOffset(const View2DOffset& o) { camera2d->SetPanX(o.panX); camera2d->SetPanY(o.panY); camera2d->SetZoomCorrX(o.zoomCorrX); camera2d->SetZoomCorrY(o.zoomCorrY); }
@@ -217,6 +221,16 @@ public:
     void ShowPencilSizeMenu();
     void OnPencilMenuSelected(wxCommandEvent& event);
 
+    // The view cube in the top-right of the 3D layout (as in Fusion 360): a face, edge or corner turns the camera to
+    // look from there at what it looks at now; the arrows beside a face-on cube turn to the next face or roll 90 degrees;
+    // the house goes to the default viewpoint. Each moves the camera smoothly. The mouse handlers return true for
+    // what the cube took (the click, or hovering over it).
+    void SetViewCubeEnabled(bool b) { _viewCubeEnabled = b; }
+    bool ViewCubeMouseDown(wxMouseEvent& event);
+    bool ViewCubeMouseMove(wxMouseEvent& event);
+    bool ViewCubeMouseUp(wxMouseEvent& event);
+    void ViewCubeMouseLeave();
+
 
     void render() override;
     
@@ -238,6 +252,37 @@ protected:
 
 private:
     void setupCameras();
+
+    // view cube (ModelPreviewViewCube.cpp)
+    enum class ViewCubePart { None, Region, Home, RollLeft, RollRight, ArrowUp, ArrowDown, ArrowLeft, ArrowRight };
+    struct ViewCubeHit {
+        ViewCubePart part = ViewCubePart::None;
+        glm::ivec3 dir = glm::ivec3(0); // Region: the face, edge or corner, as a direction with -1/0/1 components
+        bool operator==(const ViewCubeHit& o) const { return part == o.part && dir == o.dir; }
+    };
+    struct ViewCubeLayout {
+        float cx, cy, size;
+    };
+    bool ViewCubeShown() const;
+    ViewCubeLayout GetViewCubeLayout() const;
+    ViewCubeHit ViewCubeHitTest(int x, int y) const;
+    bool ViewCubeFaceOn() const;
+    void AddViewCubeToProgram();
+    void AnimateCameraTo(const PreviewCamera& target);
+    void ViewCubeClicked(const ViewCubeHit& hit);
+    bool _viewCubeEnabled = false;
+    ViewCubeHit _viewCubeHover;
+    bool _viewCubeSwallowUp = false;
+    wxTimer _viewCubeTimer;
+    bool _viewCubeTimerBound = false;
+    std::unique_ptr<PreviewCamera> _animFrom;
+    std::unique_ptr<PreviewCamera> _animTo;
+    wxLongLong _animStart = 0;
+    // the cube is drawn (anti-aliased, by wx) into an image, redrawn when what it shows changes
+    std::shared_ptr<xlImage> _viewCubeImage;
+    std::string _viewCubeKey;
+    bool _viewCubeImageChanged = false;
+    xlTexture* _viewCubeTexture = nullptr;
 	void Paint(wxPaintEvent& event);
 	void SetOrigin();
 	void mouseMoved(wxMouseEvent& event);

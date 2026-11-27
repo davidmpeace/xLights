@@ -84,6 +84,7 @@
     <ClCompile Include="..\src-ui-wx\import_export\LorConvertDialog.cpp" />
     <ClCompile Include="..\src-ui-wx\sequencer\LyricsDialog.cpp" />
     <ClCompile Include="..\src-ui-wx\layout\ModelPreview.cpp" />
+    <ClCompile Include="..\src-ui-wx\layout\ModelPreviewViewCube.cpp" />
     <ClCompile Include="..\src-core\models\Shapes.cpp" />
     <ClCompile Include="..\src-ui-wx\import_export\MusicXML.cpp" />
     <ClCompile Include="..\src-ui-wx\sequencer\NewTimingDialog.cpp" />

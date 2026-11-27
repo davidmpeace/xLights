@@ -542,6 +542,7 @@
 		<Unit filename="../src-ui-wx/layout/ModelGroupPanel.cpp" />
 		<Unit filename="../src-ui-wx/layout/ModelGroupPanel.h" />
 		<Unit filename="../src-ui-wx/layout/ModelPreview.cpp" />
+		<Unit filename="../src-ui-wx/layout/ModelPreviewViewCube.cpp" />
 		<Unit filename="../src-ui-wx/layout/ModelPreview.h" />
 		<Unit filename="../src-core/graphics/IModelPreview.h" />
 		<Unit filename="../src-ui-wx/import_export/ModelRemap.cpp" />

@@ -5664,6 +5664,10 @@ void LayoutPanel::ProcessLeftMouseClick3D(wxMouseEvent& event)
 
 void LayoutPanel::OnPreviewLeftDown(wxMouseEvent& event)
 {
+    if (modelPreview->ViewCubeMouseDown(event)) {
+        modelPreview->SetFocus();
+        return; // the view cube turns the camera
+    }
     _dragUndoTaken = false;
     bool clearedHighlight = false;
     for (auto m : modelPreview->GetModels()) {
@@ -5983,6 +5987,9 @@ void LayoutPanel::OnPreviewLeftDown(wxMouseEvent& event)
 
 void LayoutPanel::OnPreviewLeftUp(wxMouseEvent& event)
 {
+    if (modelPreview->ViewCubeMouseUp(event)) {
+        return;
+    }
     if (m_polyline_active) {
         m_mouse_down = false;
         SetMouseStateForModels(m_mouse_down);
@@ -6780,6 +6787,7 @@ void LayoutPanel::FinalizeModel()
 
 void LayoutPanel::OnPreviewMouseLeave(wxMouseEvent& event)
 {
+    modelPreview->ViewCubeMouseLeave();
     m_dragging = false;
     m_wheel_down = false;
 }
@@ -6996,33 +7004,7 @@ void LayoutPanel::OnPreviewMouseWheel(wxMouseEvent& event)
                     new_y /= 4.0f;
                 }
 
-                // account for grid rotation
-                float angleX = glm::radians(modelPreview->GetCameraRotationX());
-                float angleY = glm::radians(modelPreview->GetCameraRotationY());
-                float delta_x = 0.0f;
-                float delta_y = 0.0f;
-                float delta_z = 0.0f;
-                bool top_view = (angleX > glm::radians(45.0f)) && (angleX < glm::radians(135.0f));
-                bool bottom_view = (angleX > glm::radians(225.0f)) && (angleX < glm::radians(315.0f));
-                bool upside_down_view = (angleX >= glm::radians(135.0f)) && (angleX <= glm::radians(225.0f));
-                if( top_view ) {
-                    delta_x = new_x * std::cos(angleY) - new_y * std::sin(angleY);
-                    delta_z = new_y * std::cos(angleY) + new_x * std::sin(angleY);
-                } else if( bottom_view ) {
-                    delta_x = new_x * std::cos(angleY) + new_y * std::sin(angleY);
-                    delta_z = -new_y * std::cos(angleY) + new_x * std::sin(angleY);
-                } else {
-                    delta_x = new_x * std::cos(angleY);
-                    delta_y = new_y;
-                    delta_z = new_x * std::sin(angleY);
-                    if( !upside_down_view ) {
-                        delta_y *= -1.0f;
-                    }
-                }
-                delta_x *= modelPreview->GetZoom() * 2.0f;
-                delta_y *= modelPreview->GetZoom() * 2.0f;
-                delta_z *= modelPreview->GetZoom() * 2.0f;
-                modelPreview->SetPan(delta_x, delta_y, delta_z);
+                modelPreview->PanCamera3D(new_x * modelPreview->GetZoom() * 2.0f, new_y * modelPreview->GetZoom() * 2.0f);
             } else if (!fromTrackPad || event.ControlDown()) {
                 int mouse_x = event.GetX();
                 int mouse_y = event.GetY();
@@ -7044,35 +7026,7 @@ void LayoutPanel::OnPreviewMouseWheel(wxMouseEvent& event)
                 float new_x = deltax * zoom_delta / zoom;
                 float new_y = deltay * zoom_delta / zoom;
 
-                // account for grid rotation
-                float angleX = glm::radians(modelPreview->GetCameraRotationX());
-                float angleY = glm::radians(modelPreview->GetCameraRotationY());
-                float delta_x = 0.0f;
-                float delta_y = 0.0f;
-                float delta_z = 0.0f;
-                bool top_view = (angleX > glm::radians(45.0f)) && (angleX < glm::radians(135.0f));
-                bool bottom_view = (angleX > glm::radians(225.0f)) && (angleX < glm::radians(315.0f));
-                bool upside_down_view = (angleX >= glm::radians(135.0f)) && (angleX <= glm::radians(225.0f));
-                if (top_view) {
-                    delta_x = new_x * std::cos(angleY) - new_y * std::sin(angleY);
-                    delta_z = new_y * std::cos(angleY) + new_x * std::sin(angleY);
-                }
-                else if (bottom_view) {
-                    delta_x = new_x * std::cos(angleY) + new_y * std::sin(angleY);
-                    delta_z = -new_y * std::cos(angleY) + new_x * std::sin(angleY);
-                }
-                else {
-                    delta_x = new_x * std::cos(angleY);
-                    delta_y = new_y;
-                    delta_z = new_x * std::sin(angleY);
-                    if (!upside_down_view) {
-                        delta_y *= -1.0f;
-                    }
-                }
-                delta_x *= modelPreview->GetZoom() * 2.0f;
-                delta_y *= modelPreview->GetZoom() * 2.0f;
-                delta_z *= modelPreview->GetZoom() * 2.0f;
-                modelPreview->SetPan(delta_x, delta_y, delta_z);
+                modelPreview->PanCamera3D(new_x * modelPreview->GetZoom() * 2.0f, new_y * modelPreview->GetZoom() * 2.0f);
             } else {
                 float delta_x = event.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL ? 0 : -event.GetWheelRotation();
                 float delta_y = event.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL ? -event.GetWheelRotation() : 0;
@@ -7150,33 +7104,7 @@ void LayoutPanel::OnPreviewMouseMove3D(wxMouseEvent& event)
         xlights->AddTraceMessage("LayoutPanel::OnPreviewMouseMove3D Wheel down");
         float new_x = event.GetX() - m_previous_mouse_x;
         float new_y = event.GetY() - m_previous_mouse_y;
-        // account for grid rotation
-        float angleX = glm::radians(modelPreview->GetCameraRotationX());
-        float angleY = glm::radians(modelPreview->GetCameraRotationY());
-        float delta_x = 0.0f;
-        float delta_y = 0.0f;
-        float delta_z = 0.0f;
-        bool top_view = (angleX > glm::radians(45.0f)) && (angleX < glm::radians(135.0f));
-        bool bottom_view = (angleX > glm::radians(225.0f)) && (angleX < glm::radians(315.0f));
-        bool upside_down_view = (angleX >= glm::radians(135.0f)) && (angleX <= glm::radians(225.0f));
-        if( top_view ) {
-            delta_x = new_x * std::cos(angleY) - new_y * std::sin(angleY);
-            delta_z = new_y * std::cos(angleY) + new_x * std::sin(angleY);
-        } else if( bottom_view ) {
-            delta_x = new_x * std::cos(angleY) + new_y * std::sin(angleY);
-            delta_z = -new_y * std::cos(angleY) + new_x * std::sin(angleY);
-        } else {
-            delta_x = new_x * std::cos(angleY);
-            delta_y = new_y;
-            delta_z = new_x * std::sin(angleY);
-            if( !upside_down_view ) {
-                delta_y *= -1.0f;
-            }
-        }
-        delta_x *= modelPreview->GetZoom() * 2.0f;
-        delta_y *= modelPreview->GetZoom() * 2.0f;
-        delta_z *= modelPreview->GetZoom() * 2.0f;
-        modelPreview->SetPan(delta_x, delta_y, delta_z);
+        modelPreview->PanCamera3DPixels(new_x, new_y);
         m_previous_mouse_x = event.GetX();
         m_previous_mouse_y = event.GetY();
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_REDRAW_LAYOUTPREVIEW, "LayoutPanel::OnPreviewMouseMove3D");
@@ -7594,6 +7522,9 @@ void LayoutPanel::OnPreviewMouseMove(wxMouseEvent& event)
 {
     if (inFinalize) {
         return;
+    }
+    if (modelPreview->ViewCubeMouseMove(event)) {
+        return; // over the view cube: its hand cursor, no model highlighting
     }
     if (is_3d) {
         OnPreviewMouseMove3D(event);
