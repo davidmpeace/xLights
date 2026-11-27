@@ -25,7 +25,8 @@
             "valueCurve": true,
             "valueCurveColor": true,
             "description": "The pumps' level (0-100%) and the lights' colour over time. Click Edit Curves to shape the level and set the colour keyframes.",
-            "valueCurveOnly": true
+            "valueCurveOnly": true,
+            "valueCurveReset": true
         },
         {
             "id": "Fountains_Cycles",

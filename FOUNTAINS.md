@@ -280,6 +280,8 @@ In the panel:
 - Direction, Pump Offset and Overlap are disabled when Type = All.
 - **Curves** is an "Edit Curves..." button. The curve is **always active**, and its dialog opens in colour
   mode (§7.1).
+- **Reset**, beside it, puts the curve back to its default: flat at 0%, no colour keys, wrap off. It asks
+  first when there's something to lose. The effect then re-renders with its pumps off.
 - The effect doesn't use the colour palette. Its colours come only from the curve's colour keys.
 
 ### 4.2 Units: what takes a turn
@@ -290,8 +292,14 @@ The effect looks at the buffer's nodes and groups them into **units**:
   - Units are numbered in the order the buffer lists them, which is pump order.
   - Pump channels get the **level** (grey `level × 2.55`). Light channels get the **colour**.
   - Any other channel is left alone.
-- **On a group of several fountains:** every (fountain, pump) pair is a unit, in the order the group lists its
-  members. One Chase then runs across all the fountains in turn.
+- **On a group** (with a buffer that isn't Per Model): **each member of the group is one unit**, in the group's
+  order. All of a member's pumps take the level together and all its lights take the colour.
+  - A group of submodels such as `Fountain Pair 1`…`Fountain Pair 4` chases pair by pair: 4 turns, not 8.
+  - A group of whole fountains chases fountain by fountain.
+  - A group of other models chases model by model.
+  - A channel that's in two members belongs to the first one.
+  - With a **Per Model** buffer style, each member renders on its own, so inside each member its pumps take
+    the turns again.
 - **On any other model:** every node is a unit and takes the colour (one pixel at a time for Chase). The level
   isn't used, so **without colour keys nothing lights up** (no keys = black).
 
@@ -489,8 +497,10 @@ loop on its own, so make its first and last y equal if the water shouldn't jump 
   - Circle marker = blend key, square = hard key, light-blue ring = selected.
 - **`valueCurveOnly` (effect JSON):** the slider and text box are replaced by an "Edit <label>..." button,
   and the curve is always active. A new curve is flat at 0%, with no colour keys and wrap off.
+- **`valueCurveReset` (effect JSON, with `valueCurveOnly`):** adds a **Reset** button beside Edit that puts
+  the curve back to that default.
 
-Effect metadata flags added to `_schema.json`: `valueCurveColor`, `valueCurveOnly`.
+Effect metadata flags added to `_schema.json`: `valueCurveColor`, `valueCurveOnly`, `valueCurveReset`.
 
 ### 7.2 Effect string example
 

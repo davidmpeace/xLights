@@ -86,6 +86,10 @@
                     "type": "boolean",
                     "description": "The setting is only its value curve: an Edit button replaces the slider and text box, and the curve is always on"
                 },
+                "valueCurveReset": {
+                    "type": "boolean",
+                    "description": "With valueCurveOnly: a Reset button beside Edit puts the curve back to its default (flat at 0, no colour keys, no wrap)"
+                },
                 "valueCurveColor": {
                     "type": "boolean",
                     "description": "The value curve editor also offers colour keyframes (a colour over time carried by the curve)"

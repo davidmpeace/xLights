@@ -23,6 +23,7 @@
 #include <wx/fontpicker.h>
 #include <wx/clrpicker.h>
 #include <wx/tglbtn.h>
+#include <wx/msgdlg.h>
 #include <wx/statline.h>
 #include <wx/tokenzr.h>
 #include <wx/wfstream.h>
@@ -1139,6 +1140,20 @@ void JsonEffectPanel::BuildPropertyRow(wxWindow* parentWin, wxSizer* sizer, cons
                 vcBtn->GetEventHandler()->ProcessEvent(click);
             });
             sliderSizer->Insert(0, editBtn, 1, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
+            if (prop.value("valueCurveReset", false)) {
+                auto* resetBtn = new wxButton(parentWin, wxID_ANY, "Reset", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+                resetBtn->SetToolTip("Remove all the curve's points and colour keys");
+                resetBtn->Bind(wxEVT_BUTTON, [vcBtn, parentWin](wxCommandEvent&) {
+                    ValueCurve* vc = vcBtn->GetValue();
+                    const bool hasPoints = vc->GetPointCount() > 2 || vc->GetValueAt(0.0f, 0, 1) != 0.0f || vc->GetValueAt(1.0f, 0, 1) != 0.0f;
+                    if ((hasPoints || vc->HasColorKeys()) &&
+                        wxMessageBox("Remove all the curve's points and colour keys?", "Reset", wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION, parentWin) != wxYES) {
+                        return;
+                    }
+                    vcBtn->ResetToDefault(); // tells the panel, which updates the effect and renders it
+                });
+                sliderSizer->Insert(1, resetBtn, 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
+            }
             vcBtn->SetAlwaysActive(true);
         }
 

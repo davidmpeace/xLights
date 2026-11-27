@@ -24,6 +24,7 @@
 #include "../render/ValueCurve.h"
 #include "../models/DMX/DmxFountain.h"
 #include "../models/Model.h"
+#include "../models/ModelGroup.h"
 #include "UtilFunctions.h"
 
 #include "../../include/Fountains.xpm"
@@ -120,24 +121,38 @@ std::vector<float> UnitTimes(const Pattern& p, int units, float position) {
     return local;
 }
 
-// The units taking turns in a buffer's nodes: each pump (with its light) of a fountain, or each node of anything
-// else, numbered in the order the nodes list them. unitOf / kindOf (1 pump, 2 light or other model, 0 untouched)
-// per node. hasLights / hasPumps: whether any node takes a colour / a pump level.
-int FindUnits(const std::vector<NodeBaseClassPtr>& nodes, std::vector<int>* unitOf, std::vector<int>* kindOf,
-              bool* hasLights = nullptr, bool* hasPumps = nullptr) {
-    std::map<std::pair<const Model*, int>, int> units;
+// For a group: the member (by its place in the group) each channel belongs to. Empty for anything else.
+std::map<uint32_t, int> GroupMembers(const Model* m) {
+    std::map<uint32_t, int> members;
+    const ModelGroup* g = dynamic_cast<const ModelGroup*>(m);
+    if (g == nullptr) {
+        return members;
+    }
+    const auto& active = g->ActiveModels();
+    for (int i = 0; i < (int)active.size(); ++i) {
+        for (uint32_t n = 0; n < active[i]->GetNodeCount(); ++n) {
+            members.try_emplace((uint32_t)active[i]->NodeStartChannel(n), i); // a channel in two members: the first has it
+        }
+    }
+    return members;
+}
+
+// The units taking turns in a buffer's nodes, numbered from 0: on a group, each member (with all its pumps and lights)
+// in the group's order; otherwise each pump (with its light) of a fountain, or each node of anything else, in the order
+// the nodes list them. unitOf / kindOf (1 pump, 2 light or other model, 0 untouched) per node. hasLights / hasPumps:
+// whether any node takes a colour / a pump level.
+int FindUnits(const std::vector<NodeBaseClassPtr>& nodes, const std::map<uint32_t, int>& members, std::vector<int>* unitOf,
+              std::vector<int>* kindOf, bool* hasLights = nullptr, bool* hasPumps = nullptr) {
     if (hasLights != nullptr) {
         *hasLights = false;
     }
     if (hasPumps != nullptr) {
         *hasPumps = false;
     }
-    if (unitOf != nullptr) {
-        unitOf->assign(nodes.size(), -1);
-    }
-    if (kindOf != nullptr) {
-        kindOf->assign(nodes.size(), 0);
-    }
+    // each node's unit key: (0, member) on a group, else (1, order seen); -1 for a node left alone
+    std::vector<std::pair<int, int>> keys(nodes.size(), { -1, -1 });
+    std::vector<int> kinds(nodes.size(), 0);
+    std::map<std::pair<const Model*, int>, int> seen;
     for (int n = 0; n < (int)nodes.size(); ++n) {
         const NodeBaseClass* node = nodes[n].get();
         if (node == nullptr) {
@@ -148,13 +163,13 @@ int FindUnits(const std::vector<NodeBaseClassPtr>& nodes, std::vector<int>* unit
         if (kind == 0) {
             continue; // a fountain channel that is neither pump nor light: leave it alone
         }
-        const int key = f != nullptr ? f->ChannelPump(*node) : n;
-        auto [it, added] = units.try_emplace(std::make_pair(node->model, key), (int)units.size());
-        if (unitOf != nullptr) {
-            (*unitOf)[n] = it->second;
-        }
-        if (kindOf != nullptr) {
-            (*kindOf)[n] = kind;
+        kinds[n] = kind;
+        if (auto it = members.find(node->ActChan); it != members.end()) {
+            keys[n] = { 0, it->second };
+        } else {
+            const int pump = f != nullptr ? f->ChannelPump(*node) : n;
+            auto [s, added] = seen.try_emplace(std::make_pair(node->model, pump), (int)seen.size());
+            keys[n] = { 1, s->second };
         }
         if (hasLights != nullptr && kind == 2) {
             *hasLights = true;
@@ -163,7 +178,35 @@ int FindUnits(const std::vector<NodeBaseClassPtr>& nodes, std::vector<int>* unit
             *hasPumps = true;
         }
     }
-    return (int)units.size();
+    // number the units in key order: the group's members first, in their order, so a chase goes member by member
+    std::map<std::pair<int, int>, int> units;
+    for (const auto& k : keys) {
+        if (k.first >= 0) {
+            units.try_emplace(k, 0);
+        }
+    }
+    int count = 0;
+    for (auto& [k, u] : units) {
+        u = count++;
+    }
+    if (unitOf != nullptr) {
+        unitOf->assign(nodes.size(), -1);
+    }
+    if (kindOf != nullptr) {
+        kindOf->assign(nodes.size(), 0);
+    }
+    for (int n = 0; n < (int)nodes.size(); ++n) {
+        if (keys[n].first < 0) {
+            continue;
+        }
+        if (unitOf != nullptr) {
+            (*unitOf)[n] = units[keys[n]];
+        }
+        if (kindOf != nullptr) {
+            (*kindOf)[n] = kinds[n];
+        }
+    }
+    return count;
 }
 
 // The curve, if the settings have one that is on.
@@ -197,7 +240,7 @@ int RowUnits(const Effect* e, bool* hasLights, bool* hasPumps) {
     std::vector<NodeBaseClassPtr> nodes;
     int w = 0, h = 0;
     m->InitRenderBufferNodes("Default", "2D", "None", nodes, w, h, 0);
-    return std::max(1, FindUnits(nodes, nullptr, nullptr, hasLights, hasPumps));
+    return std::max(1, FindUnits(nodes, GroupMembers(m), nullptr, nullptr, hasLights, hasPumps));
 }
 }
 
@@ -234,7 +277,7 @@ void FountainsEffect::Render(Effect* effect, const SettingsMap& settings, Render
 
     const auto& nodes = buffer.GetNodes();
     std::vector<int> unitOf, kindOf;
-    const int unitCount = FindUnits(nodes, &unitOf, &kindOf);
+    const int unitCount = FindUnits(nodes, GroupMembers(buffer.GetModel()), &unitOf, &kindOf);
     if (unitCount == 0) {
         return;
     }
