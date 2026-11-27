@@ -383,14 +383,24 @@ void ModelPreview::AddViewCubeToProgram() {
     // Window pixels to points just in front of the camera: the perspective puts them back on those pixels, in front
     // of the scene. (Undoing the perspective instead loses depth precision with its 1 : 200000 range, and the cube
     // flickers in and out.)
-    constexpr float Z = 4.0f; // in view space; well past the near plane (1) on Metal and OpenGL alike
     const float w = (float)mWindowWidth, h = (float)mWindowHeight;
+    const glm::mat4& P = DrawProjMatrix;
     glm::mat4 toView(0.0f);
-    toView[0][0] = 2.0f * Z / (w * ProjMatrix[0][0]);
-    toView[3][0] = -Z / ProjMatrix[0][0];
-    toView[1][1] = -2.0f * Z / (h * ProjMatrix[1][1]);
-    toView[3][1] = Z / ProjMatrix[1][1];
-    toView[3][2] = -Z;
+    if (camera3d->IsOrtho()) {
+        // no perspective divide: just in front of everything the orthographic depth range shows
+        toView[0][0] = 2.0f / (w * P[0][0]);
+        toView[3][0] = -1.0f / P[0][0];
+        toView[1][1] = -2.0f / (h * P[1][1]);
+        toView[3][1] = 1.0f / P[1][1];
+        toView[3][2] = 90000.0f;
+    } else {
+        constexpr float Z = 4.0f; // in view space; well past the near plane (1) on Metal and OpenGL alike
+        toView[0][0] = 2.0f * Z / (w * P[0][0]);
+        toView[3][0] = -Z / P[0][0];
+        toView[1][1] = -2.0f * Z / (h * P[1][1]);
+        toView[3][1] = Z / P[1][1];
+        toView[3][2] = -Z;
+    }
     toView[3][3] = 1.0f;
     const glm::mat4 pixels = glm::inverse(ViewMatrix) * toView;
 
@@ -440,6 +450,7 @@ void ModelPreview::AnimateCameraTo(const PreviewCamera& target) {
             if (t >= 1.0f) {
                 // land exactly on it
                 SetCameraRotation(*camera3d, CameraRotation(*_animTo));
+                camera3d->SetOrtho(_animTo->IsOrtho()); // home can bring the default viewpoint's projection
                 _animTo.reset();
                 _animFrom.reset();
                 _viewCubeTimer.Stop();

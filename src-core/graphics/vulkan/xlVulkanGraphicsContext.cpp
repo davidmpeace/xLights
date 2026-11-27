@@ -904,6 +904,11 @@ xlGraphicsContext* xlVulkanGraphicsContext::Scale(float w, float h, float z) {
     frameDataChanged = true;
     return this;
 }
+xlGraphicsContext* xlVulkanGraphicsContext::SetProjection(const glm::mat4& m) {
+    frameData.MVP = m;
+    frameDataChanged = true;
+    return this;
+}
 xlGraphicsContext* xlVulkanGraphicsContext::SetCamera(const glm::mat4& m) {
     frameData.MVP = frameData.MVP * m;
     viewMatrix = viewMatrix * m;

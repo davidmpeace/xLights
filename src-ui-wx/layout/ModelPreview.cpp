@@ -253,6 +253,14 @@ void ModelPreview::SetCamera3D(int i)
     SetCameraView(0,0,false,true);
 }
 
+void ModelPreview::SetOrthogonal(bool ortho)
+{
+    if (camera3d != nullptr) {
+        camera3d->SetOrtho(ortho);
+        Refresh(false);
+    }
+}
+
 void ModelPreview::SaveDefaultCameraPosition()
 {
     if (is3d) {
@@ -1855,10 +1863,26 @@ bool ModelPreview::StartDrawing(wxDouble pointSize, bool fromPaint)
         glm::mat4 ViewRotateY = glm::rotate(glm::mat4(1.0f), glm::radians(camera3d->GetAngleY()), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 ViewRotateZ = glm::rotate(glm::mat4(1.0f), glm::radians(camera3d->GetAngleZ()), glm::vec3(0.0f, 0.0f, 1.0f));
         ViewMatrix = ViewTranslateDistance * ViewRotateX * ViewRotateY * ViewRotateZ * ViewTranslatePan;
-        ProjMatrix = glm::perspective(glm::radians(45.0f), (float)translateToBacking(mWindowWidth) / (float)translateToBacking(mWindowHeight), 1.0f, 200000.0f);  // this must match prepare3DViewport call // bumped from 20,000 to 200,000 to allow bigger models without clipping
+        const float aspect = (float)translateToBacking(mWindowWidth) / (float)translateToBacking(mWindowHeight);
+        if (camera3d->IsOrtho()) {
+            // the same size as the perspective view at the point the camera turns about, so switching keeps it in place
+            const float halfH = std::max(1.0f, std::abs(camera3d->GetDistance() * camera3d->GetZoom())) * std::tan(glm::radians(22.5f));
+            const float halfW = halfH * aspect;
+            // picking casts rays from the near plane, so it stays within reach of the scene
+            ProjMatrix = glm::ortho(-halfW, halfW, -halfH, halfH, -50000.0f, 200000.0f);
+            // Metal and Vulkan keep only the far half of the clip depth: centre it behind the camera so what is
+            // behind the camera still shows, as it should in an orthographic view
+            DrawProjMatrix = glm::ortho(-halfW, halfW, -halfH, halfH, -400000.0f, 200000.0f);
+        } else {
+            ProjMatrix = glm::perspective(glm::radians(45.0f), aspect, 1.0f, 200000.0f);  // this must match prepare3DViewport call // bumped from 20,000 to 200,000 to allow bigger models without clipping
+            DrawProjMatrix = ProjMatrix;
+        }
         ProjViewMatrix = ProjMatrix * ViewMatrix;
 
         currentContext->SetViewport(0, mWindowHeight, mWindowWidth, 0, true);
+        if (camera3d->IsOrtho()) {
+            currentContext->SetProjection(DrawProjMatrix);
+        }
         currentContext->SetCamera(ViewMatrix);
         currentContext->PushMatrix();
         currentPixelScaleFactor = 1.0;

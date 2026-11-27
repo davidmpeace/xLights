@@ -166,6 +166,8 @@ public:
     float GetCameraRotationX() const override { return (is3d ? camera3d->GetAngleX() : camera2d->GetAngleX()); }
     float GetCameraRotationY() const override { return (is3d ? camera3d->GetAngleY() : camera2d->GetAngleY()); }
     void SetPan(float deltax, float deltay, float deltaz);
+    bool IsOrthogonal() const { return camera3d != nullptr && camera3d->IsOrtho(); }
+    void SetOrthogonal(bool ortho);
     // pans the 3D camera across the screen as it is turned: by world units, or by pixels so the point turned about follows the mouse
     void PanCamera3D(float right, float down);
     void PanCamera3DPixels(float right, float down);
@@ -356,6 +358,7 @@ private:
 
     glm::mat4 ViewMatrix;
     glm::mat4 ProjMatrix;
+    glm::mat4 DrawProjMatrix; // 3D: the projection drawn with (ProjMatrix is for picking; they differ only in depth)
     glm::mat4 ProjViewMatrix;
 
     PreviewCamera* camera3d;

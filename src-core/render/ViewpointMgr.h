@@ -47,6 +47,7 @@ public:
     float GetZoomCorrX() const { return zoom_corrx; }
     float GetZoomCorrY() const { return zoom_corry; }
     float GetIs3D() const { return is_3d; }
+    bool IsOrtho() const { return ortho; }
     const std::string& GetName() const { return name; }
 
     void SetPosX(float value) { posX = value; mat_valid = false; }
@@ -62,6 +63,7 @@ public:
     void SetZoomCorrX(float value) { zoom_corrx = value; mat_valid = false; }
     void SetZoomCorrY(float value) { zoom_corry = value; mat_valid = false; }
     void SetIs3D(bool value) { is_3d = value; mat_valid = false; }
+    void SetOrtho(bool value) { ortho = value; }
     void SetName(std::string name_) { name = name_; mat_valid = false; }
 
 protected:
@@ -79,6 +81,7 @@ protected:
     float zoom_corrx;
     float zoom_corry;
     bool is_3d;
+    bool ortho = false; // 3D: an orthographic projection instead of perspective
     std::string name;
     bool mat_valid;
     glm::mat4 view_matrix;

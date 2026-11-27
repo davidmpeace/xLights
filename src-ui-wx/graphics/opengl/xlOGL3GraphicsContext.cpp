@@ -2260,6 +2260,12 @@ xlGraphicsContext* xlOGL3GraphicsContext::TranslateViewMatrix(float x, float y, 
     return this;
 }
 
+xlGraphicsContext* xlOGL3GraphicsContext::SetProjection(const glm::mat4 &m) {
+    frameData.MVP = m;
+    frameData.perspectiveMatrix = frameData.MVP;
+    frameDataChanged = true;
+    return this;
+}
 xlGraphicsContext* xlOGL3GraphicsContext::SetCamera(const glm::mat4 &m) {
     frameData.MVP = frameData.MVP * m;
     frameData.viewMatrix = frameData.viewMatrix * m;

@@ -312,6 +312,7 @@ class LayoutPanel: public wxPanel
         static const long ID_PREVIEW_VIEWPOINT_DEFAULT_RESTORE;
         static const long ID_PREVIEW_VIEWPOINT2D;
         static const long ID_PREVIEW_VIEWPOINT3D;
+        static const long ID_PREVIEW_ORTHOGONAL;
         static const long ID_PREVIEW_DELETEVIEWPOINT2D;
         static const long ID_PREVIEW_DELETEVIEWPOINT3D;
         // Base IDs for viewpoint camera menu items (camera index added to base)

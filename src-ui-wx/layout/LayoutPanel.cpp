@@ -512,6 +512,7 @@ const long LayoutPanel::ID_PREVIEW_VIEWPOINT_DEFAULT = wxNewId();
 const long LayoutPanel::ID_PREVIEW_VIEWPOINT_DEFAULT_RESTORE = wxNewId();
 const long LayoutPanel::ID_PREVIEW_VIEWPOINT2D = wxNewId();
 const long LayoutPanel::ID_PREVIEW_VIEWPOINT3D = wxNewId();
+const long LayoutPanel::ID_PREVIEW_ORTHOGONAL = wxNewId();
 const long LayoutPanel::ID_PREVIEW_DELETEVIEWPOINT2D = wxNewId();
 const long LayoutPanel::ID_PREVIEW_DELETEVIEWPOINT3D = wxNewId();
 const long LayoutPanel::ID_PREVIEW_IMPORTMODELSFROMRGBEFFECTS = wxNewId();
@@ -4506,7 +4507,7 @@ void LayoutPanel::DisablePropertyGridForLock(const std::string& reason)
 
 bool LayoutPanel::IsViewOnlyMenuId(int id)
 {
-    return id == ID_PREVIEW_RESET || id == ID_PREVIEW_MODELS_NOT_ON_CONTROLLER || id == ID_PREVIEW_VIEWPOINT_DEFAULT_RESTORE ||
+    return id == ID_PREVIEW_RESET || id == ID_PREVIEW_ORTHOGONAL || id == ID_PREVIEW_MODELS_NOT_ON_CONTROLLER || id == ID_PREVIEW_VIEWPOINT_DEFAULT_RESTORE ||
            id == ID_PREVIEW_EXPORT_FACESSTATESSUBMODELS || id == ID_PREVIEW_LAYOUT_DXF_EXPORT || id == ID_PREVIEW_MODEL_CAD_EXPORT ||
            id == ID_PREVIEW_MODEL_EXPORTASCUSTOM || id == ID_PREVIEW_MODEL_EXPORTASCUSTOM3D || id == ID_PREVIEW_MODEL_EXPORTXLIGHTSMODEL ||
            id == ID_PREVIEW_MODEL_NODELAYOUT || id == ID_PREVIEW_MODEL_WIRINGVIEW || id == ID_PREVIEW_PRINT_LAYOUT_IMAGE ||
@@ -8016,6 +8017,15 @@ void LayoutPanel::OnPreviewRightDown(wxMouseEvent& event)
 
     int selectedObjectCnt = editing_models ? ModelsSelectedCount() : ViewObjectsSelectedCount();
 
+    if (is_3d) {
+        // on open air: how the view projects
+        std::vector<int> found;
+        if (!editing_models || FindModelsClicked(event.GetX(), event.GetY(), found) == 0) {
+            mnu.AppendCheckItem(ID_PREVIEW_ORTHOGONAL, _("Orthogonal"))->Check(modelPreview->IsOrthogonal());
+            mnu.AppendSeparator();
+        }
+    }
+
     if (selectedObjectCnt > 1)
     {
         wxMenu* mnuBulkEdit = new wxMenu();
@@ -8133,7 +8143,10 @@ void LayoutPanel::OnPreviewModelPopup(wxCommandEvent& event)
     if (!IsViewOnlyMenuId(event.GetId()) && xlights->RefuseIfLayoutLocked(this)) {
         return;
     }
-    if (event.GetId() == ID_PREVIEW_RESET) {
+    if (event.GetId() == ID_PREVIEW_ORTHOGONAL) {
+        modelPreview->SetOrthogonal(!modelPreview->IsOrthogonal());
+        xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_REDRAW_LAYOUTPREVIEW, "LayoutPanel::OnPreviewModelPopup::ID_PREVIEW_ORTHOGONAL");
+    } else if (event.GetId() == ID_PREVIEW_RESET) {
         modelPreview->Reset();
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_REDRAW_LAYOUTPREVIEW, "LayoutPanel::OnPreviewModelPopup::ID_PREVIEW_RESET");
     } else if (event.GetId() == ID_PREVIEW_MODELS_NOT_ON_CONTROLLER) {

@@ -50,7 +50,7 @@ PreviewCamera::~PreviewCamera()
 PreviewCamera::PreviewCamera(const PreviewCamera &cam)
 : posX(cam.posX), posY(cam.posY), posZ(cam.posZ), angleX(cam.angleX), angleY(cam.angleY), angleZ(cam.angleZ), distance(cam.distance), zoom(cam.zoom),
   panx(cam.panx), pany(cam.pany), panz(cam.panz), zoom_corrx(cam.zoom_corrx), zoom_corry(cam.zoom_corry), is_3d(cam.is_3d),
-  name(cam.name), mat_valid(false)
+  ortho(cam.ortho), name(cam.name), mat_valid(false)
 {
 }
 
@@ -71,6 +71,7 @@ PreviewCamera& PreviewCamera::operator= (const PreviewCamera& rhs)
     zoom_corrx = rhs.zoom_corrx;
     zoom_corry = rhs.zoom_corry;
     is_3d = rhs.is_3d;
+    ortho = rhs.ortho;
     mat_valid = false;
     return *this;
 }
@@ -265,6 +266,9 @@ void ViewpointMgr::SaveCameraToVisitor(BaseSerializingVisitor& visitor, const Pr
     attrs.Add("zoom_corrx", F::FloatToString(camera->zoom_corrx));
     attrs.Add("zoom_corry", F::FloatToString(camera->zoom_corry));
     attrs.Add("is_3d", std::to_string(static_cast<int>(camera->is_3d)));
+    if (camera->ortho) {
+        attrs.Add("ortho", "1");
+    }
     visitor.WriteOpenTag(nodename, attrs, /*selfClose=*/true);
 }
 
@@ -314,6 +318,7 @@ std::unique_ptr<PreviewCamera> ViewpointMgr::CreateCameraFromNode(pugi::xml_node
     new_camera->panz = c.attribute("panz").as_float(0.0f);
     new_camera->zoom_corrx = c.attribute("zoom_corrx").as_float(0.0f);
     new_camera->zoom_corry = c.attribute("zoom_corry").as_float(0.0f);
+    new_camera->ortho = c.attribute("ortho").as_int(0) != 0;
 
     return new_camera;
 }

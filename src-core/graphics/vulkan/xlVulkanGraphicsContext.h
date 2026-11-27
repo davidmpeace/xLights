@@ -60,6 +60,7 @@ public:
     virtual xlGraphicsContext* ApplyMatrix(const glm::mat4& m) override;
     virtual xlGraphicsContext* Scale(float w, float h, float z) override;
     virtual xlGraphicsContext* SetCamera(const glm::mat4& m) override;
+    virtual xlGraphicsContext* SetProjection(const glm::mat4& m) override;
     virtual xlGraphicsContext* SetModelMatrix(const glm::mat4& m) override;
     virtual xlGraphicsContext* ScaleViewMatrix(float w, float h, float z) override;
     virtual xlGraphicsContext* TranslateViewMatrix(float x, float y, float z) override;

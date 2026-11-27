@@ -1852,6 +1852,12 @@ inline simd::float4x4 mapMatrix(const glm::mat4 &m) {
     return simd::float4x4(m0, m1, m2, m3);
 }
 
+xlGraphicsContext* xlMetalGraphicsContext::SetProjection(const glm::mat4 &m) {
+    frameData.MVP = mapMatrix(m);
+    frameData.perspectiveMatrix = frameData.MVP;
+    frameDataChanged = true;
+    return this;
+}
 xlGraphicsContext* xlMetalGraphicsContext::SetCamera(const glm::mat4 &m) {
     simd::float4x4 vm = mapMatrix(m);
     frameData.MVP = matrix_multiply(frameData.MVP, vm);

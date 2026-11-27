@@ -44,6 +44,8 @@ public:
     virtual xlGraphicsContext* ApplyMatrix(const glm::mat4 &m) = 0;
     virtual xlGraphicsContext* Scale(float w, float h, float z) = 0;
     virtual xlGraphicsContext* SetCamera(const glm::mat4 &m) = 0;
+    // replaces the projection SetViewport set (call it before SetCamera)
+    virtual xlGraphicsContext* SetProjection(const glm::mat4 &m) = 0;
     virtual xlGraphicsContext* SetModelMatrix(const glm::mat4 &m) = 0;
 
     virtual xlGraphicsContext* ScaleViewMatrix(float w, float h, float z) = 0;
