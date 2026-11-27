@@ -135,6 +135,8 @@ static  std::vector<std::pair<std::string, KBSCOPE>> KeyBindingTypes =
     { "NEXT_TAG", KBSCOPE::Sequence },
     { "PLAY_PRIOR_TAG", KBSCOPE::Sequence },
     { "PLAY_NEXT_TAG", KBSCOPE::Sequence },
+    { "FRAME_BACK", KBSCOPE::Sequence },
+    { "FRAME_FORWARD", KBSCOPE::Sequence },
     { "MODEL_TOGGLE", KBSCOPE::Sequence },
     { "MODEL_DISABLE", KBSCOPE::Sequence },
     { "MODEL_ENABLE", KBSCOPE::Sequence },
@@ -268,6 +270,8 @@ static  std::vector<std::pair<std::string, std::string>> keyBindingTips = {
     { "NEXT_TAG", "Jump to next audio tag." },
     { "PLAY_PRIOR_TAG", "Play from prior audio tag." },
     { "PLAY_NEXT_TAG", "Play from next audio tag." },
+    { "FRAME_BACK", "Step back one frame (stopped or paused)." },
+    { "FRAME_FORWARD", "Step forward one frame (stopped or paused)." },
     { "MODEL_SUBMODELS", "Edit model submodels." },
     { "MODEL_FACES", "Edit model faces." },
     { "MODEL_STATES", "Edit model states." },
@@ -371,6 +375,8 @@ const std::vector<KeyBinding> DefaultBindings =
     KeyBinding("u", false, "UNLOCK_EFFECT", true),
     KeyBinding(".", false, "MARK_SPOT", true),
     KeyBinding("/", false, "RETURN_TO_SPOT", true),
+    KeyBinding(",", false, "FRAME_BACK"),
+    KeyBinding(".", false, "FRAME_FORWARD"),
     KeyBinding(std::string("."), false, "MARK_SPOT", false, false, false, true),
     KeyBinding(std::string("/"), false, "RETURN_TO_SPOT", false, false, false, true),
     KeyBinding("", true, "EFFECT_DESCRIPTION", true),
@@ -1094,8 +1100,17 @@ void KeyBindingMap::Load(const wxFileName &fileName) noexcept
                 if (type != "EFFECT" && type != "PRESET" && type != "APPLYSETTING") {
                     bool found = std::find_if(begin(_bindings), end(_bindings), [type](const KeyBinding& b) {return b.GetType() == type; }) != _bindings.end();
                     if (!found) {
-                        spdlog::debug("Adding missing keybinding {}.", (const char*)type.c_str());
-                        _bindings.emplace_back(KeyBinding(WXK_NONE, true, type, false, false, false, false));
+                        // new since the file was saved: its default key, unless something else has that key now
+                        auto def = std::find_if(begin(DefaultBindings), end(DefaultBindings), [type](const KeyBinding& b) { return b.GetType() == type && !b.IsDisabled(); });
+                        const bool taken = def != end(DefaultBindings) &&
+                                           std::any_of(begin(_bindings), end(_bindings), [&def](const KeyBinding& b) { return !b.IsDisabled() && b.KeyDescription() == def->KeyDescription(); });
+                        if (def != end(DefaultBindings) && !taken) {
+                            spdlog::debug("Adding new keybinding {} with its default key.", (const char*)type.c_str());
+                            _bindings.push_back(*def);
+                        } else {
+                            spdlog::debug("Adding missing keybinding {}.", (const char*)type.c_str());
+                            _bindings.emplace_back(KeyBinding(WXK_NONE, true, type, false, false, false, false));
+                        }
                     }
                 }
             }

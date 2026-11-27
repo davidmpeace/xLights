@@ -8,6 +8,7 @@
  * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
+#include <algorithm>
 #include <chrono>
 #include <atomic>
 #include <filesystem>
@@ -1083,6 +1084,7 @@ void xLightsFrame::Scrub(wxCommandEvent& event)
         f = -1;
     }
     playCurFrame = -1;
+    mainSequencer->PanelTimeLine->SetPlayMarkerMS(ms); // the playhead shows the frame on screen
     mainSequencer->UpdateTimeDisplay(ms, _fps);
 
     // update any video diaplay
@@ -1109,6 +1111,30 @@ void xLightsFrame::Scrub(wxCommandEvent& event)
             preview->Render(ms, &_seqData[frame][0]);
         }
     }
+}
+
+void xLightsFrame::StepFrame(int frames)
+{
+    if (CurrentSeqXmlFile == nullptr || playType == PLAY_TYPE_EFFECT || playType == PLAY_TYPE_MODEL) {
+        return;
+    }
+    TimeLine* timeline = mainSequencer->PanelTimeLine;
+    const int frameMS = CurrentSeqXmlFile->GetFrameMS();
+    if (frameMS <= 0) {
+        return;
+    }
+    // from the frame on screen: where playback paused or the last scrub or step, else where play would start
+    int ms = timeline->GetCurrentPlayMarkerMS();
+    if (ms < 0) {
+        ms = std::max(0, timeline->GetSelectedPositionStartMS());
+    }
+    const int last = std::max(0, CurrentSeqXmlFile->GetSequenceDurationMS() - frameMS);
+    ms = std::clamp((ms / frameMS + frames) * frameMS, 0, last);
+    timeline->SetSelectedPositionStartMS(ms); // Play starts from here
+    timeline->EnsureTimeVisible(ms, ms + frameMS);
+    wxCommandEvent scrub;
+    scrub.SetInt(ms);
+    Scrub(scrub);
 }
 
 void xLightsFrame::Scroll( wxCommandEvent& event)

@@ -2303,6 +2303,8 @@ public:
     BlendingPanel* GetLayerBlendingPanel() const { return blendingPanel; }
 
     int GetPlayStatus() const { return playType; }
+    // Stopped or paused: moves the playhead `frames` frames on (back if negative) and shows that frame.
+    void StepFrame(int frames);
     void SetPlayStatus(int status);
     void StopOutputTimer();
     

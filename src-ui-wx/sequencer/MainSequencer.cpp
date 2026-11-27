@@ -237,6 +237,105 @@ EVT_PAINT(TimeDisplayControl::Paint)
 EVT_SYS_COLOUR_CHANGED(TimeDisplayControl::OnSysColourChanged)
 END_EVENT_TABLE()
 
+// A small button beside the time stepping one frame back or forward while stopped or paused (greyed while playing).
+// Held down, it keeps stepping. Drawn by hand: native buttons don't report the press, only the release.
+class FrameStepButton : public wxWindow
+{
+public:
+    FrameStepButton(wxWindow* parent, int direction) :
+        wxWindow(parent, wxID_ANY, wxDefaultPosition, parent->FromDIP(wxSize(22, 18))), _dir(direction), _timer(this) {
+        SetExtraStyle(wxWS_EX_PROCESS_UI_UPDATES);
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetToolTip(direction < 0 ? "Back one frame" : "Forward one frame");
+        Bind(wxEVT_PAINT, &FrameStepButton::OnPaint, this);
+        Bind(wxEVT_LEFT_DOWN, &FrameStepButton::OnDown, this);
+        Bind(wxEVT_LEFT_DCLICK, &FrameStepButton::OnDown, this);
+        Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) { Release(); });
+        Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) { Release(); });
+        Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+            if (_pressed && Usable()) {
+                Step();
+                _timer.Start(70); // and on while held
+            } else {
+                Release();
+            }
+        });
+        Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent&) {
+            if (Usable() != _usable) {
+                _usable = !_usable;
+                Refresh(false);
+            }
+        });
+    }
+
+private:
+    static bool Usable() {
+        xLightsFrame* f = xLightsApp::GetFrame();
+        const int status = f != nullptr ? f->GetPlayStatus() : PLAY_TYPE_STOPPED;
+        return f != nullptr && xLightsFrame::CurrentSeqXmlFile != nullptr && status != PLAY_TYPE_EFFECT && status != PLAY_TYPE_MODEL;
+    }
+    void Step() { xLightsApp::GetFrame()->StepFrame(_dir); }
+    void OnDown(wxMouseEvent&) {
+        if (!Usable()) {
+            return;
+        }
+        _pressed = true;
+        if (!HasCapture()) {
+            CaptureMouse();
+        }
+        Step();
+        _timer.StartOnce(400); // held: start repeating
+        Refresh(false);
+    }
+    void Release() {
+        _timer.Stop();
+        if (HasCapture()) {
+            ReleaseMouse();
+        }
+        if (_pressed) {
+            _pressed = false;
+            Refresh(false);
+        }
+    }
+    void OnPaint(wxPaintEvent&) {
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize sz = GetClientSize();
+        dc.SetBackground(wxBrush(GetParent()->GetBackgroundColour()));
+        dc.Clear();
+        const bool dark = IsDarkMode();
+        wxColour face = dark ? wxColour(70, 70, 70) : wxColour(235, 235, 235);
+        if (_pressed) {
+            face = dark ? wxColour(100, 100, 100) : wxColour(200, 200, 200);
+        }
+        dc.SetPen(wxPen(dark ? wxColour(110, 110, 110) : wxColour(160, 160, 160)));
+        dc.SetBrush(wxBrush(face));
+        dc.DrawRoundedRectangle(0, 0, sz.x, sz.y, FromDIP(3));
+        // a triangle with a bar: |< step back, >| step forward
+        wxColour ink = _usable ? (dark ? *wxWHITE : *wxBLACK) : wxColour(150, 150, 150);
+        dc.SetPen(wxPen(ink));
+        dc.SetBrush(wxBrush(ink));
+        const int cx = sz.x / 2, cy = sz.y / 2, h = FromDIP(4), w = FromDIP(4);
+        wxPoint tri[3];
+        if (_dir < 0) {
+            tri[0] = wxPoint(cx + w / 2, cy - h);
+            tri[1] = wxPoint(cx + w / 2, cy + h);
+            tri[2] = wxPoint(cx - w / 2, cy);
+            dc.DrawRectangle(cx - w / 2 - FromDIP(3), cy - h, FromDIP(2), 2 * h + 1);
+        } else {
+            tri[0] = wxPoint(cx - w / 2, cy - h);
+            tri[1] = wxPoint(cx - w / 2, cy + h);
+            tri[2] = wxPoint(cx + w / 2, cy);
+            dc.DrawRectangle(cx + w / 2 + FromDIP(1), cy - h, FromDIP(2), 2 * h + 1);
+        }
+        dc.DrawPolygon(3, tri);
+    }
+
+    int _dir;
+    wxTimer _timer;
+    bool _pressed = false;
+    bool _usable = true;
+};
+
 MainSequencer::MainSequencer(wxWindow* parent, bool smallWaveform, wxWindowID id, const wxPoint& pos, const wxSize& size)
 {
     
@@ -346,7 +445,14 @@ MainSequencer::MainSequencer(wxWindow* parent, bool smallWaveform, wxWindowID id
 
     spdlog::debug("                Create time display control");
     timeDisplay = new TimeDisplayControl(this, wxID_ANY);
-    FlexGridSizer2->Add(timeDisplay, 1, wxALL |wxEXPAND, 0);
+    // the time, with frame step buttons beside its first line
+    wxBoxSizer* timeRow = new wxBoxSizer(wxHORIZONTAL);
+    timeRow->Add(timeDisplay, 1, wxEXPAND, 0);
+    wxBoxSizer* stepButtons = new wxBoxSizer(wxHORIZONTAL);
+    stepButtons->Add(new FrameStepButton(this, -1), 0, wxRIGHT, FromDIP(2));
+    stepButtons->Add(new FrameStepButton(this, 1), 0, 0, 0);
+    timeRow->Add(stepButtons, 0, wxTOP | wxRIGHT, FromDIP(6));
+    FlexGridSizer2->Add(timeRow, 1, wxALL | wxEXPAND, 0);
     FlexGridSizer2->AddGrowableRow(4);
 
     FlexGridSizer2->Fit(this);
@@ -756,6 +862,10 @@ bool MainSequencer::HandleSequencerKeyBinding(wxKeyEvent& event)
                 spdlog::debug("play next tag");
                 wxCommandEvent playEvent(EVT_SEQUENCE_NEXT_TAG);
                 wxPostEvent(xLightsApp::GetFrame(), playEvent);
+            } else if (type == "FRAME_BACK") {
+                xLightsApp::GetFrame()->StepFrame(-1);
+            } else if (type == "FRAME_FORWARD") {
+                xLightsApp::GetFrame()->StepFrame(1);
             }
             else if (type == "AUDIO_FULL_SPEED") {
                 xLightsApp::GetFrame()->SetPlaySpeedTo(1.0);
