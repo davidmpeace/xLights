@@ -11,6 +11,9 @@
 #include "render/ViewpointMgr.h"
 #include <cctype>
 #include <regex>
+#include <algorithm>
+#include <cmath>
+
 #include <glm/mat4x4.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -88,6 +91,17 @@ glm::mat4& PreviewCamera::GetViewMatrix()
         mat_valid = true;
     }
     return view_matrix;
+}
+
+glm::mat4 PreviewCamera::GetProjectionMatrix(float aspect) const
+{
+    if (ortho) {
+        const float halfH = std::max(1.0f, std::abs(distance * zoom)) * std::tan(glm::radians(22.5f));
+        const float halfW = halfH * aspect;
+        // the near plane is where picking rays start, so it stays within reach of the scene
+        return glm::ortho(-halfW, halfW, -halfH, halfH, -50000.0f, 200000.0f);
+    }
+    return glm::perspective(glm::radians(45.0f), aspect, 1.0f, 200000.0f);
 }
 
 void PreviewCamera::SetAngleX(float value)

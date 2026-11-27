@@ -32,6 +32,9 @@ public:
     PreviewCamera(const PreviewCamera &cam);
     PreviewCamera& operator= (const PreviewCamera& rhs);
     glm::mat4& GetViewMatrix();
+    // 3D: what the camera sees, for a view of this width / height. Perspective (45 degree field of view) or, when
+    // orthographic, the same size as the perspective view at the point the camera turns about.
+    glm::mat4 GetProjectionMatrix(float aspect) const;
 
     float GetPosX() const { return posX; }
     float GetPosY() const { return posY; }

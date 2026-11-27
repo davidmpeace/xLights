@@ -1864,18 +1864,15 @@ bool ModelPreview::StartDrawing(wxDouble pointSize, bool fromPaint)
         glm::mat4 ViewRotateZ = glm::rotate(glm::mat4(1.0f), glm::radians(camera3d->GetAngleZ()), glm::vec3(0.0f, 0.0f, 1.0f));
         ViewMatrix = ViewTranslateDistance * ViewRotateX * ViewRotateY * ViewRotateZ * ViewTranslatePan;
         const float aspect = (float)translateToBacking(mWindowWidth) / (float)translateToBacking(mWindowHeight);
+        // the camera's projection, as the "Per Preview" render buffers use it (perspective must match prepare3DViewport)
+        ProjMatrix = camera3d->GetProjectionMatrix(aspect);
+        DrawProjMatrix = ProjMatrix;
         if (camera3d->IsOrtho()) {
-            // the same size as the perspective view at the point the camera turns about, so switching keeps it in place
-            const float halfH = std::max(1.0f, std::abs(camera3d->GetDistance() * camera3d->GetZoom())) * std::tan(glm::radians(22.5f));
-            const float halfW = halfH * aspect;
-            // picking casts rays from the near plane, so it stays within reach of the scene
-            ProjMatrix = glm::ortho(-halfW, halfW, -halfH, halfH, -50000.0f, 200000.0f);
             // Metal and Vulkan keep only the far half of the clip depth: centre it behind the camera so what is
-            // behind the camera still shows, as it should in an orthographic view
-            DrawProjMatrix = glm::ortho(-halfW, halfW, -halfH, halfH, -400000.0f, 200000.0f);
-        } else {
-            ProjMatrix = glm::perspective(glm::radians(45.0f), aspect, 1.0f, 200000.0f);  // this must match prepare3DViewport call // bumped from 20,000 to 200,000 to allow bigger models without clipping
-            DrawProjMatrix = ProjMatrix;
+            // behind the camera still shows, as it should in an orthographic view. Only the depth differs.
+            const float zNear = -400000.0f, zFar = 200000.0f;
+            DrawProjMatrix[2][2] = -2.0f / (zFar - zNear);
+            DrawProjMatrix[3][2] = -(zFar + zNear) / (zFar - zNear);
         }
         ProjViewMatrix = ProjMatrix * ViewMatrix;
 
