@@ -1861,6 +1861,9 @@ Model* ModelManager::CreateDefaultModel(const std::string& type, const std::stri
     model->SetStartChannel(startChannel);
 
     model->Setup();
+    if (auto* fountain = dynamic_cast<DmxFountain*>(model)) {
+        fountain->CreateDefaultSubModels();
+    }
 
     return model;
 }

@@ -26,8 +26,8 @@ class SequenceData;
 //
 // Each light's red, green and blue channels take their own colour from an effect and share one cell (a pump has its
 // own, beside it) in Single Line buffers; in Per Preview the pump and its light sit at the same spot, so a camera
-// looking down paints them by where they are in the pool. Default stays one cell per channel for the DMX effect. Lights / Pumps submodels (and Perimeter / Center ones with a center pump) are kept
-// in step with the layout. Previews fly the water with the same physics as the
+// looking down paints them by where they are in the pool. Default stays one cell per channel for the DMX effect. A new fountain starts with Lights / Pumps submodels (and Perimeter / Center ones
+// with a center pump); after that they are the user's to change. Previews fly the water with the same physics as the
 // Fountain Studio web visualizer (FountainPhysics.h): air drag, the pump's spin-up, water that is already in the
 // air flying on after a pump drops, and spray where falling water lands on rising water.
 class DmxFountain : public DmxModel {
@@ -63,9 +63,10 @@ public:
     // The pump (0-based) a node belongs to, as the pump itself or its light; -1 for anything else.
     [[nodiscard]] int ChannelPump(const NodeBaseClass& node) const;
 
-    // The submodels the fountain keeps for itself: name and node ranges (1-based, a pump followed by its light).
-    [[nodiscard]] std::vector<std::pair<std::string, std::string>> GetAutoSubModels() const;
-    [[nodiscard]] static const std::vector<std::string>& AutoSubModelNames();
+    // The submodels a new fountain starts with: name and node ranges (1-based, a pump followed by its light).
+    [[nodiscard]] std::vector<std::pair<std::string, std::string>> GetDefaultSubModels() const;
+    // Adds those of them it doesn't have (a new model gets them all).
+    void CreateDefaultSubModels();
     void GetPWMOutputs(std::map<uint32_t, PWMOutput>& channels) const override;
     std::list<std::string> CheckModelSettings() override;
 
@@ -162,7 +163,6 @@ private:
     };
 
     void BuildScene(Scene& scene, IModelPreview* preview, float width, float height, bool is3d, bool layoutMode);
-    void SyncSubModels();
     // A channel's value 0-255 as its node holds it (a red, green or blue node keeps only its own component).
     [[nodiscard]] uint8_t NodeLevel(int node) const;
     [[nodiscard]] const SequenceData* RenderedSequence() const;

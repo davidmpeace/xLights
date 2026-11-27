@@ -215,7 +215,6 @@ void DmxFountain::InitModel() {
         }
     }
 
-    SyncSubModels();
     EnsureSeeds();
     _headsK = LLONG_MIN;
 }
@@ -289,13 +288,7 @@ int DmxFountain::ChannelKind(const NodeBaseClass& node) const {
     return 0;
 }
 
-const std::vector<std::string>& DmxFountain::AutoSubModelNames() {
-    static const std::vector<std::string> names{ "Pumps", "Lights", "Perimeter", "Center",
-                                                 "Perimeter Pumps", "Center Pump", "Perimeter Lights", "Center Light" };
-    return names;
-}
-
-std::vector<std::pair<std::string, std::string>> DmxFountain::GetAutoSubModels() const {
+std::vector<std::pair<std::string, std::string>> DmxFountain::GetDefaultSubModels() const {
     auto span = [](int a, int b) { return a == b ? std::to_string(a) : fmt::format("{}-{}", a, b); };
     auto pumps = [&](int i0, int i1) { return span(_pumpChannel + i0, _pumpChannel + i1); };
     auto lights = [&](int i0, int i1) { return span(_lightChannel + i0 * 3, _lightChannel + i1 * 3 + 2); };
@@ -329,36 +322,13 @@ std::vector<std::pair<std::string, std::string>> DmxFountain::GetAutoSubModels()
     return subs;
 }
 
-// Adds the automatic submodels, rebuilds any whose channels moved (keeping its id and aliases) and removes the
-// ones the layout no longer has. The user's own submodels are left alone.
-void DmxFountain::SyncSubModels() {
-    const auto wanted = GetAutoSubModels();
-    for (const auto& name : AutoSubModelNames()) {
-        bool keep = std::any_of(wanted.begin(), wanted.end(), [&](const auto& w) { return w.first == name; });
-        if (!keep && GetSubModel(name) != nullptr) {
-            RemoveSubModel(name);
-        }
-    }
-    for (const auto& [name, ranges] : wanted) {
-        SubModel* old = dynamic_cast<SubModel*>(GetSubModel(name));
-        if (old != nullptr && old->IsRanges() && !old->IsVertical() && old->GetSubModelBufferStyle() == DEFAULT_STYLE &&
-            old->GetNumRanges() == 1 && old->GetRange(0) == ranges) {
+// Only when the model is made: from then on they are the user's to change or delete.
+void DmxFountain::CreateDefaultSubModels() {
+    for (const auto& [name, ranges] : GetDefaultSubModels()) {
+        if (GetSubModel(name) != nullptr) {
             continue;
         }
-        std::string id;
-        std::list<std::string> aliases;
-        if (old != nullptr) {
-            id = old->GetObjectId();
-            aliases = old->GetAliases();
-            RemoveSubModel(name);
-        }
         SubModel* sm = new SubModel(this, name, false, true, DEFAULT_STYLE);
-        if (!id.empty()) {
-            sm->SetObjectId(id);
-        }
-        if (!aliases.empty()) {
-            sm->SetAliases(aliases);
-        }
         AddSubmodel(sm);
         sm->AddDefaultBuffer(ranges);
         sm->CheckDuplicates();
